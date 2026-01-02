@@ -60,7 +60,11 @@
 	let removeHintEl: HTMLParagraphElement;
 	let schemaContainerEl: HTMLDivElement;
 	let rightColumnEl: HTMLDivElement;
-	let leftColumnEl: HTMLDivElement;
+	let middleColumnEl: HTMLDivElement;
+	let routeLabelNode: HTMLElement;
+	let routeNameEl: HTMLInputElement;
+	let labelEl: HTMLLabelElement;
+	let timer: NodeJS.Timeout | string | number | undefined; //ReturnValue<typeof setTimeout>;
 
 	const sleep = async (ms: number) => {
 		return new Promise((resolve) => {
@@ -273,8 +277,9 @@
 	};
 	// FieldsList elements use inline style for high specificity as they are created dynamically
 	// by inserting innerHTML, so the inline style is in the listElCSS variable
-	const listElCSS =
-		'color:black; font-size:14px; font-weight: 400; background-color: skyblue; margin: 2px 0 0 0;';
+	// const listElCSS = `color:black; font-size:16px; font-weight: 400;color:navy;
+	// background-color: skyblue; margin: 1px 0 0 0;line-height:20px;
+	// `;
 
 	// we do not clear all the entries and rebuild from the fields
 	// but just add a newly entered in the Field Name fieldNameId
@@ -294,20 +299,18 @@
 			return name;
 		};
 		// Create elements
-		const div = document.createElement('div');
 		const span = document.createElement('span');
-
-		// Set attributes and content
-		div.className = 'list-el';
-		div.dataset.fieldIndex = getUniqueId();
-		// div.style.setProperty('--hover-display', 'none');
-		div.style.cssText = listElCSS;
-
 		span.className = 'field-text';
 		span.textContent = fieldName;
 
-		// Append structure
+		const div = document.createElement('div');
+		div.className = 'list-el';
+		div.dataset.fieldIndex = getUniqueId();
+		// div.style.cssText = listElCSS;
+
+		// Append span to div
 		div.appendChild(span);
+		// append div to the fieldsListEl
 		(fieldsListEl as HTMLDivElement).appendChild(div);
 
 		// so getBoundingClientRect() can be destructured
@@ -354,10 +357,12 @@
 	function adjustFiledNameAndType(val: string) {
 		val = val.replace(/\\s+/g, '');
 
-		if (!val.match(/\\s*[a-zA-z0-9_]+\\s*\\:\\s*([a-zA-z0-9_]+)/)?.[1]) {
-			val = val.replace(/\\:.*\$/, '') + ': string';
+		const m = val.match(/\s*([a-zA-z0-9_]+)\s*:?\s*([a-zA-z0-9_]+)?$/);
+		if (!m) return val;
+		if (m[2]) {
+			val = `${m[1]}: ${m[2]}`;
 		} else {
-			val = val.replace(/([a-zA-z0-9_]+)\:([a-zA-z0-9_]+)/, '\$1: \$2');
+			val = `${m[1]}: string`;
 		}
 		return val;
 	}
@@ -380,7 +385,16 @@
 	}
 	setTimeout(() => {
 		if (fieldNameEl!) {
-			console.log('keyup on fieldNameEl');
+			(fieldNameEl as HTMLInputElement).addEventListener('change', (event: Event) => {
+				const value = (event.target as HTMLInputElement).value.trim().replace(/:\s*?/, ': ');
+				if (fields.includes(value)) {
+					setTimeout(() => {
+						(fieldNameEl as HTMLInputElement).style.color = 'red';
+					}, 0);
+				} else {
+					(fieldNameEl as HTMLInputElement).style.color = 'black';
+				}
+			});
 			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event) => {
 				// vscode.postMessage({command: 'log',  text: 'fieldNameEl.addEventListener created' });
 				let value = (fieldNameEl as HTMLInputElement).value
@@ -418,11 +432,22 @@
 		msgEl = document.getElementById('msgId') as HTMLDivElement;
 		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
 		fieldsListEl = document.getElementById('fieldsListId') as HTMLDivElement;
-		leftColumnEl = document.getElementById('leftColumnId') as HTMLDivElement;
+		middleColumnEl = document.getElementById('middleColumnId') as HTMLDivElement;
 		rightColumnEl = document.getElementById('rightColumnId') as HTMLDivElement;
 		removeHintEl = document.getElementById('removeHintId') as HTMLParagraphElement;
+		routeNameEl = document.getElementById('routeNameId') as HTMLInputElement;
 		removeHintEl.style.opacity = '0'; // make it as a hidden tooltip
-
+		labelEl = document.querySelector("label[for='routeNameId']") as HTMLLabelElement;
+		console.log(typeof labelEl.childNodes[0] === 'Node.Text');
+		// routeLabelNode = Array.from(labelEl.childNodes).filter(
+		// 	(node) => node.nodeType === Node.TEXT_NODE
+		// )[0] as Text;
+		// const isHTMLElement = (node: Node): node is HTMLElement => node.nodeType === Node.ELEMENT_NODE;
+		// routeLabelNode = Array.from(labelEl.childNodes).find(isHTMLElement) as HTMLModElement;
+		routeLabelNode = labelEl.firstElementChild as HTMLElement;
+		// if (firstElement) {
+		// 	firstElement.style.color = 'blue'; // No casting needed
+		// }
 		schemaContainerEl.innerHTML = pmSD;
 		const enterKeyEvent = new KeyboardEvent('keyup', {
 			key: 'Enter',
@@ -433,15 +458,16 @@
 		});
 		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
 			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
-				leftColumnEl.classList.toggle('left-column-height');
+				middleColumnEl.classList.toggle('middle-column-height');
 				modelName = (event.target as HTMLElement).innerText;
 				const details = (event.target as HTMLElement).closest('details');
 				if (details && details.open) {
 					closeSchemaModels();
+					clearLabelText();
 					(fieldsListEl as HTMLDivElement).innerHTML = '';
 					return;
 				}
-				//    routeNameEl.value = modelName.toLowerCase();
+				routeNameEl.value = modelName.toLowerCase();
 				//    routeNameEl.focus()
 				//    routeNameEl.click()
 				// console.log('uiModels[modelName].fields', uiModels[modelName].fields);
@@ -455,11 +481,18 @@
 						fieldNameEl.dispatchEvent(enterKeyEvent);
 						await sleep(100);
 					}
-					renderField(field.name);
+					renderField(`${field.name}: ${field.type}`);
 				}
 
 				changeLabelText('pink', 'Change Route Name if necessary', 4000);
 				//----------------
+			} else {
+				// clicked on a field name in details section
+				const fieldName = (event.target as HTMLDivElement).innerText;
+				const { type } = uiModels[modelName].fields.filter(
+					(field) => field.name === fieldName
+				)[0] as Field;
+				renderField(`${fieldName}: ${type}`);
 			}
 		});
 	});
@@ -468,8 +501,8 @@
 	let modelName = '';
 
 	function closeSchemaModels() {
-		// routeNameEl.value = '';
-		// fieldNameEl.value = '';
+		routeNameEl.value = '';
+		fieldNameEl.value = '';
 		setTimeout(() => {
 			const children = schemaContainerEl?.children;
 			// console.log(children)
@@ -487,9 +520,10 @@
 		}, 0);
 	}
 </script>
- <div id='crudUIBlockId' class='main-grid hidden'>
-    <div class='grid-wrapper'>
-      <pre class="span-two">
+
+<div id="crudUIBlockId" class="main-grid">
+	<div class="grid-wrapper">
+		<pre class="span-two">
 To create a UI Form for CRUD operations against the underlying ORM fill
 out the <i>Candidate Fields</i> by entering field names in the <i>Field Name</i> input
 box with its datatype, e.g. firstName: string,  and pressing the Enter key
@@ -499,23 +533,62 @@ The UI Form +page.svelte with accompanying +page.server.ts will be
 created in the route specified in the Route Name input box.
       </pre>
 
-      <div class='left-column'>
-        <label for="routeNameId">Route Name
-          <input id="routeNameId" type="text" />
-        </label>
-        <label for='fieldNameId'>Field Name
-          <input id="fieldNameId" type="text" />
-        </label>
-        <button id="createBtnId" disabled>Create CRUD Support</button>
-        <div class='crud-support-done hidden'></div>
-        <div id='messagesId' style='z-index:10;width:20rem;'>Messages:</div>
-      </div>
-<div class="grid-wrapper">
-	<div id="leftColumnId" class="left-column left-column-height">
-		<span class="candidate-fields-caption">Candidate Fields</span>
-		<div class="fields-list fields-list-height" id="fieldsListId"></div>
-		<p id="removeHintId" class="remove-hint">click to remove</p>
+		<div class="left-column">
+			<label for="routeNameId">
+				Route Name
+				<input id="routeNameId" type="text" />
+			</label>
+			<label for="fieldNameId">
+				Field Name
+				<input id="fieldNameId" type="text" />
+			</label>
+			<button id="createBtnId" disabled>Create CRUD Support</button>
+			<div class="crud-support-done hidden"></div>
+			<div id="messagesId" style="z-index:10;width:20rem;">Messages:</div>
+		</div>
+
+		<div id="middleColumnId" class="middle-column middle-column-height">
+			<span class="candidate-fields-caption">Candidate Fields</span>
+			<div class="fields-list fields-list-height" id="fieldsListId"></div>
+			<p id="removeHintId" class="remove-hint">click to remove</p>
+		</div>
+
+		<div style="display:flex;height:1.4re !important;margin:0;padding:0;">
+			<input
+				id="inputBoxWidthId"
+				type="text"
+				value="16rem"
+				style="margin:0 1rem 0 0; padding:0 0 0 1rem;width:7rem;height:1.4rem !important;line-height:1.1rem;display:inline-block;"
+				placeholder="CSS px, rem, ..."
+			/>
+			<label for="CRInput" style="display:inline-block;width:max-content"
+				>All input boxes CSS width</label
+			>
+		</div>
+		<div class="embellishments">
+			<div class="checkbox-item">
+				<input id="CRInput" type="checkbox" checked />
+				<label for="CRInput">CRInput component</label>
+			</div>
+			<div class="checkbox-item">
+				<input id="CRSpinner" type="checkbox" checked />
+				<label for="CRSpinner">CRSpinner component</label>
+			</div>
+			<div class="checkbox-item">
+				<input id="CRActivity" type="checkbox" checked />
+				<label for="CRActivity">CRActivity component</label>
+			</div>
+			<div class="checkbox-item">
+				<input id="CRTooltip" type="checkbox" checked />
+				<label for="CRTooltip">Tooltip component</label>
+			</div>
+			<div class="checkbox-item">
+				<input id="CRSummaryDetail" type="checkbox" checked />
+				<label for="CRSummaryDetail">Summary/Details component</label>
+			</div>
+		</div>
 	</div>
+
 	<div id="rightColumnId" class="right-column">
 		<span
 			class="prisma-model-caption"
@@ -527,6 +600,7 @@ created in the route specified in the Route Name input box.
 		<div id="schemaContainerId"></div>
 	</div>
 </div>
+
 <input type="text" id="fieldNameId" placeholder="fieldNameEl" />
 <div id="msgId">
 	Messages {strModelNames}
@@ -535,57 +609,74 @@ created in the route specified in the Route Name input box.
 <!-- <pre>models {JSON.stringify(models, null, 2)}</pre> -->
 
 <style lang="scss">
-	.grid-wrapper {
+	.main-grid {
 		display: grid;
-		grid-template-columns: 12rem 20rem;
-		gap: 0.5rem;
-		align-items: start;
-		border: 1px solid gray;
-		border-radius: 10px;
-		width: fit-content;
+		grid-template-columns: 33rem 20rem;
 	}
 
+	.grid-wrapper {
+		display: grid;
+		grid-template-columns: 20rem 12rem;
+		column-gap: 0.5rem;
+		row-gap: 1rem;
+	}
+	.crud-support-done {
+		width: max-content;
+		padding: 5px 2rem;
+		margin: 1rem 0 0 0;
+		color: lightgreen;
+		font-size: 14px;
+		border: 1px solid gray;
+		border-radius: 5px;
+		cursor: pointer;
+		text-align: center;
+	}
 	.left-column {
+		border: 1px solid gray;
+		border-radius: 8px;
+		height: 75vh;
+	}
+	// .grid-wrapper {
+	// 	display: grid;
+	// 	grid-template-columns: 12rem 20rem;
+	// 	gap: 0.5rem;
+	// 	align-items: start;
+	// 	border: 1px solid gray;
+	// 	border-radius: 10px;
+	// 	width: fit-content;
+	// }
+
+	.middle-column {
 		position: relative;
 		border: 1px solid gray;
 		border-radius: 5px;
+		padding: 1rem 6px 0 6px;
 		margin-top: 1.45rem;
 		height: auto;
 	}
-	.left-column-height {
+	.middle-column .middle-column-height {
 		height: 30rem !important;
 	}
-	.left-column .candidate-fields-caption {
+	.middle-column .candidate-fields-caption {
 		position: absolute;
 		top: -1.5rem;
 		left: 0.5rem;
 		color: skyblue;
 	}
-
-	.right-column {
-		position: relative;
-		border: 1px solid gray;
-		border-radius: 6px;
-		padding: 6px 3px 8px 10px;
-		margin-top: 1.5rem;
-	}
-	.list-el {
-		background-color: skyblue;
-		width: 100%;
-		height: 20px;
-		font-size: 18px;
-		line-height: 18px;
-		text-align: center;
-		margin: 6px 0 0 0;
-	}
-
-	.list-el:hover {
+	.fields-list {
+		// position: relative;
+		display: grid;
+		grid-template-rows: 1.3rem;
+		grid-auto-rows: 1.3rem;
 		cursor: pointer;
-	}
-	.field-text {
-		display: block;
-		height: 20px;
 		text-align: center;
+		padding: 0;
+		margin: 0 0 2rem 0;
+		p {
+			padding: 0;
+			margin: 0;
+			height: 1rem;
+		}
 	}
 	.remove-hint {
 		position: absolute;
@@ -593,7 +684,7 @@ created in the route specified in the Route Name input box.
 		z-index: 10;
 		font-size: 12px;
 		color: red;
-		// padding: 0 0.5rem 1px 0.5rem;
+		padding: 0 0.5rem 1px 0.5rem;
 		background-color: cornsilk;
 		opacity: 0;
 		text-align: center;
@@ -603,21 +694,50 @@ created in the route specified in the Route Name input box.
 		pointer-events: none;
 		white-space: nowrap;
 	}
-	.fields-list {
+	.right-column {
 		position: relative;
-		display: grid;
-		grid-template-rows: 1.3rem;
-		grid-auto-rows: 1.3rem;
-		cursor: pointer;
+		border: 1px solid gray;
+		border-radius: 6px;
+		padding: 6px 3px 8px 10px;
+		margin-top: 1.5rem;
+	}
+	.span-two,
+	pre {
+		grid-column: 1 / span 2;
+		text-align: justify;
+		font-size: 12px;
+		color: skyblue;
+	}
+	:global(.list-el) {
+		// position: relative;
+		width: 100%;
+		height: 20px;
 		text-align: center;
-		padding: 0;
-		margin: 0 0 2rem 0;
+		font-size: 16px;
+		font-weight: 400;
 		color: navy;
-		p {
-			padding: 0;
-			margin: 0;
-			height: 1rem;
+		background-color: skyblue;
+		margin: 1px 0 0 0;
+		line-height: 20px;
+		:global(p:first-child) {
+			border-top-left-radius: 6px !important;
+			border-top-right-radius: 6px !important;
+			background-color: yellow;
 		}
+		:global(p:last-child) {
+			border-bottom-left-radius: 6px !important;
+			border-bottom-right-radius: 6px !important;
+		}
+	}
+
+	.list-el:hover {
+		cursor: pointer;
+	}
+	.field-text {
+		// position: relative;
+		display: block;
+		height: 20px;
+		text-align: center;
 	}
 
 	// .model-name {
