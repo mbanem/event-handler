@@ -285,9 +285,7 @@
 			const listEls = (fieldsListEl as HTMLDivElement).querySelectorAll(
 				'.list-el'
 			) as NodeListOf<HTMLDivElement>;
-			console.log(listEls);
 			let name = '';
-			// forEach
 			listEls.forEach((listEl) => {
 				if (listEl.dataset.fieldIndex === index) {
 					name = (listEl.firstChild as HTMLDivElement)?.innerText;
@@ -302,7 +300,7 @@
 		// Set attributes and content
 		div.className = 'list-el';
 		div.dataset.fieldIndex = getUniqueId();
-		div.style.setProperty('--hover-display', 'none');
+		// div.style.setProperty('--hover-display', 'none');
 		div.style.cssText = listElCSS;
 
 		span.className = 'field-text';
@@ -363,40 +361,63 @@
 		}
 		return val;
 	}
-	if (fieldNameEl!) {
-		(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event) => {
-			console.log('keyup on fieldNameEl');
-			// vscode.postMessage({command: 'log',  text: 'fieldNameEl.addEventListener created' });
-			let value = (fieldNameEl as HTMLInputElement).value.trim().replace(/\\bstring\\b/, 'String');
-			if (!value) {
-				// vscode.postMessage({command: 'log',  text: 'field is empty' });
-				return;
-			}
-			value = adjustFiledNameAndType(value);
-			if (fields.includes(value)) {
-				setTimeout(() => {
-					(fieldNameEl as HTMLInputElement).style.color = 'red';
-				}, 0);
-				return;
-			}
-			if ((fieldNameEl as HTMLInputElement).style.color === 'red') {
-				(fieldNameEl as HTMLInputElement).style.color = 'black';
-			}
-			if (event.key !== 'Enter') return;
-			fields.push(value);
-			// disableCreateButton();
-			renderField(value);
-			(fieldNameEl as HTMLInputElement).value = '';
-			scroll(fieldsListEl as HTMLDivElement as HTMLDivElement);
-		});
+	function clearLabelText() {
+		clearTimeout(timer);
+
+		labelEl.style.color = '';
+		routeLabelNode.textContent = 'Route Name';
 	}
+	function changeLabelText(color: string, text: string, duration: number) {
+		// Update the first (and likely only) text node
+		const nodeText = routeLabelNode.textContent;
+		// vscode.postMessage({command:'log', text: 'found textNode '+ nodeText})
+		routeLabelNode.textContent = text;
+		labelEl.style.color = color;
+		timer = setTimeout(() => {
+			routeLabelNode.textContent = nodeText;
+			labelEl.style.color = '';
+		}, duration);
+	}
+	setTimeout(() => {
+		if (fieldNameEl!) {
+			console.log('keyup on fieldNameEl');
+			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event) => {
+				// vscode.postMessage({command: 'log',  text: 'fieldNameEl.addEventListener created' });
+				let value = (fieldNameEl as HTMLInputElement).value
+					.trim()
+					.replace(/\\bstring\\b/, 'String');
+				if (!value) {
+					// vscode.postMessage({command: 'log',  text: 'field is empty' });
+					return;
+				}
+				value = adjustFiledNameAndType(value);
+				if (fields.includes(value)) {
+					setTimeout(() => {
+						(fieldNameEl as HTMLInputElement).style.color = 'red';
+					}, 0);
+					return;
+				}
+				if ((fieldNameEl as HTMLInputElement).style.color === 'red') {
+					(fieldNameEl as HTMLInputElement).style.color = 'black';
+				}
+				if (event.key !== 'Enter') return;
+				fields.push(value);
+				// disableCreateButton();
+				renderField(value);
+				(fieldNameEl as HTMLInputElement).value = '';
+				scroll(fieldsListEl as HTMLDivElement as HTMLDivElement);
+			});
+		} else {
+			console.log('NO keyup on fieldNameEl');
+		}
+	}, 200);
 	// let fields: string[] = [];
 
 	onMount(() => {
+		fieldNameEl = document.getElementById('fieldNameId') as HTMLInputElement;
 		msgEl = document.getElementById('msgId') as HTMLDivElement;
 		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
 		fieldsListEl = document.getElementById('fieldsListId') as HTMLDivElement;
-		fieldNameEl = document.getElementById('fieldNameId') as HTMLInputElement;
 		leftColumnEl = document.getElementById('leftColumnId') as HTMLDivElement;
 		rightColumnEl = document.getElementById('rightColumnId') as HTMLDivElement;
 		removeHintEl = document.getElementById('removeHintId') as HTMLParagraphElement;
@@ -411,7 +432,6 @@
 			bubbles: true
 		});
 		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
-			console.log('schemaContainerEl clicked');
 			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
 				leftColumnEl.classList.toggle('left-column-height');
 				modelName = (event.target as HTMLElement).innerText;
@@ -425,41 +445,21 @@
 				//    routeNameEl.focus()
 				//    routeNameEl.click()
 				// console.log('uiModels[modelName].fields', uiModels[modelName].fields);
-				let candidates = ``;
+				// let candidates = ``;
 				fields = [];
 
 				for (const field of uiModels[modelName].fields) {
-					// for(const [name, type, attrs] of fields){
 					fields.push(`${field.name}: ${field.type}`);
 					if (fieldNameEl) {
 						fieldNameEl.value = field.name;
 						fieldNameEl.dispatchEvent(enterKeyEvent);
 						await sleep(100);
 					}
-					// renderField(field.name);
-					candidates += `<p>${field.name}: ${field.type}</p>`;
-					// }
-					fieldsListEl.innerHTML = candidates;
+					renderField(field.name);
 				}
 
-				console.log(modelName, uiModels[modelName]);
-				//    changeLabelText('pink', 'Change Route Name if necessary', 4000)
+				changeLabelText('pink', 'Change Route Name if necessary', 4000);
 				//----------------
-				if (models) {
-					let selectedFields = ``;
-					try {
-						for (const field of models[modelName].fields) {
-							selectedFields += `<p>${field}: `;
-						}
-						// msgEl.innerHTML += '<pre>fields<br/>'+ JSON.stringify(models[modelName].fields,null,2) + '</pre>';
-						return;
-					} catch (err) {
-						const msg = err instanceof Error ? err.message : String(err);
-						msgEl.innerHTML += '<br/>fieldModels[modelName] NOT found err: ' + msg;
-					}
-				} else {
-					msgEl.innerHTML += '<br/>SUMMARY fieldModels NOT found';
-				}
 			}
 		});
 	});
@@ -487,7 +487,29 @@
 		}, 0);
 	}
 </script>
+ <div id='crudUIBlockId' class='main-grid hidden'>
+    <div class='grid-wrapper'>
+      <pre class="span-two">
+To create a UI Form for CRUD operations against the underlying ORM fill
+out the <i>Candidate Fields</i> by entering field names in the <i>Field Name</i> input
+box with its datatype, e.g. firstName: string,  and pressing the Enter key
+or expand a table from the <i>Select Fields from ORM</i> block and click on
+a field name avoiding the auto-generating fields usually colored in pink.
+The UI Form +page.svelte with accompanying +page.server.ts will be 
+created in the route specified in the Route Name input box.
+      </pre>
 
+      <div class='left-column'>
+        <label for="routeNameId">Route Name
+          <input id="routeNameId" type="text" />
+        </label>
+        <label for='fieldNameId'>Field Name
+          <input id="fieldNameId" type="text" />
+        </label>
+        <button id="createBtnId" disabled>Create CRUD Support</button>
+        <div class='crud-support-done hidden'></div>
+        <div id='messagesId' style='z-index:10;width:20rem;'>Messages:</div>
+      </div>
 <div class="grid-wrapper">
 	<div id="leftColumnId" class="left-column left-column-height">
 		<span class="candidate-fields-caption">Candidate Fields</span>
