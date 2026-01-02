@@ -284,12 +284,33 @@
 	// we do not clear all the entries and rebuild from the fields
 	// but just add a newly entered in the Field Name fieldNameId
 	let fields: string[] = [];
-
+	function closeDetails(dets: HTMLCollection) {
+		for (const child of Object.entries(dets)) {
+			(child[1].children[0] as HTMLElement).removeAttribute('open');
+		}
+	}
+	function getListEls() {
+		return (fieldsListEl as HTMLDivElement).querySelectorAll(
+			'.list-el'
+		) as NodeListOf<HTMLDivElement>;
+	}
+	function clearListEls() {
+		(fieldsListEl as HTMLDivElement).innerHTML = '';
+	}
+	function isInListEls(field: Field) {
+		let found = false;
+		// check if field is already in the candidates list
+		const regex = new RegExp(`\\b${field.name}\\b`);
+		getListEls().forEach((listEl) => {
+			if (regex.test((listEl.firstElementChild as HTMLSpanElement).innerText)) {
+				found = true;
+			}
+		});
+		return found;
+	}
 	function renderField(fieldName: string) {
+		const listEls = getListEls();
 		const fieldNameFromIndex = (index: string) => {
-			const listEls = (fieldsListEl as HTMLDivElement).querySelectorAll(
-				'.list-el'
-			) as NodeListOf<HTMLDivElement>;
 			let name = '';
 			listEls.forEach((listEl) => {
 				if (listEl.dataset.fieldIndex === index) {
@@ -438,16 +459,7 @@
 		routeNameEl = document.getElementById('routeNameId') as HTMLInputElement;
 		removeHintEl.style.opacity = '0'; // make it as a hidden tooltip
 		labelEl = document.querySelector("label[for='routeNameId']") as HTMLLabelElement;
-		console.log(typeof labelEl.childNodes[0] === 'Node.Text');
-		// routeLabelNode = Array.from(labelEl.childNodes).filter(
-		// 	(node) => node.nodeType === Node.TEXT_NODE
-		// )[0] as Text;
-		// const isHTMLElement = (node: Node): node is HTMLElement => node.nodeType === Node.ELEMENT_NODE;
-		// routeLabelNode = Array.from(labelEl.childNodes).find(isHTMLElement) as HTMLModElement;
 		routeLabelNode = labelEl.firstElementChild as HTMLElement;
-		// if (firstElement) {
-		// 	firstElement.style.color = 'blue'; // No casting needed
-		// }
 		schemaContainerEl.innerHTML = pmSD;
 		const enterKeyEvent = new KeyboardEvent('keyup', {
 			key: 'Enter',
@@ -473,8 +485,11 @@
 				// console.log('uiModels[modelName].fields', uiModels[modelName].fields);
 				// let candidates = ``;
 				fields = [];
-
+				clearListEls();
 				for (const field of uiModels[modelName].fields) {
+					if (stopRenderField) {
+						break;
+					}
 					fields.push(`${field.name}: ${field.type}`);
 					if (fieldNameEl) {
 						fieldNameEl.value = field.name;
@@ -492,6 +507,9 @@
 				const { type } = uiModels[modelName].fields.filter(
 					(field) => field.name === fieldName
 				)[0] as Field;
+				if (isInListEls({ name: `${fieldName}`, type: `${type}` })) {
+					return;
+				}
 				renderField(`${fieldName}: ${type}`);
 			}
 		});
@@ -499,25 +517,18 @@
 	// -----------------------------------
 	// for Wevschema Extension
 	let modelName = '';
-
+	let stopRenderField = false;
 	function closeSchemaModels() {
+		stopRenderField = true;
+		fields = [];
 		routeNameEl.value = '';
 		fieldNameEl.value = '';
+		const children = schemaContainerEl?.children as HTMLCollection;
+		closeDetails(children);
 		setTimeout(() => {
-			const children = schemaContainerEl?.children;
-			// console.log(children)
-			if (children) {
-				for (const child of Object.entries(children)) {
-					// console.log(child.tagName)
-					// const det = child;
-					// if (child.hasAttribute('open')) {
-					// 	child.removeAttribute('open');
-					// }
-				}
-			}
-			// fields = [];
-			// fieldsListEl.innerHTML = '';
-		}, 0);
+			fieldsListEl.innerHTML = '';
+			stopRenderField = false;
+		}, 100);
 	}
 </script>
 
