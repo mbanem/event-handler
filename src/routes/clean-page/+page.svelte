@@ -474,9 +474,14 @@
 				modelName = (event.target as HTMLElement).innerText;
 				const details = (event.target as HTMLElement).closest('details');
 				if (details && details.open) {
-					closeSchemaModels();
+					stopRenderField = true;
+					setTimeout(() => {
+						// has to use setTimeout as the element is still in opening
+						details.removeAttribute('open');
+						stopRenderField = false;
+						(fieldsListEl as HTMLDivElement).innerHTML = '';
+					}, 200);
 					clearLabelText();
-					(fieldsListEl as HTMLDivElement).innerHTML = '';
 					return;
 				}
 				routeNameEl.value = modelName.toLowerCase();
@@ -601,12 +606,13 @@ created in the route specified in the Route Name input box.
 	</div>
 
 	<div id="rightColumnId" class="right-column">
+		<span class="prisma-model-caption-one">Select Fields from ORM</span>
 		<span
-			class="prisma-model-caption"
+			class="prisma-model-caption-two"
 			onclick={closeSchemaModels}
 			onkeypress={closeSchemaModels}
 			role="button"
-			tabindex="0">Select Fields from ORM</span
+			tabindex="0">(collapse all)</span
 		>
 		<div id="schemaContainerId"></div>
 	</div>
@@ -772,13 +778,21 @@ created in the route specified in the Route Name input box.
 		overflow-y: auto;
 	}
 
-	.right-column .prisma-model-caption {
-		position: absolute;
-		top: -1.5rem;
-		left: 0.5rem;
-		display: inline-block;
-		color: skyblue;
-		cursor: pointer;
+	.right-column {
+		.prisma-model-caption-one,
+		.prisma-model-caption-two {
+			position: absolute;
+			top: -1.5rem;
+			left: 0.5rem;
+			display: inline-block;
+			color: skyblue;
+			cursor: pointer;
+		}
+		.prisma-model-caption-two {
+			left: 15rem;
+			font-size: 13px;
+			line-height: 22px;
+		}
 	}
 	.hidden {
 		display: none;
