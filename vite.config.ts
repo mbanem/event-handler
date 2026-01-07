@@ -7,6 +7,9 @@ export default defineConfig({
 		preprocessorOptions: {
 			scss: {
 				api: 'modern-compiler', // or "modern"
+				// svelte.config.js must define $styles alias as
+				// './src/styles/mixins' does not work in this version
+				additionalData: "@use '$styles/mixins' as *;"
 			}
 		}
 	},

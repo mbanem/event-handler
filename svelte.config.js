@@ -15,6 +15,9 @@ const config = {
 		adapter: adapter(),
 		alias: {
 			$lib: './src/lib/',
+			// must define $styles alias as vite.config cannot find './src/styles'
+			// in this version
+			$styles: './src/styles/',
 		}
 	}
 }

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { schema } from './schema_prisma';
 	import { handleTryCatch } from '$lib/utils/index';
+
 	type Field = { name: string; type: string; attrs?: string };
 	type Model = {
 		fields: { name: string; type: string; attrs?: string }[];
@@ -11,7 +12,16 @@
 	let models: Models = {};
 	let uiModels: Models = {};
 	let nuiModels: Models = {};
+	let modelName = '';
 
+	type fieldNames = {
+		modelName: string;
+		namesList: string;
+	};
+	let fieldNames: Record<string, string> = {};
+	let fieldStrips: Record<string, string> = {};
+	let fieldsListEl: HTMLDivElement;
+	let fieldListsInitialized = false;
 	const UI = {
 		ui: 'ui',
 		namesOnly: 'namesOnly',
@@ -54,27 +64,21 @@
 	const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms;
 
 	// FIELDS
-	let msgEl: HTMLDivElement;
-	let fieldsListEl: HTMLDivElement;
-	let fieldNameEl: HTMLInputElement;
+	// let msgEl: HTMLDivElement;
 	let removeHintEl: HTMLParagraphElement;
 	let schemaContainerEl: HTMLDivElement;
-	let rightColumnEl: HTMLDivElement;
 	let middleColumnEl: HTMLDivElement;
-	let routeLabelNode: HTMLElement;
-	let routeNameEl: HTMLInputElement;
-	let labelEl: HTMLLabelElement;
-	let timer: NodeJS.Timeout | string | number | undefined; //ReturnValue<typeof setTimeout>;
 
-	const sleep = async (ms: number) => {
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				// ms here is a dummy but required by
-				// resolve to send out some value
-				resolve(ms);
-			}, ms);
-		});
-	};
+	let routeLabelNode: HTMLElement;
+	let routeLabelEl: HTMLLabelElement;
+	let routeNameEl: HTMLInputElement;
+
+	let fieldLabelNode: HTMLElement;
+	let fieldLabelEl: HTMLLabelElement;
+	let fieldNameEl: HTMLInputElement;
+
+	let timer: NodeJS.Timeout | string | number | undefined; //ReturnValue<typeof setTimeout>;
+	let fieldNameAndType = 'Field Name and Type';
 	/**
 	 * check if field is UI/data-entry field
 	 * @param field: type Field= { name: string; type: string; attrs?: string }
@@ -101,7 +105,7 @@
 	}
 
 	/**
-	 * makes list od model name |User|Profile|Todo|...
+	 * makes list od model names |User|Profile|Todo|...
 	 * @param schema.prisma
 	 */
 	function makeStrModelNames(schemaContent: string) {
@@ -117,22 +121,31 @@
 	function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
 		let orderedFields: { name: string; type: string; attrs?: string }[] = [];
 		let leftoverFields: { name: string; type: string; attrs?: string }[] = [];
-		// const uiModels:Models = {}
-		// const nuiModels:Models = {}
 		for (const [modelName, model] of Object.entries(models)) {
+			let uiNames = '|';
+			let uiStrips = '|';
+			fieldNames[modelName] = '';
+			fieldStrips[modelName] = '';
 			// must create entry for model name as uiModels[modelName].fields
-			// as two step deep does not exists yet
+			// are two-step deep so it does not exists until first ste is done
 			uiModels[modelName] = { fields: [], attrs: [] };
 			nuiModels[modelName] = { fields: [], attrs: [] };
 			if (kind === UI.ui || kind === UI.all) {
 				for (const key of ordered) {
 					// ordered array holds UI/data-entry field names
-					orderedFields.push(model.fields.find((field) => field.name === key) as Field);
+					const field = model.fields.find((field) => field.name === key) as Field;
+					if (field) {
+						orderedFields.push(field);
+						uiNames += field.name + '|';
+						uiStrips += `${field.name}: ${field.type}` + '|';
+					}
 				}
 				for (const field of model.fields) {
 					// for rest of fields not selected by ordered test if they are UI candidates
 					if (!orderedFields.includes(field) && isUICandidate(field)) {
 						orderedFields.push(field);
+						uiNames += field.name + '|';
+						uiStrips += `${field.name}: ${field.type}` + '|';
 					}
 				}
 			}
@@ -145,15 +158,17 @@
 			uiModels[modelName].fields = orderedFields;
 			nuiModels[modelName].fields = leftoverFields;
 			nuiModels[modelName].attrs = models[modelName].attrs;
-			// prepare for next model
+			fieldNames[modelName] = uiNames;
+			fieldStrips[modelName] = uiStrips;
+			// cr-prepare for next model
 			orderedFields = [];
 			leftoverFields = [];
+			uiNames = '';
 		}
 		return [uiModels, nuiModels];
 	}
-
 	/**
-	 * build const models:RMNameMInfo = Record<ModelName, ModelInfo>
+	 * build const models = Record<ModelName, Model>
 	 * @param (schemaContent) from schema.prisma
 	 */
 	function parsePrismaSchema(schemaContent: string): void {
@@ -211,7 +226,6 @@
 				fields = [];
 			}
 		} catch (err) {
-			console.log('Again!');
 			handleTryCatch(err);
 		}
 		[uiModels, nuiModels] = sortModelsByOrdered(models, UI.all);
@@ -219,33 +233,29 @@
 	}
 
 	parsePrismaSchema(schema);
-	let pmSD = ``;
-	// models = uiModels another reference to tht same uiModel
-	// so we must deep copy to models
+	// schema = ''; TODO in Webview component get read from this file content
+	let prismaSumDetailsBlock = ``;
+	// models = uiModels is another reference to the same uiModel
+	// so we must deep copy to the models
 	models = {};
 	for (const [modelName, model] of Object.entries(uiModels)) {
 		models[modelName] = { fields: [], attrs: [] };
 		models[modelName].fields = model.fields;
 	}
 	for (const [modelName, model] of Object.entries(models)) {
-		// console.log(modelName, model);
 		model.fields = [...model.fields, ...nuiModels[modelName].fields];
 		model.attrs = nuiModels[modelName].attrs;
 	}
-	// console.log('models', models)
 
-	// Object.entries() return [key,value] key is modelName, value is model
-	// fields cannot be deeply destructured as it is an array, whic is not destructurable
+	// Object.entries() return [key,value] -- key is modelName, value is model
+	// fields cannot be deeply destructured as it is an array, which is not destructurable
 	for (const [modelName, model] of Object.entries(models)) {
-		// console.log(modelName, model)
-		pmSD += `<div class='prisma-model-block>'>
+		prismaSumDetailsBlock += `<div class='cr-model-block>'>
 		<details>
-			<summary class='model-name'>${modelName}</summary>
-				<div  class='fields-column'>
+			<summary class='cr-model-name'>${modelName}</summary>
+				<div  class='cr-fields-column'>
 				`;
-		// console.log(model.fields, model.attrs)
 		for (const field of model.fields) {
-			// console.log('RR', field);
 			const { name, type, attrs } = field;
 			if (
 				attrs?.includes('@id') ||
@@ -254,53 +264,119 @@
 				attrs?.includes('@unique')
 			) {
 				const color = attrs.includes('@id') ? 'lightgreen' : 'pink';
-				pmSD += `<p>${name}</p><p>type:${type} <span style='color:${color}'>${attrs ?? 'na'}</span></p>`;
+				prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span style='color:${color}'>${attrs ?? 'na'}</span></p>`;
 			} else {
-				pmSD += `<p>${name}</p><p>type:${type} ${attrs ?? 'na'}</p>`;
+				prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} ${attrs ?? 'na'}</p>`;
 			}
 		}
-		pmSD += `</div>
+		prismaSumDetailsBlock += `</div>
 		`;
 		for (const attr of model.attrs as string[]) {
-			pmSD += `<p class='model-attr'>${attr}</p>
+			prismaSumDetailsBlock += `<p class='cr-model-attr'>${attr}</p>
 			`;
 		}
-		pmSD += `</details>
+		prismaSumDetailsBlock += `</details>
 		</div>
 		`;
 	}
-	// for removing element from the fields list every fieldName is given short id
-	// as data-field-index HTML attribute and received on click event and read
+	// for finding an element from the fields list every fieldName is given id
+	// as data-field-index HTML attribute and retrieved on click event and read
+	// as element.dataset.fieldIndex
 	const getUniqueId = () => {
-		// convert to a string of an integer from base 36
+		// convert to a string from an integer of base 36
 		return Math.random().toString(36).slice(2);
 	};
-	// FieldsList elements use inline style for high specificity as they are created dynamically
-	// by inserting innerHTML, so the inline style is in the listElCSS variable
-	// const listElCSS = `color:black; font-size:16px; font-weight: 400;color:navy;
-	// background-color: skyblue; margin: 1px 0 0 0;line-height:20px;
+	// FieldsList elements use inline style for high specificity as they are created
+	// dynamically by inserting into innerHTML
 	// `;
 
 	// we do not clear all the entries and rebuild from the fields
 	// but just add a newly entered in the Field Name fieldNameId
 	let fields: string[] = [];
+	/**
+	 * Closes all opened <details>
+	 * @param dets
+	 */
 	function closeDetails(dets: HTMLCollection) {
 		for (const child of Object.entries(dets)) {
 			(child[1].children[0] as HTMLElement).removeAttribute('open');
 		}
 	}
+
+	/**
+	 * querySelector for candidate fieldsheld in CSS class '.cr-list-el' entries
+	 */
 	function getListEls() {
 		return (fieldsListEl as HTMLDivElement).querySelectorAll(
-			'.list-el'
+			'.cr-list-el'
 		) as NodeListOf<HTMLDivElement>;
 	}
+
+	/**<details><summary>
+	 * return built |fieldName: type| string of expanded fields
+	 */
+	let pipeElsString = `!`;
+
+	/**
+	 * clears candidate field list
+	 */
 	function clearListEls() {
 		(fieldsListEl as HTMLDivElement).innerHTML = '';
 	}
+
+	/**
+	 * Acceptable field: formatOK not in fieldStrips not in listEls is in fieldStrips[modelName]
+	 * @param value
+	 */
+	function isFieldAcceptable(value: string) {
+		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
+		const inListEls = isInListEls({ name, type });
+		if (!isFieldFormatValid(value) || !isInFieldStrips(value) || inListEls) {
+			setLabelCaption(
+				'pink',
+				inListEls ? 'Already selected' : 'Incorrect format or unacceptable',
+				2000,
+				'field'
+			);
+			return false;
+		}
+		return true;
+	}
+	/**
+	 * must have fieldName: valid type
+	 * @param value
+	 */
+	function isFieldFormatValid(value: string) {
+		if (!value.includes(':')) {
+			return false;
+		}
+		value = value.trim().replace(/\s+/g, ' ');
+		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
+		const tp = '|string|number|boolean|Date|Role|'.includes(`|${type}|`);
+		return name && type && tp;
+	}
+
+	/**
+	 * fieldStrip in '|id: string|completed: boolean|updatedAt: Date|'
+	 * @param field
+	 */
+	function isInFieldStrips(fieldStrip: string) {
+		console.log('fieldStrips', fieldStrips[modelName]);
+		if (!fieldListsInitialized) {
+			// not yet collected but Prisma fields are rendered initially
+			return true;
+		}
+		return fieldStrips[modelName].includes(`|${fieldStrip}|`);
+	}
 	function isInListEls(field: Field) {
+		if (!fieldListsInitialized) {
+			// not yet collected but Prisma fields are rendered initially
+			return false;
+		}
 		let found = false;
 		// check if field is already in the candidates list
 		const regex = new RegExp(`\\b${field.name}\\b`);
+
 		getListEls().forEach((listEl) => {
 			if (regex.test((listEl.firstElementChild as HTMLSpanElement).innerText)) {
 				found = true;
@@ -308,41 +384,54 @@
 		});
 		return found;
 	}
-	function renderField(fieldName: string) {
-		const listEls = getListEls();
-		const fieldNameFromIndex = (index: string) => {
-			let name = '';
-			listEls.forEach((listEl) => {
-				if (listEl.dataset.fieldIndex === index) {
-					name = (listEl.firstChild as HTMLDivElement)?.innerText;
-				}
-			});
-			return name;
-		};
-		// Create elements
+	function addToFieldList(fieldName: string) {
+		// Create nested  elements
 		const span = document.createElement('span');
-		span.className = 'field-text';
 		span.textContent = fieldName;
 
 		const div = document.createElement('div');
-		div.className = 'list-el';
+		div.className = 'cr-list-el';
 		div.dataset.fieldIndex = getUniqueId();
-		// div.style.cssText = listElCSS;
 
 		// Append span to div
 		div.appendChild(span);
 		// append div to the fieldsListEl
 		(fieldsListEl as HTMLDivElement).appendChild(div);
-
-		// so getBoundingClientRect() can be destructured
-		// const { x, y } = (fieldsListEl as HTMLDivElement).getBoundingClientRect()
+	}
+	/**
+	 * renders a field showing a tooltop 'click to remove' when hovered
+	 * @param fieldName
+	 */
+	function renderField(fieldName: string, source: string) {
+		if (!isFieldAcceptable(fieldName)) {
+			setLabelCaption('pink', 'Not acceptable field', 2000, 'field');
+			return;
+		}
+		const listEls = getListEls();
+		// nested function
+		/**
+		 * click-handler gets field name event.target from data-field-index
+		 *
+		 */
+		const fieldNameFromIndex = (index: string) => {
+			let name = '';
+			listEls.forEach((listEl) => {
+				if (listEl.dataset.fieldIndex === index) {
+					name = (listEl as HTMLDivElement)?.innerText;
+				}
+			});
+			return name;
+		};
 		setTimeout(() => {
+			addToFieldList(fieldName);
+			// so getBoundingClientRect() can be destructured
+			// const { x, y } = (fieldsListEl as HTMLDivElement).getBoundingClientRect()
+
 			const listEls = (fieldsListEl as HTMLDivElement).querySelectorAll(
-				'.list-el'
+				'.cr-list-el'
 			) as NodeListOf<HTMLDivElement>;
 			listEls.forEach((el) => {
 				el.addEventListener('mouseenter', () => {
-					// if (noRemoveHint) return;
 					removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
 					removeHintEl.style.left = String(el.offsetLeft + 12) + 'px';
 					removeHintEl.style.opacity = '1';
@@ -362,12 +451,25 @@
 					const index = el.dataset.fieldIndex;
 					const fieldName = fieldNameFromIndex(index as string);
 					fields = fields.filter((fname) => fname !== fieldName);
+					if (el.innerText) {
+						const fn = el.innerText.match(/([^:]+)/)?.[1];
+						fieldNames[modelName] = fieldNames[modelName].replace(new RegExp(`\\|${fn}\\|`), '|');
+						fieldStrips[modelName] = fieldStrips[modelName].replace(
+							new RegExp(`\\|${el.innerText}\\|`),
+							'|'
+						);
+					}
 					el.remove();
 				});
 			});
-		}, 400);
+			fieldListsInitialized = true;
+		}, 0);
 	}
 
+	/**
+	 * scrols fields list to show the last element
+	 * @param el
+	 */
 	const scroll = (el: HTMLDivElement) => {
 		if (el.offsetHeight + el.scrollTop > el.getBoundingClientRect().height - 20) {
 			setTimeout(() => {
@@ -375,6 +477,10 @@
 			}, 0);
 		}
 	};
+	/**
+	 * ensures field entry is a fieldName: type
+	 * @param val
+	 */
 	function adjustFiledNameAndType(val: string) {
 		val = val.replace(/\\s+/g, '');
 
@@ -382,96 +488,110 @@
 		if (!m) return val;
 		if (m[2]) {
 			val = `${m[1]}: ${m[2]}`;
-		} else {
-			val = `${m[1]}: string`;
 		}
 		return val;
 	}
+	/**
+	 * clear a label message after timeout
+	 */
 	function clearLabelText() {
 		clearTimeout(timer);
 
-		labelEl.style.color = '';
+		routeLabelEl.style.color = '';
 		routeLabelNode.textContent = 'Route Name';
 	}
-	function changeLabelText(color: string, text: string, duration: number) {
-		// Update the first (and likely only) text node
-		const nodeText = routeLabelNode.textContent;
-		// vscode.postMessage({command:'log', text: 'found textNode '+ nodeText})
-		routeLabelNode.textContent = text;
-		labelEl.style.color = color;
-		timer = setTimeout(() => {
-			routeLabelNode.textContent = nodeText;
-			labelEl.style.color = '';
-		}, duration);
+	/**
+	 * temporarily change label text and returns after timeoit
+	 * @param color
+	 * @param text
+	 * @param duration
+	 */
+	function setLabelCaption(color: string, text: string, duration: number, type: string = 'route') {
+		// preserve text to restore at timeout
+		const [node, label, restore] =
+			type === 'route'
+				? [routeLabelNode, routeLabelEl, 'Route Name']
+				: [fieldLabelNode, fieldLabelEl, fieldNameAndType];
+		node.textContent = text;
+		label.style.color = color;
+		if (duration > 0) {
+			timer = setTimeout(() => {
+				node.textContent = restore;
+				label.style.color = '';
+			}, duration);
+		} else if (color === 'pink') {
+			clear = [node, label];
+		}
 	}
+	let clear: Array<HTMLElement> = [];
+	let nokeyup = false;
 	setTimeout(() => {
-		if (fieldNameEl!) {
+		if (fieldNameEl) {
+			// --------- field name data entry handler ---------------
+
 			(fieldNameEl as HTMLInputElement).addEventListener('change', (event: Event) => {
-				const value = (event.target as HTMLInputElement).value.trim().replace(/:\s*?/, ': ');
-				if (fields.includes(value)) {
-					setTimeout(() => {
-						(fieldNameEl as HTMLInputElement).style.color = 'red';
-					}, 0);
-				} else {
-					(fieldNameEl as HTMLInputElement).style.color = 'black';
+				// --------- field name data entry handler ---------------
+				//				console.log('<input fieldName change');
+				nokeyup = true;
+				if (clear.length) {
+					setLabelCaption('black', 'FieldName and Type', 0, 'field');
+					clear = [];
 				}
+				const value = (event.target as HTMLInputElement).value.trim();
+				if (!value || !isFieldAcceptable(value)) {
+					return;
+				}
+				renderField(value, 'change');
 			});
-			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event) => {
-				// vscode.postMessage({command: 'log',  text: 'fieldNameEl.addEventListener created' });
-				let value = (fieldNameEl as HTMLInputElement).value
-					.trim()
-					.replace(/\\bstring\\b/, 'String');
-				if (!value) {
-					// vscode.postMessage({command: 'log',  text: 'field is empty' });
+			// ------------- KEYUP HANDLER  keyboard handler ---------------------
+			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
+				// ----------- KEYUP HANDLER  keyboard handler ---------------------
+
+				if (nokeyup) {
+					nokeyup = false;
 					return;
 				}
+
+				let value = (fieldNameEl as HTMLInputElement).value.trim();
+				if (!value || !isFieldAcceptable(value)) {
+					return;
+				}
+
 				value = adjustFiledNameAndType(value);
-				if (fields.includes(value)) {
-					setTimeout(() => {
-						(fieldNameEl as HTMLInputElement).style.color = 'red';
-					}, 0);
-					return;
-				}
-				if ((fieldNameEl as HTMLInputElement).style.color === 'red') {
-					(fieldNameEl as HTMLInputElement).style.color = 'black';
-				}
-				if (event.key !== 'Enter') return;
-				fields.push(value);
-				// disableCreateButton();
-				renderField(value);
-				(fieldNameEl as HTMLInputElement).value = '';
+				renderField(value, 'keyup');
 				scroll(fieldsListEl as HTMLDivElement as HTMLDivElement);
 			});
-		} else {
-			console.log('NO keyup on fieldNameEl');
 		}
 	}, 200);
-	// let fields: string[] = [];
 
+	nuiModels = {};
 	onMount(() => {
 		fieldNameEl = document.getElementById('fieldNameId') as HTMLInputElement;
-		msgEl = document.getElementById('msgId') as HTMLDivElement;
 		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
 		fieldsListEl = document.getElementById('fieldsListId') as HTMLDivElement;
 		middleColumnEl = document.getElementById('middleColumnId') as HTMLDivElement;
-		rightColumnEl = document.getElementById('rightColumnId') as HTMLDivElement;
 		removeHintEl = document.getElementById('removeHintId') as HTMLParagraphElement;
 		routeNameEl = document.getElementById('routeNameId') as HTMLInputElement;
-		removeHintEl.style.opacity = '0'; // make it as a hidden tooltip
-		labelEl = document.querySelector("label[for='routeNameId']") as HTMLLabelElement;
-		routeLabelNode = labelEl.firstElementChild as HTMLElement;
-		schemaContainerEl.innerHTML = pmSD;
-		const enterKeyEvent = new KeyboardEvent('keyup', {
-			key: 'Enter',
-			code: 'Enter',
-			keyCode: 13,
-			which: 13,
-			bubbles: true
-		});
+		removeHintEl.style.opacity = '0'; // make it as a cr-hidden tooltip
+		routeLabelEl = document.querySelector("label[for='routeNameId']") as HTMLLabelElement;
+		fieldLabelEl = document.querySelector("label[for='fieldNameId']") as HTMLLabelElement;
+		routeLabelNode = Array.from(routeLabelEl.childNodes).filter(
+			(node) => node.nodeType === Node.TEXT_NODE
+		)[0] as HTMLElement;
+		fieldLabelNode = Array.from(fieldLabelEl.childNodes).filter(
+			(node) => node.nodeType === Node.TEXT_NODE
+		)[0] as HTMLElement;
+		schemaContainerEl.innerHTML = prismaSumDetailsBlock;
+
+		// ------------ click on SUMMARY or DETAILS -----------------
+
 		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
+			// ------------ click on SUMMARY or DETAILS -----------------
 			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
-				middleColumnEl.classList.toggle('middle-column-height');
+				middleColumnEl.classList.toggle('cr-middle-column-height');
+				// now at app level active modelName
 				modelName = (event.target as HTMLElement).innerText;
+				console.log('fieldStrips[modelName]', fieldStrips[modelName]);
 				const details = (event.target as HTMLElement).closest('details');
 				if (details && details.open) {
 					stopRenderField = true;
@@ -480,48 +600,54 @@
 						details.removeAttribute('open');
 						stopRenderField = false;
 						(fieldsListEl as HTMLDivElement).innerHTML = '';
+						fieldNameEl.value = '';
 					}, 200);
 					clearLabelText();
+					pipeElsString = `!`;
+					clearListEls();
 					return;
 				}
+				setLabelCaption('pink', 'Change Route Name if necessary', 4000);
+				// ------------ adding fields into listEls --------------------
 				routeNameEl.value = modelName.toLowerCase();
-				//    routeNameEl.focus()
-				//    routeNameEl.click()
-				// console.log('uiModels[modelName].fields', uiModels[modelName].fields);
-				// let candidates = ``;
 				fields = [];
-				clearListEls();
 				for (const field of uiModels[modelName].fields) {
 					if (stopRenderField) {
 						break;
 					}
-					fields.push(`${field.name}: ${field.type}`);
-					if (fieldNameEl) {
-						fieldNameEl.value = field.name;
-						fieldNameEl.dispatchEvent(enterKeyEvent);
-						await sleep(100);
-					}
-					renderField(`${field.name}: ${field.type}`);
+					const fld = `${field.name}: ${field.type}`;
+					fields.push(fld);
+					renderField(fld, 'summary');
 				}
-
-				changeLabelText('pink', 'Change Route Name if necessary', 4000);
+				if (pipeElsString === '!') {
+					for (const field of uiModels[modelName].fields) {
+						pipeElsString += `${field.name}: ${field.type}|`;
+					}
+				}
 				//----------------
 			} else {
-				// clicked on a field name in details section
-				const fieldName = (event.target as HTMLDivElement).innerText;
-				const { type } = uiModels[modelName].fields.filter(
-					(field) => field.name === fieldName
-				)[0] as Field;
-				if (isInListEls({ name: `${fieldName}`, type: `${type}` })) {
+				// ----------- PRISMA KEYUP HANDLER clicked on a field name in <details> block ---------------
+				const el = event.target as HTMLDivElement;
+				let fieldStr = el.innerText;
+				try {
+					const type = el.nextSibling?.textContent?.match(/type:(\w+)/)?.[1] as string;
+					fieldStr += ': ' + type;
+				} catch (err: unknown) {
+					handleTryCatch(err);
+				}
+
+				if (!isFieldAcceptable(fieldStr)) {
+					// setLabelCaption('pink', 'Already selected', 2000, 'field');
 					return;
 				}
-				renderField(`${fieldName}: ${type}`);
+				renderField(fieldStr, 'details');
+				fieldStrips[modelName] += fieldStr + '|';
 			}
 		});
 	});
 	// -----------------------------------
 	// for Wevschema Extension
-	let modelName = '';
+
 	let stopRenderField = false;
 	function closeSchemaModels() {
 		stopRenderField = true;
@@ -537,49 +663,47 @@
 	}
 </script>
 
-<div id="crudUIBlockId" class="main-grid">
-	<div class="grid-wrapper">
-		<pre class="span-two">
-To create a UI Form for CRUD operations against the underlying ORM fill
-out the <i>Candidate Fields</i> by entering field names in the <i>Field Name</i> input
-box with its datatype, e.g. firstName: string,  and pressing the Enter key
-or expand a table from the <i>Select Fields from ORM</i> block and click on
-a field name avoiding the auto-generating fields usually colored in pink.
-The UI Form +page.svelte with accompanying +page.server.ts will be 
-created in the route specified in the Route Name input box.
-      </pre>
+<div id="crudUIBlockId" class="cr-main-grid">
+	<div class="cr-grid-wrapper">
+		<cr-pre class="cr-span-two">
+			To create a UI Form for CRUD operations against the underlying ORM fill out the <i
+				>Candidate Fields</i
+			>
+			by entering field names in the <i>Field Name and Type</i> input box with its datatype, e.g.
+			firstName: string, and cr-pressing the Enter key or expand a table from the
+			<i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating fields
+			usually colored in pink. The UI Form +page.svelte with accompanying +page.server.ts will be created
+			in the route specified in the Route Name input box.
+		</cr-pre>
 
-		<div class="left-column">
-			<label for="routeNameId">
-				Route Name
-				<input id="routeNameId" type="text" />
-			</label>
-			<label for="fieldNameId">
-				Field Name
-				<input id="fieldNameId" type="text" />
-			</label>
+		<div class="cr-left-column">
+			<label for="routeNameId"> Route Name </label>
+			<input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
+			<label for="fieldNameId"> Field Name and Type </label>
+			<input id="fieldNameId" type="text" placeholder="fieldName: type" />
 			<button id="createBtnId" disabled>Create CRUD Support</button>
-			<div class="crud-support-done hidden"></div>
+			<div class="cr-crud-support-done cr-hidden"></div>
 			<div id="messagesId" style="z-index:10;width:20rem;">Messages:</div>
 		</div>
 
-		<div id="middleColumnId" class="middle-column middle-column-height">
-			<span class="candidate-fields-caption">Candidate Fields</span>
-			<div class="fields-list fields-list-height" id="fieldsListId"></div>
-			<p id="removeHintId" class="remove-hint">click to remove</p>
+		<div id="middleColumnId" class="cr-middle-column cr-middle-column-height">
+			<div class="cr-fields-list cr-fields-list-height" id="fieldsListId"></div>
+			<p id="removeHintId" class="cr-remove-hint">click to remove</p>
 		</div>
 
-		<div style="display:flex;height:1.4re !important;margin:0;padding:0;">
+		<div
+			style="display:flex;height:1.4rem !important;margin:0;padding:0;align-items:center;grid-column: span 2;"
+		>
+			<p style="display:inline-block;width:max-content;margin-right:1rem;">
+				Render all input boxes the same CSS width
+			</p>
 			<input
 				id="inputBoxWidthId"
 				type="text"
 				value="16rem"
-				style="margin:0 1rem 0 0; padding:0 0 0 1rem;width:7rem;height:1.4rem !important;line-height:1.1rem;display:inline-block;"
+				style="margin:0 1rem 0 0; padding:0 0 0 1rem;width:7rem;height:1.2rem !important;line-height:1.1rem;display:inline-block;font-size:13px;"
 				placeholder="CSS px, rem, ..."
 			/>
-			<label for="CRInput" style="display:inline-block;width:max-content"
-				>All input boxes CSS width</label
-			>
 		</div>
 		<div class="embellishments">
 			<div class="checkbox-item">
@@ -605,39 +729,32 @@ created in the route specified in the Route Name input box.
 		</div>
 	</div>
 
-	<div id="rightColumnId" class="right-column">
-		<span class="prisma-model-caption-one">Select Fields from ORM</span>
-		<span
-			class="prisma-model-caption-two"
+	<div id="rightColumnId" class="cr-right-column">
+		<p
+			class="collapse-all"
 			onclick={closeSchemaModels}
 			onkeypress={closeSchemaModels}
-			role="button"
-			tabindex="0">(collapse all)</span
+			aria-hidden={true}
 		>
+			(collapse all)
+		</p>
 		<div id="schemaContainerId"></div>
 	</div>
 </div>
 
-<input type="text" id="fieldNameId" placeholder="fieldNameEl" />
-<div id="msgId">
-	Messages {strModelNames}
-</div>
-
-<!-- <pre>models {JSON.stringify(models, null, 2)}</pre> -->
-
 <style lang="scss">
-	.main-grid {
+	.cr-main-grid {
 		display: grid;
 		grid-template-columns: 33rem 20rem;
 	}
 
-	.grid-wrapper {
+	.cr-grid-wrapper {
 		display: grid;
 		grid-template-columns: 20rem 12rem;
 		column-gap: 0.5rem;
 		row-gap: 1rem;
 	}
-	.crud-support-done {
+	.cr-crud-support-done {
 		width: max-content;
 		padding: 5px 2rem;
 		margin: 1rem 0 0 0;
@@ -648,40 +765,36 @@ created in the route specified in the Route Name input box.
 		cursor: pointer;
 		text-align: center;
 	}
-	.left-column {
+
+	.cr-hidden {
+		display: none;
+		border: none;
+	}
+
+	.cr-left-column {
+		@include container($head: 'Application Settings', $head-color: skyblue);
 		border: 1px solid gray;
 		border-radius: 8px;
-		height: 75vh;
+		height: 60vh;
+		padding: 1rem 0 0 0.4rem;
+		label,
+		button,
+		div {
+			display: block;
+		}
 	}
-	// .grid-wrapper {
-	// 	display: grid;
-	// 	grid-template-columns: 12rem 20rem;
-	// 	gap: 0.5rem;
-	// 	align-items: start;
-	// 	border: 1px solid gray;
-	// 	border-radius: 10px;
-	// 	width: fit-content;
-	// }
 
-	.middle-column {
+	.cr-middle-column {
+		@include container($head: 'Candidate Fields', $head-color: skyblue);
 		position: relative;
 		border: 1px solid gray;
 		border-radius: 5px;
 		padding: 1rem 6px 0 6px;
-		margin-top: 1.45rem;
 		height: auto;
+		width: 12rem;
 	}
-	.middle-column .middle-column-height {
-		height: 30rem !important;
-	}
-	.middle-column .candidate-fields-caption {
-		position: absolute;
-		top: -1.5rem;
-		left: 0.5rem;
-		color: skyblue;
-	}
-	.fields-list {
-		// position: relative;
+
+	.cr-fields-list {
 		display: grid;
 		grid-template-rows: 1.3rem;
 		grid-auto-rows: 1.3rem;
@@ -689,13 +802,9 @@ created in the route specified in the Route Name input box.
 		text-align: center;
 		padding: 0;
 		margin: 0 0 2rem 0;
-		p {
-			padding: 0;
-			margin: 0;
-			height: 1rem;
-		}
+		color: navy;
 	}
-	.remove-hint {
+	.cr-remove-hint {
 		position: absolute;
 		left: 1.5rem !important;
 		z-index: 10;
@@ -711,76 +820,40 @@ created in the route specified in the Route Name input box.
 		pointer-events: none;
 		white-space: nowrap;
 	}
-	.right-column {
-		position: relative;
-		border: 1px solid gray;
-		border-radius: 6px;
-		padding: 6px 3px 8px 10px;
-		margin-top: 1.5rem;
-	}
-	.span-two,
-	pre {
+	.cr-span-two,
+	cr-pre {
 		grid-column: 1 / span 2;
 		text-align: justify;
 		font-size: 12px;
 		color: skyblue;
 	}
-	:global(.list-el) {
-		// position: relative;
-		width: 100%;
+	input[type='text'] {
+		width: 18rem;
 		height: 20px;
-		text-align: center;
+		padding: 6px 0 8px 1rem;
+		outline: none;
 		font-size: 16px;
-		font-weight: 400;
-		color: navy;
-		background-color: skyblue;
-		margin: 1px 0 0 0;
-		line-height: 20px;
-		:global(p:first-child) {
-			border-top-left-radius: 6px !important;
-			border-top-right-radius: 6px !important;
-			background-color: yellow;
+		border: 1px solid gray;
+		border-radius: 4px;
+		outline: 1px solid transparent;
+		margin-top: 8px;
+		margin-bottom: 10px;
+		&::placeholder {
+			font-size: 13px;
 		}
-		:global(p:last-child) {
-			border-bottom-left-radius: 6px !important;
-			border-bottom-right-radius: 6px !important;
+		&:focus {
+			outline: 1px solid gray;
 		}
 	}
 
-	.list-el:hover {
-		cursor: pointer;
-	}
-	.field-text {
-		// position: relative;
-		display: block;
-		height: 20px;
-		text-align: center;
-	}
-
-	// .model-name {
-	// 	color: #3e3e3e;
-	// 	background-color: #e3e3e3;
-	// 	margin-top: 3px;
-	// 	width: calc(100% - (1rem));
-	// 	border-radius: 6px;
-	// 	padding-left: 1rem;
-	// 	cursor: pointer;
-	// }
-	// .right-column {
-	//   position: relative;
-	//   grid-column: 2;
-	//   border: 1px solid gray;
-	//   border-radius: 5px;
-	//   margin-top: 1.45rem;
-	// }
 	#schemaContainerId {
 		height: 30rem;
 		overflow-y: auto;
 	}
 
-	.right-column {
-		.prisma-model-caption-one,
-		.prisma-model-caption-two {
+	.cr-right-column {
+		.cr-caption-one,
+		.cr-caption-two {
 			position: absolute;
 			top: -1.5rem;
 			left: 0.5rem;
@@ -788,16 +861,74 @@ created in the route specified in the Route Name input box.
 			color: skyblue;
 			cursor: pointer;
 		}
-		.prisma-model-caption-two {
+		.cr-caption-two {
 			left: 15rem;
 			font-size: 13px;
 			line-height: 22px;
 		}
 	}
-	.hidden {
-		display: none;
+	.cr-right-column {
+		@include container($head: 'Select UI Fields from ORM', $head-color: skyblue);
 	}
-	:global(.model-attr) {
+	.embellishments {
+		@include container($head: 'Include Components', $head-color: skyblue);
+
+		position: relative;
+		grid-column: span 2;
+		display: grid;
+		grid-template-columns: 1rem 20rem;
+
+		column-gap: 0.5rem;
+		row-gap: 0.1rem;
+		align-items: center;
+		padding: 8px 1rem;
+		border: 1px solid gray;
+		border-radius: 6px;
+		user-select: none;
+	}
+
+	.checkbox-item {
+		display: contents;
+	}
+
+	.checkbox-item input[type='checkbox'] {
+		grid-column: 1;
+		justify-self: start;
+		align-self: center;
+		margin: 0;
+	}
+
+	.checkbox-item label {
+		grid-column: 2;
+		justify-self: start;
+		align-self: center;
+		cursor: pointer;
+		line-height: 1;
+		width: 25rem !important;
+	}
+
+	.checkbox-item label:hover {
+		background-color: cornsilk;
+		cursor: pointer;
+		width: 25rem !important;
+	}
+	/* all global classes */
+	:global(.cr-list-el) {
+		background: #f0f8ff;
+		border: 1px solid #ccc;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	:global(.cr-list-el:first-child) {
+		border-top-left-radius: 10px;
+		border-top-right-radius: 10px;
+	}
+	:global(.cr-list-el:last-child) {
+		border-bottom-left-radius: 10px;
+		border-bottom-right-radius: 10px;
+	}
+	:global(.cr-model-attr) {
 		grid-column: span 2;
 		width: 18rem;
 		padding: 0;
@@ -806,12 +937,11 @@ created in the route specified in the Route Name input box.
 		color: tomato;
 		font-size: 13px;
 	}
-	:global(.prisma-model-block) {
+	:global(.cr-model-block) {
 		height: 30rem;
-		// width: 12rem;
 		overflow-y: auto;
 	}
-	:global(.model-name) {
+	:global(.cr-model-name) {
 		color: #3e3e3e;
 		background-color: #e3e3e3;
 		margin-top: 3px;
@@ -821,7 +951,7 @@ created in the route specified in the Route Name input box.
 		cursor: pointer;
 	}
 
-	:global(.fields-column) {
+	:global(.cr-fields-column) {
 		display: grid;
 		grid-template-columns: 7rem 9.5rem;
 		column-gap: 5px;
@@ -833,21 +963,21 @@ created in the route specified in the Route Name input box.
 		font-weight: 500 !important;
 	}
 
-	:global(.fields-column p) {
+	:global(.cr-fields-column p) {
 		margin: 4px 0 0 0;
 		padding: 2px 0 0 4px 6pc;
 		border-bottom: 1px solid lightgray;
 		text-wrap: wrap;
 	}
 
-	:global(.fields-column p:nth-child(odd)) {
+	:global(.cr-fields-column p:nth-child(odd)) {
 		color: skyblue;
 		cursor: pointer;
 		width: 100%;
 		padding: 2px 0 2px 0.5rem;
 	}
 
-	:global(.fields-column p:nth-child(even)) {
+	:global(.cr-fields-column p:nth-child(even)) {
 		font-weight: 400 !important;
 		font-size: 12px !important;
 	}

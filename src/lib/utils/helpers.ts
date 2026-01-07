@@ -1,5 +1,5 @@
 
-export const handleTryCatch = (err: unknown) => {
+export const handleTryCatch = (err: unknown, info?: string) => {
   const msg = err instanceof Error ? err.message : String(err)
-  console.log('[try catch]: ' + msg)
+  console.log(info, msg)
 }
