@@ -64,7 +64,6 @@
 	const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms;
 
 	// FIELDS
-	// let msgEl: HTMLDivElement;
 	let removeHintEl: HTMLParagraphElement;
 	let schemaContainerEl: HTMLDivElement;
 	let middleColumnEl: HTMLDivElement;
@@ -80,7 +79,7 @@
 	let timer: NodeJS.Timeout | string | number | undefined; //ReturnValue<typeof setTimeout>;
 	let fieldNameAndType = 'Field Name and Type';
 	/**
-	 * check if field is UI/data-entry field
+	 * Inside sortModelsByOrdered check if field is UI/data-entry field
 	 * @param field: type Field= { name: string; type: string; attrs?: string }
 	 */
 	function isUICandidate({ name, type, attrs }: Field): boolean {
@@ -105,7 +104,7 @@
 	}
 
 	/**
-	 * makes list od model names |User|Profile|Todo|...
+	 * makes LIST od model names |User|Profile|Todo|...
 	 * @param schema.prisma
 	 */
 	function makeStrModelNames(schemaContent: string) {
@@ -116,7 +115,7 @@
 	}
 
 	/**
-	 *  leading array part sorted by orderd followed by leftowers
+	 *  LEADING array part sorted by ordered followed by leftowers
 	 */
 	function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
 		let orderedFields: { name: string; type: string; attrs?: string }[] = [];
@@ -168,7 +167,7 @@
 		return [uiModels, nuiModels];
 	}
 	/**
-	 * build const models = Record<ModelName, Model>
+	 * build models = Record<ModelName, Model>
 	 * @param (schemaContent) from schema.prisma
 	 */
 	function parsePrismaSchema(schemaContent: string): void {
@@ -234,6 +233,8 @@
 
 	parsePrismaSchema(schema);
 	// schema = ''; TODO in Webview component get read from this file content
+
+	// Prisma model displayed in a list of <summary>/<details>
 	let prismaSumDetailsBlock = ``;
 	// models = uiModels is another reference to the same uiModel
 	// so we must deep copy to the models
@@ -286,9 +287,6 @@
 		// convert to a string from an integer of base 36
 		return Math.random().toString(36).slice(2);
 	};
-	// FieldsList elements use inline style for high specificity as they are created
-	// dynamically by inserting into innerHTML
-	// `;
 
 	// we do not clear all the entries and rebuild from the fields
 	// but just add a newly entered in the Field Name fieldNameId
@@ -329,6 +327,9 @@
 	 * @param value
 	 */
 	function isFieldAcceptable(value: string) {
+		// after delete from Candidates field is removed from
+		// fieldStrips[modelName] stay intact to control what field could go to Candidates
+		// while entry from getListEls() and fieldNames[modelName] are deleted
 		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
 		const inListEls = isInListEls({ name, type });
 		if (!isFieldFormatValid(value) || !isInFieldStrips(value) || inListEls) {
@@ -340,7 +341,10 @@
 			);
 			return false;
 		}
-		return true;
+
+		return (
+			Object.values(uiModels['User'].fields).find((el) => el.name === 'updatedAt') !== undefined
+		);
 	}
 	/**
 	 * must have fieldName: valid type
@@ -361,7 +365,6 @@
 	 * @param field
 	 */
 	function isInFieldStrips(fieldStrip: string) {
-		console.log('fieldStrips', fieldStrips[modelName]);
 		if (!fieldListsInitialized) {
 			// not yet collected but Prisma fields are rendered initially
 			return true;
@@ -454,10 +457,6 @@
 					if (el.innerText) {
 						const fn = el.innerText.match(/([^:]+)/)?.[1];
 						fieldNames[modelName] = fieldNames[modelName].replace(new RegExp(`\\|${fn}\\|`), '|');
-						fieldStrips[modelName] = fieldStrips[modelName].replace(
-							new RegExp(`\\|${el.innerText}\\|`),
-							'|'
-						);
 					}
 					el.remove();
 				});
@@ -531,7 +530,6 @@
 
 			(fieldNameEl as HTMLInputElement).addEventListener('change', (event: Event) => {
 				// --------- field name data entry handler ---------------
-				//				console.log('<input fieldName change');
 				nokeyup = true;
 				if (clear.length) {
 					setLabelCaption('black', 'FieldName and Type', 0, 'field');
@@ -591,7 +589,6 @@
 				middleColumnEl.classList.toggle('cr-middle-column-height');
 				// now at app level active modelName
 				modelName = (event.target as HTMLElement).innerText;
-				console.log('fieldStrips[modelName]', fieldStrips[modelName]);
 				const details = (event.target as HTMLElement).closest('details');
 				if (details && details.open) {
 					stopRenderField = true;
@@ -851,22 +848,22 @@
 		overflow-y: auto;
 	}
 
-	.cr-right-column {
-		.cr-caption-one,
-		.cr-caption-two {
-			position: absolute;
-			top: -1.5rem;
-			left: 0.5rem;
-			display: inline-block;
-			color: skyblue;
-			cursor: pointer;
-		}
-		.cr-caption-two {
-			left: 15rem;
-			font-size: 13px;
-			line-height: 22px;
-		}
-	}
+	// .cr-right-column {
+	// 	.cr-caption-one,
+	// 	.cr-caption-two {
+	// 		position: absolute;
+	// 		top: -1.5rem;
+	// 		left: 0.5rem;
+	// 		display: inline-block;
+	// 		color: skyblue;
+	// 		cursor: pointer;
+	// 	}
+	// 	.cr-caption-two {
+	// 		left: 15rem;
+	// 		font-size: 13px;
+	// 		line-height: 22px;
+	// 	}
+	// }
 	.cr-right-column {
 		@include container($head: 'Select UI Fields from ORM', $head-color: skyblue);
 	}
@@ -979,6 +976,6 @@
 
 	:global(.cr-fields-column p:nth-child(even)) {
 		font-weight: 400 !important;
-		font-size: 12px !important;
+		font-size: 12px !important; /* prisma attrs column */
 	}
 </style>
