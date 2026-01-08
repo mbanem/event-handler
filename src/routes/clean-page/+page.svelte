@@ -78,6 +78,9 @@
 
 	let timer: NodeJS.Timeout | string | number | undefined; //ReturnValue<typeof setTimeout>;
 	let fieldNameAndType = 'Field Name and Type';
+	let unacceptable = '  not a UI field';
+	// global msg set by isFieldFormatValid, isInFieldStrips and isInListEls
+	let msg = '';
 	/**
 	 * Inside sortModelsByOrdered check if field is UI/data-entry field
 	 * @param field: type Field= { name: string; type: string; attrs?: string }
@@ -327,37 +330,52 @@
 	 * @param value
 	 */
 	function isFieldAcceptable(value: string) {
+		msg = '';
+		if (!fieldListsInitialized) {
+			// not yet collected but Prisma fields are rendered initially
+			return true;
+		}
 		// after delete from Candidates field is removed from
 		// fieldStrips[modelName] stay intact to control what field could go to Candidates
 		// while entry from getListEls() and fieldNames[modelName] are deleted
 		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
+		const formatValid = isFieldFormatValid(value);
+		const inFieldStrips = isInFieldStrips(value);
 		const inListEls = isInListEls({ name, type });
-		if (!isFieldFormatValid(value) || !isInFieldStrips(value) || inListEls) {
-			setLabelCaption(
-				'pink',
-				inListEls ? 'Already selected' : 'Incorrect format or unacceptable',
-				2000,
-				'field'
-			);
+
+		if (!formatValid || !inFieldStrips || inListEls) {
+			if (formatValid && inFieldStrips && inListEls) {
+				msg = 'Already selected';
+			}
+			setLabelCaption('pink', msg, 2000, 'field');
 			return false;
 		}
 
-		return (
-			Object.values(uiModels['User'].fields).find((el) => el.name === 'updatedAt') !== undefined
-		);
+		const tf =
+			Object.values(uiModels[modelName].fields).find(
+				(el) => el.name === value.replace(/:.+$/, '')
+			) !== undefined;
+
+		if (tf) {
+			return true;
+		}
+		setLabelCaption('pink', msg, 2000, 'field');
 	}
 	/**
 	 * must have fieldName: valid type
 	 * @param value
 	 */
+	const invfmt = ' Invalid format or type';
 	function isFieldFormatValid(value: string) {
 		if (!value.includes(':')) {
-			return false;
+			msg += invfmt;
+			return true;
 		}
 		value = value.trim().replace(/\s+/g, ' ');
 		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
-		const tp = '|string|number|boolean|Date|Role|'.includes(`|${type}|`);
-		return name && type && tp;
+		const tf = name && type && '|string|number|boolean|Date|Role|'.includes(`|${type}|`);
+		if (!tf) msg += invfmt;
+		return tf;
 	}
 
 	/**
@@ -365,17 +383,11 @@
 	 * @param field
 	 */
 	function isInFieldStrips(fieldStrip: string) {
-		if (!fieldListsInitialized) {
-			// not yet collected but Prisma fields are rendered initially
-			return true;
-		}
-		return fieldStrips[modelName].includes(`|${fieldStrip}|`);
+		const tf = fieldStrips[modelName].includes(`|${fieldStrip}|`);
+		if (!tf) msg += unacceptable;
+		return tf;
 	}
 	function isInListEls(field: Field) {
-		if (!fieldListsInitialized) {
-			// not yet collected but Prisma fields are rendered initially
-			return false;
-		}
 		let found = false;
 		// check if field is already in the candidates list
 		const regex = new RegExp(`\\b${field.name}\\b`);
@@ -385,6 +397,7 @@
 				found = true;
 			}
 		});
+		if (found) msg += unacceptable;
 		return found;
 	}
 	function addToFieldList(fieldName: string) {
@@ -405,9 +418,8 @@
 	 * renders a field showing a tooltop 'click to remove' when hovered
 	 * @param fieldName
 	 */
-	function renderField(fieldName: string, source: string) {
+	function renderField(fieldName: string) {
 		if (!isFieldAcceptable(fieldName)) {
-			setLabelCaption('pink', 'Not acceptable field', 2000, 'field');
 			return;
 		}
 		const listEls = getListEls();
@@ -539,7 +551,7 @@
 				if (!value || !isFieldAcceptable(value)) {
 					return;
 				}
-				renderField(value, 'change');
+				renderField(value);
 			});
 			// ------------- KEYUP HANDLER  keyboard handler ---------------------
 			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
@@ -556,7 +568,7 @@
 				}
 
 				value = adjustFiledNameAndType(value);
-				renderField(value, 'keyup');
+				renderField(value);
 				scroll(fieldsListEl as HTMLDivElement as HTMLDivElement);
 			});
 		}
@@ -614,7 +626,7 @@
 					}
 					const fld = `${field.name}: ${field.type}`;
 					fields.push(fld);
-					renderField(fld, 'summary');
+					renderField(fld);
 				}
 				if (pipeElsString === '!') {
 					for (const field of uiModels[modelName].fields) {
@@ -634,10 +646,9 @@
 				}
 
 				if (!isFieldAcceptable(fieldStr)) {
-					// setLabelCaption('pink', 'Already selected', 2000, 'field');
 					return;
 				}
-				renderField(fieldStr, 'details');
+				renderField(fieldStr);
 				fieldStrips[modelName] += fieldStr + '|';
 			}
 		});

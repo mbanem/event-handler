@@ -21,5 +21,5 @@
 	});
 </script>
 
-<h4>Click on document enywhere</h4>
+<h4>Click on document enywhere to show the point coordinates</h4>
 <p id="msg"></p>

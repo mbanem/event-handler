@@ -4,7 +4,11 @@
 
 <svelte:boundary>
 	<FlakyComponent />
-
+	<pre>
+If browser debuger is activated the click on this button
+would stop in debugger so you have to click continue in
+browser's developr tool
+</pre>
 	{#snippet failed(error: unknown, reset: () => void)}
 		<!-- safe extraction -->
 		<p>
