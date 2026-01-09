@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { schema } from './schema_prisma';
 	import { handleTryCatch } from '$lib/utils/index';
+	import { createEventHandler, type TEventTypeType } from './weakmap-helper';
 
 	type Field = { name: string; type: string; attrs?: string };
 	type Model = {
@@ -56,12 +57,13 @@
 		'content',
 		'category',
 		'role',
+		'updatedAt',
 		'priority',
-		'price',
-		'updatedAt'
+		'price'
 	];
 	let strModelNames = '|';
 	const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms;
+	const eventHandler = createEventHandler();
 
 	// FIELDS
 	let removeHintEl: HTMLParagraphElement;
@@ -313,11 +315,6 @@
 		) as NodeListOf<HTMLDivElement>;
 	}
 
-	/**<details><summary>
-	 * return built |fieldName: type| string of expanded fields
-	 */
-	let pipeElsString = `!`;
-
 	/**
 	 * clears candidate field list
 	 */
@@ -338,11 +335,16 @@
 		// after delete from Candidates field is removed from
 		// fieldStrips[modelName] stay intact to control what field could go to Candidates
 		// while entry from getListEls() and fieldNames[modelName] are deleted
+		if (!value.includes(':')) {
+			setLabelCaption('pink', 'Invalid format -- no Type', 3000, 'field');
+			return false;
+		}
 		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
+		// console.log(name, type, 'getListEl\n', getListEls());
 		const formatValid = isFieldFormatValid(value);
 		const inFieldStrips = isInFieldStrips(value);
 		const inListEls = isInListEls({ name, type });
-
+		// console.log(formatValid, inFieldStrips, inListEls);
 		if (!formatValid || !inFieldStrips || inListEls) {
 			if (formatValid && inFieldStrips && inListEls) {
 				msg = 'Already selected';
@@ -361,20 +363,24 @@
 		}
 		setLabelCaption('pink', msg, 2000, 'field');
 	}
+	function addMsg(str: string) {
+		if (msg.includes(str)) return;
+		msg += str;
+	}
 	/**
 	 * must have fieldName: valid type
 	 * @param value
 	 */
-	const invfmt = ' Invalid format or type';
+	const invfmt = ' Invalid format or Type';
 	function isFieldFormatValid(value: string) {
 		if (!value.includes(':')) {
-			msg += invfmt;
+			addMsg(invfmt);
 			return true;
 		}
 		value = value.trim().replace(/\s+/g, ' ');
 		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
 		const tf = name && type && '|string|number|boolean|Date|Role|'.includes(`|${type}|`);
-		if (!tf) msg += invfmt;
+		if (!tf) addMsg(invfmt);
 		return tf;
 	}
 
@@ -384,36 +390,69 @@
 	 */
 	function isInFieldStrips(fieldStrip: string) {
 		const tf = fieldStrips[modelName].includes(`|${fieldStrip}|`);
-		if (!tf) msg += unacceptable;
+		if (!tf) addMsg(unacceptable);
 		return tf;
 	}
 	function isInListEls(field: Field) {
 		let found = false;
 		// check if field is already in the candidates list
 		const regex = new RegExp(`\\b${field.name}\\b`);
-
 		getListEls().forEach((listEl) => {
-			if (regex.test((listEl.firstElementChild as HTMLSpanElement).innerText)) {
+			// console.log('listEl', listEl);
+			if (listEl.firstChild && regex.test((listEl.firstChild as HTMLSpanElement).textContent)) {
 				found = true;
 			}
 		});
-		if (found) msg += unacceptable;
+		if (found) addMsg(unacceptable);
 		return found;
 	}
 	function addToFieldList(fieldName: string) {
 		// Create nested  elements
-		const span = document.createElement('span');
-		span.textContent = fieldName;
+		const spanEl = document.createElement('span');
+		spanEl.textContent = fieldName;
 
-		const div = document.createElement('div');
-		div.className = 'cr-list-el';
-		div.dataset.fieldIndex = getUniqueId();
+		const divEl = document.createElement('div');
+		divEl.className = 'cr-list-el';
+		divEl.dataset.fieldIndex = getUniqueId();
 
-		// Append span to div
-		div.appendChild(span);
-		// append div to the fieldsListEl
-		(fieldsListEl as HTMLDivElement).appendChild(div);
+		// Append spanEl to divEl
+		divEl.appendChild(spanEl);
+		// append divEl to the fieldsListEl
+		(fieldsListEl as HTMLDivElement).appendChild(divEl);
+		return divEl;
 	}
+
+	// Event  handlers for CandidateList items click, mouseover, mouseout
+	function candidateMouseover(event: MouseEvent) {
+		const el = event.target as HTMLDivElement;
+		removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
+		removeHintEl.style.left = String(el.offsetLeft + 12) + 'px';
+		removeHintEl.style.opacity = '1';
+	}
+	function candidateMouseout(_: MouseEvent) {
+		removeHintEl.style.opacity = '0';
+	}
+	function candidateClick(event: MouseEvent) {
+		let el = event.target as HTMLElement;
+		// if the el is span only field name/item-text is
+		// cleared so take the parent div to remove the field
+		if (el.tagName === 'SPAN') {
+			el = el.parentElement as HTMLDivElement;
+		}
+		removeHintEl.style.opacity = '0';
+
+		if (fieldNameEl.value === '') {
+			fieldNameEl.value = el.innerText;
+			fieldNameEl.focus();
+		}
+		if (el.innerText) {
+			const fn = el.innerText.match(/([^:]+)/)?.[1];
+			fieldNames[modelName] = fieldNames[modelName].replace(new RegExp(`\\|${fn}\\|`), '|');
+		}
+
+		el.remove();
+	}
+
 	/**
 	 * renders a field showing a tooltop 'click to remove' when hovered
 	 * @param fieldName
@@ -422,59 +461,8 @@
 		if (!isFieldAcceptable(fieldName)) {
 			return;
 		}
-		const listEls = getListEls();
-		// nested function
-		/**
-		 * click-handler gets field name event.target from data-field-index
-		 *
-		 */
-		const fieldNameFromIndex = (index: string) => {
-			let name = '';
-			listEls.forEach((listEl) => {
-				if (listEl.dataset.fieldIndex === index) {
-					name = (listEl as HTMLDivElement)?.innerText;
-				}
-			});
-			return name;
-		};
-		setTimeout(() => {
-			addToFieldList(fieldName);
-			// so getBoundingClientRect() can be destructured
-			// const { x, y } = (fieldsListEl as HTMLDivElement).getBoundingClientRect()
-
-			const listEls = (fieldsListEl as HTMLDivElement).querySelectorAll(
-				'.cr-list-el'
-			) as NodeListOf<HTMLDivElement>;
-			listEls.forEach((el) => {
-				el.addEventListener('mouseenter', () => {
-					removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
-					removeHintEl.style.left = String(el.offsetLeft + 12) + 'px';
-					removeHintEl.style.opacity = '1';
-				});
-
-				el.addEventListener('mouseleave', () => {
-					removeHintEl.style.opacity = '0';
-				});
-
-				el.addEventListener('click', () => {
-					removeHintEl.style.opacity = '0';
-
-					if (fieldNameEl.value === '') {
-						fieldNameEl.value = el.innerText;
-						fieldNameEl.focus();
-					}
-					const index = el.dataset.fieldIndex;
-					const fieldName = fieldNameFromIndex(index as string);
-					fields = fields.filter((fname) => fname !== fieldName);
-					if (el.innerText) {
-						const fn = el.innerText.match(/([^:]+)/)?.[1];
-						fieldNames[modelName] = fieldNames[modelName].replace(new RegExp(`\\|${fn}\\|`), '|');
-					}
-					el.remove();
-				});
-			});
-			fieldListsInitialized = true;
-		}, 0);
+		// enter a single field
+		addToFieldList(fieldName);
 	}
 
 	/**
@@ -519,19 +507,17 @@
 	 */
 	function setLabelCaption(color: string, text: string, duration: number, type: string = 'route') {
 		// preserve text to restore at timeout
-		const [node, label, restore] =
-			type === 'route'
-				? [routeLabelNode, routeLabelEl, 'Route Name']
-				: [fieldLabelNode, fieldLabelEl, fieldNameAndType];
+		const [node, restore] =
+			type === 'route' ? [routeLabelNode, 'Route Name'] : [fieldLabelNode, fieldNameAndType];
 		node.textContent = text;
-		label.style.color = color;
+		(node.parentElement as HTMLLabelElement).style.color = color;
 		if (duration > 0) {
 			timer = setTimeout(() => {
 				node.textContent = restore;
-				label.style.color = '';
+				(node.parentElement as HTMLLabelElement).style.color = '';
 			}, duration);
 		} else if (color === 'pink') {
-			clear = [node, label];
+			clear = [node];
 		}
 	}
 	let clear: Array<HTMLElement> = [];
@@ -554,8 +540,9 @@
 				renderField(value);
 			});
 			// ------------- KEYUP HANDLER  keyboard handler ---------------------
-			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
+			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event: KeyboardEvent) => {
 				// ----------- KEYUP HANDLER  keyboard handler ---------------------
+				// console.log('keyup');
 
 				if (nokeyup) {
 					nokeyup = false;
@@ -563,7 +550,7 @@
 				}
 
 				let value = (fieldNameEl as HTMLInputElement).value.trim();
-				if (!value || !isFieldAcceptable(value)) {
+				if (!value || !isFieldAcceptable(value) || event.key !== 'Enter') {
 					return;
 				}
 
@@ -598,6 +585,7 @@
 		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
 			// ------------ click on SUMMARY or DETAILS -----------------
 			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
+				// console.log('click SUMMARY');
 				middleColumnEl.classList.toggle('cr-middle-column-height');
 				// now at app level active modelName
 				modelName = (event.target as HTMLElement).innerText;
@@ -612,7 +600,6 @@
 						fieldNameEl.value = '';
 					}, 200);
 					clearLabelText();
-					pipeElsString = `!`;
 					clearListEls();
 					return;
 				}
@@ -628,14 +615,11 @@
 					fields.push(fld);
 					renderField(fld);
 				}
-				if (pipeElsString === '!') {
-					for (const field of uiModels[modelName].fields) {
-						pipeElsString += `${field.name}: ${field.type}|`;
-					}
-				}
+				fieldListsInitialized = true;
 				//----------------
 			} else {
 				// ----------- PRISMA KEYUP HANDLER clicked on a field name in <details> block ---------------
+				// console.log('click DETAILS');
 				const el = event.target as HTMLDivElement;
 				let fieldStr = el.innerText;
 				try {
@@ -652,6 +636,9 @@
 				fieldStrips[modelName] += fieldStr + '|';
 			}
 		});
+		eventHandler.setup(fieldsListEl, 'mouseover', (event: MouseEvent) => candidateMouseover(event));
+		eventHandler.setup(fieldsListEl, 'mouseout', (event: MouseEvent) => candidateMouseout(event));
+		eventHandler.setup(fieldsListEl, 'click', (event: MouseEvent) => candidateClick(event));
 	});
 	// -----------------------------------
 	// for Wevschema Extension
