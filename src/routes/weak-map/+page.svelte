@@ -32,7 +32,6 @@
 	const scroll = (el: HTMLDivElement) => {
 		const els = eventListEl.children;
 		listLength = els.length;
-		console.log('listLength', listLength);
 		const max = 50;
 		if (els.length > max) {
 			for (let i = 0; i < max / 2; i++) {
@@ -121,9 +120,7 @@
 		const { listener } = map.get(eventType)!;
 		hostEl.removeEventListener(eventType, listener);
 		map.delete(eventType);
-		console.log('map.delete map.length:', map.size);
 		if (map.size === 0) {
-			console.log('and do map.clear()');
 			map.clear();
 		}
 	}
@@ -149,17 +146,14 @@
 
 	// Callbacks
 	function onClick() {
-		// console.log('click!');
 		eventListEl.innerHTML += 'click!<br/>';
 		scroll(eventListEl as HTMLDivElement);
 	}
 	function onMouseOver() {
-		// console.log('mouseover!');
 		eventListEl.innerHTML += 'mouseover!<br/>';
 		scroll(eventListEl as HTMLDivElement);
 	}
 	function onMouseOut() {
-		// console.log('mouseout!');
 		eventListEl.innerHTML += 'mouseout!<br/>';
 		scroll(eventListEl as HTMLDivElement);
 	}

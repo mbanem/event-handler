@@ -89,7 +89,7 @@ export function createModel(lowercaseTypes: string) {
       } else {
         rawBody = bodySegment
       }
-      console.log('objectName', objectName, '\nrawBody', rawBody)
+      // console.log('objectName', objectName, '\nrawBody', rawBody)
       //   const fields: FTypeAttrs[] = rawBody
       //     .split(';')
       //     .filter(Boolean)
@@ -114,7 +114,7 @@ export function createModel(lowercaseTypes: string) {
   }
 
   function sortArrByOrdered(arr: string[]) {
-    console.log('input arg\n', arr)
+    // console.log('input arg\n', arr)
     const orderedPart = ordered.map((key) => arr.find((item: string) => item.startsWith(key + ':'))).filter(Boolean)
     const leftoverPart = arr.filter((item) => {
       const key = item.split(':')[0].trim()
