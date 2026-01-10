@@ -56,8 +56,8 @@ let ordered = [
 
 export function createModel(lowercaseTypes: string) {
   // --- Private state (replaces static class fields) ---
-  let initialized_ = false
-  const models_: Models = {}
+  // let initialized_ = false
+  // const models_: Models = {}
 
   function initialize(lowercaseTypes: string): void {
     const cleanedString = lowercaseTypes
@@ -110,7 +110,7 @@ export function createModel(lowercaseTypes: string) {
     // nonUIFieldNames = sortArrByOrdered(Array.from(nonUiSet) as string[], UI.nonUI) as string[]
     // allFieldNames = sortArrByOrdered(Array.from(fullSet) as string[]) as string[]
     // console.log(uiFieldNames, nonUIFieldNames, allFieldNames)
-    initialized_ = true
+    // initialized_ = true
   }
 
   function sortArrByOrdered(arr: string[]) {

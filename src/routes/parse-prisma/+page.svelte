@@ -20,7 +20,7 @@
 */
 
 	import { schema } from './schema_prisma';
-	import { cathcErrorHandler } from '$lib/utils';
+	import { handleTryCatch } from '$lib/utils';
 	// import { createModel } from '../func-model/model';
 	// import { SvelteSet } from 'svelte/reactivity';
 
@@ -100,16 +100,22 @@
 	 * check if field is UI/data-entry field
 	 * @param field: type Field= { name: string; type: string; attrs?: string }
 	 */
-	function isUICandidate({name, type, attrs}: Field): boolean {
+	function isUICandidate({ name, type, attrs }: Field): boolean {
 		type = type.toLowerCase().trim();
-		attrs = attrs??'';
-		if(strModelNames.indexOf(`|${type}|`)!== -1 || strModelNames.indexOf(`|${name}|`)!== -1){
-			return false
+		attrs = attrs ?? '';
+		if (strModelNames.indexOf(`|${type}|`) !== -1 || strModelNames.indexOf(`|${name}|`) !== -1) {
+			return false;
 		}
-		if (/[\|\|]/.test(type) || name.includes('@@') || (type==='Date' && /createdAt/i.test(name)) || /hash|token/i.test(name)){
-			return false
+		if (
+			/[\|\|]/.test(type) ||
+			name.includes('@@') ||
+			(type === 'Date' && /createdAt/i.test(name)) ||
+			/hash|token/i.test(name)
+		) {
+			return false;
 		}
-		const ui = /\b@id @default(uuid())\b/i.test(attrs) ||
+		const ui =
+			/\b@id @default(uuid())\b/i.test(attrs) ||
 			['string', 'number', 'boolean', 'role'].includes(type);
 
 		return ui;
@@ -130,14 +136,14 @@
 		// console.log('models\n',JSON.stringify(models,null,2))
 		let orderedFields: { name: string; type: string; attrs?: string }[] = [];
 		let leftoverFields: { name: string; type: string; attrs?: string }[] = [];
-		const uiModels:Models = {}
-		const nuiModels:Models = {}
+		const uiModels: Models = {};
+		const nuiModels: Models = {};
 		for (const [modelName, model] of Object.entries(models)) {
 			// console.log(modelName)
 			const fields = [];
 			// const mFields = [...model.fields];
-			uiModels[modelName] = {}
-			nuiModels[modelName] = {}
+			uiModels[modelName] = {};
+			nuiModels[modelName] = {};
 			// console.log(uiModels);
 			// console.log(
 			// 	'field["firstName"]',
@@ -147,9 +153,9 @@
 				for (const key of ordered) {
 					orderedFields.push(model.fields.find((field) => field.name === key) as Field);
 				}
-				for(const field of model.fields){
-					if (!orderedFields.includes(field) && isUICandidate(field)){
-						orderedFields.push(field)
+				for (const field of model.fields) {
+					if (!orderedFields.includes(field) && isUICandidate(field)) {
+						orderedFields.push(field);
 					}
 				}
 			}
@@ -275,7 +281,7 @@
 					fields: fields, //: sortObjectKeys(fields),
 					attrs: modelAttrs
 				};
-				
+
 				// console.log('models', models);
 				// sortArrByOrdered(fields);
 
@@ -298,12 +304,12 @@
 			}
 		} catch (err) {
 			console.log('Again!');
-			cathcErrorHandler(err);
+			handleTryCatch(err);
 		}
 		// console.log('MODELS', models);
 		// const [models, nuiModels] = sortModelsByOrdered(models, UI.all);
 		const [uiModels, nuiModels] = sortModelsByOrdered(models, UI.all);
-		console.log('uiModels\n',uiModels, '\nnuiModels\n', nuiModels)
+		console.log('uiModels\n', uiModels, '\nnuiModels\n', nuiModels);
 		return;
 		for (const [modelName, modelInfo] of Object.entries(models)) {
 			// console.log(

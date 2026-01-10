@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { schema } from './schema_prisma';
 	import { handleTryCatch } from '$lib/utils/index';
-	import { createEventHandler, type TEventTypeType } from './weakmap-helper';
+	import { createEventHandler, type TEventTypeType } from '../../lib/utils/event-handler';
 
 	type Field = { name: string; type: string; attrs?: string };
 	type Model = {
@@ -556,7 +556,7 @@
 
 				value = adjustFiledNameAndType(value);
 				renderField(value);
-				scroll(fieldsListEl as HTMLDivElement as HTMLDivElement);
+				scroll(fieldsListEl as HTMLDivElement);
 			});
 		}
 	}, 200);

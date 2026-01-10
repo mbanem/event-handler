@@ -16,9 +16,41 @@
 		return sortedRec;
 	}
 	const unsortedRecord: TPrismaColumns = {
-		bravo: { type: 'one', prismaAttrs: 'ONE' },
-		alpha: { type: 'two', prismaAttrs: 'TWO' },
-		charlie: { type: 'three', prismaAttrs: 'THREE' }
+		id: { type: 'string', prismaAttrs: '@id @default(uuid())' },
+		firstName: { type: 'string', prismaAttrs: '' },
+		lastName: { type: 'string', prismaAttrs: '' },
+		password: { type: 'string', prismaAttrs: '' },
+		createdAt: { type: 'Date', prismaAttrs: '@default(now())' },
+		updatedAt: { type: 'Date', prismaAttrs: '@updatedAt()' }
 	};
-	console.log(sortRecordByKey(unsortedRecord));
+	// console.log(sortRecordByKey(unsortedRecord));
 </script>
+
+<div class="grid-wrapper">
+	<pre id="block-pre">
+	<b>unsorted Record</b>
+{JSON.stringify(unsortedRecord, null, 2)}
+	</pre>
+	<pre>
+  <b>sorted Record</b>
+{JSON.stringify(sortRecordByKey(unsortedRecord), null, 2)}
+</pre>
+</div>
+
+<style lang="scss">
+	.grid-wrapper {
+		display: grid;
+		grid-template-columns: repeat(2, 20rem);
+		justify-content: center;
+		gap: 1rem;
+	}
+	pre {
+		color: navy;
+		font-size: 13px;
+		tab-size: 16px;
+		width: max-content;
+		border: 1px solid gray;
+		border-radius: 10px;
+		padding: 1rem;
+	}
+</style>

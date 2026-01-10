@@ -1,31 +1,55 @@
 <script lang="ts">
-	let failed = $state<boolean>(false);
-	let errorMessage = $state<string>('');
-
-	function explode(): void {
-		// Intentionally throw an error
-		throw new Error('💥 Boom! The button exploded!');
+	import FlakyComponent from './FlakyComponent.svelte';
+	function delayed(value, milliseconds = 3000) {
+		return new Promise((resolve) => {
+			setTimeout(() => resolve(value), milliseconds);
+		});
 	}
+	// ------------------------------------------------
+	// let failed = $state<boolean>(false);
+	// let errorMessage = $state<string>('');
 
-	function reset(): void {
-		failed = false;
-		errorMessage = '';
-	}
+	// function explode(): void {
+	// 	// Intentionally throw an error
+	// 	throw new Error('💥 Boom! The button exploded!');
+	// }
 
-	function handleError(err: unknown): void {
-		// Safely extract message
-		if (err instanceof Error) {
-			errorMessage = err.message;
-		} else {
-			errorMessage = String(err);
-		}
-		failed = true;
-	}
+	// function reset(): void {
+	// 	failed = false;
+	// 	errorMessage = '';
+	// }
+
+	// function handleError(err: unknown): void {
+	// 	// Safely extract message
+	// 	if (err instanceof Error) {
+	// 		errorMessage = err.message;
+	// 	} else {
+	// 		errorMessage = String(err);
+	// 	}
+	// 	failed = true;
+	// }
 </script>
 
 <h1>Svelte 5 Boundary Demo (TypeScript)</h1>
+<p>Using Flaky Component</p>
+<svelte:boundary>
+	<p>{await delayed('hello! -- after waiting for 3 seconds')}</p>
 
-<svelte:boundary onerror={handleError} {failed}>
+	{#snippet pending()}
+		<p>loading...</p>
+	{/snippet}
+</svelte:boundary>
+
+<svelte:boundary>
+	<FlakyComponent />
+
+	{#snippet failed(error, reset)}
+		<button onclick={reset}>oops! try again</button>
+	{/snippet}
+</svelte:boundary>
+
+<!-- <p>Using error handler</p>
+<svelte:boundary onerror={handleError}>
 	{#if !failed}
 		<div class="box">
 			<p>This is inside the boundary.</p>
@@ -38,7 +62,7 @@
 			<button onclick={reset}>Reset</button>
 		</div>
 	{/if}
-</svelte:boundary>
+</svelte:boundary> -->
 
 <style>
 	.box {

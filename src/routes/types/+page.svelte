@@ -68,3 +68,41 @@
 		}
 	}
 </script>
+
+<div class="grid-wrapper">
+	{#each Object.entries(models) as [k, v] (k)}
+		<div>
+			<p>{k.toUpperCase()}</p>
+			<pre>{JSON.stringify(v, null, 2).replace(/"/g, '')}</pre>
+		</div>
+	{/each}
+</div>
+
+<style lang="scss">
+	.grid-wrapper {
+		display: grid;
+		grid-template-columns: 18rem 22rem 18rem;
+		justify-content: center;
+
+		// width: 80wv;
+		gap: 1rem;
+		div {
+			border: 1px solid gray;
+			border-radius: 10px;
+			padding: 0 1rem;
+			height: 90vh;
+			overflow-y: auto;
+			pre {
+				font-size: 13px;
+				color: navy;
+				text-wrap: wrap;
+				margin-top: 2.5rem;
+			}
+			p {
+				position: fixed;
+				font-size: 15px;
+				color: blue;
+			}
+		}
+	}
+</style>

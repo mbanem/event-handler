@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { lowercaseTypes } from './data';
+	import { browser } from '$app/environment';
 
 	type TField = [name: string, type: string];
 	type TModel = Record<string, TField[]>;
@@ -364,7 +365,13 @@ export const actions: Actions = {
 	}
 
 	Model.initialize(lowercaseTypes);
-	console.log(Model.actions('User'));
+	// console.log("Model.actions('User')", Model.actions('User'));
+
+	if (browser && Model.initialized) {
+		setTimeout(() => {
+			(document.getElementById('block-pre') as HTMLPreElement).innerText = Model.actions('User');
+		}, 200);
+	}
 
 	// console.log('fieldNames\n', Model.fieldNames('User', UI.all));
 	// console.log('fieldNames\n', Model.fieldNames('User', UI.ui));
@@ -381,4 +388,4 @@ export const actions: Actions = {
 	// });
 </script>
 
-<pre style="color:navy;font-size:13px;tab-size:16px;width:100vw;"></pre>
+<pre id="block-pre" style="color:navy;font-size:13px;tab-size:16px;width:100vw;"></pre>

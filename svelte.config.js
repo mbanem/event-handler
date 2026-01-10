@@ -19,7 +19,12 @@ const config = {
 			// in this version
 			$styles: './src/styles/',
 		}
-	}
+	},
+	compilerOptions: {
+		experimental: {
+			async: true, // Enable the experimental async feature
+		},
+	},
 }
 
 export default config

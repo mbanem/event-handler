@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { schema } from './schema_prisma';
+	import { handleTryCatch } from '$lib/utils';
 	type FieldInfo = {
 		type: string;
 		prismaAttrs: string; // everything after the type

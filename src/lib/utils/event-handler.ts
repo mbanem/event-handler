@@ -1,4 +1,4 @@
-// lib/weakmap-delegation.ts
+// lib/utils/event-helper.ts
 
 // ✅ Keep type definitions
 export const TEventType = {
