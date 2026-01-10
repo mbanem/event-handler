@@ -83,41 +83,6 @@
 	let unacceptable = '  not a UI field';
 	// global msg set by isFieldFormatValid, isInFieldStrips and isInListEls
 	let msg = '';
-	/**
-	 * Inside sortModelsByOrdered check if field is UI/data-entry field
-	 * @param field: type Field= { name: string; type: string; attrs?: string }
-	 */
-	function isUICandidate({ name, type, attrs }: Field): boolean {
-		type = type.toLowerCase().trim();
-		attrs = attrs ?? '';
-		if (strModelNames.indexOf(`|${type}|`) !== -1 || strModelNames.indexOf(`|${name}|`) !== -1) {
-			return false;
-		}
-		if (
-			/[\|\|]/.test(type) ||
-			name.includes('@@') ||
-			(type === 'Date' && /createdAt/i.test(name)) ||
-			/hash|token/i.test(name)
-		) {
-			return false;
-		}
-		const ui =
-			/\b@id @default(uuid())\b/i.test(attrs) ||
-			['string', 'number', 'boolean', 'role'].includes(type);
-
-		return ui;
-	}
-
-	/**
-	 * makes LIST od model names |User|Profile|Todo|...
-	 * @param schema.prisma
-	 */
-	function makeStrModelNames(schemaContent: string) {
-		let modelMatch = null;
-		while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
-			strModelNames += modelMatch[1] + '|';
-		}
-	}
 
 	/**
 	 *  LEADING array part sorted by ordered followed by leftowers
@@ -125,6 +90,32 @@
 	function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
 		let orderedFields: { name: string; type: string; attrs?: string }[] = [];
 		let leftoverFields: { name: string; type: string; attrs?: string }[] = [];
+
+		/**
+		 * Inside sortModelsByOrdered check if field is UI/data-entry field
+		 * @param field: type Field= { name: string; type: string; attrs?: string }
+		 */
+		function isUICandidate({ name, type, attrs }: Field): boolean {
+			type = type.toLowerCase().trim();
+			attrs = attrs ?? '';
+			if (strModelNames.indexOf(`|${type}|`) !== -1 || strModelNames.indexOf(`|${name}|`) !== -1) {
+				return false;
+			}
+			if (
+				/[\|\|]/.test(type) ||
+				name.includes('@@') ||
+				(type === 'Date' && /createdAt/i.test(name)) ||
+				/hash|token/i.test(name)
+			) {
+				return false;
+			}
+			const ui =
+				/\b@id @default(uuid())\b/i.test(attrs) ||
+				['string', 'number', 'boolean', 'role'].includes(type);
+
+			return ui;
+		}
+
 		for (const [modelName, model] of Object.entries(models)) {
 			let uiNames = '|';
 			let uiStrips = '|';
@@ -179,8 +170,20 @@
 		models = {};
 		type Fields = { name: string; type: string; attrs?: string }[];
 		let fields: Fields = [];
-		makeStrModelNames(schemaContent);
 		let modelMatch = null;
+
+		/**
+		 * makes LIST od model names |User|Profile|Todo|...
+		 * @param schema.prisma
+		 */
+		function makeStrModelNames(schemaContent: string) {
+			let modelMatch = null;
+			while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
+				strModelNames += modelMatch[1] + '|';
+			}
+		}
+
+		makeStrModelNames(schemaContent);
 
 		try {
 			while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
@@ -412,8 +415,6 @@
 		spanEl.textContent = fieldName;
 
 		const divEl = document.createElement('div');
-		divEl.className = 'cr-list-el';
-		divEl.dataset.fieldIndex = getUniqueId();
 
 		// Append spanEl to divEl
 		divEl.appendChild(spanEl);
@@ -601,6 +602,7 @@
 					}, 200);
 					clearLabelText();
 					clearListEls();
+					routeNameEl.value = '';
 					return;
 				}
 				setLabelCaption('pink', 'Change Route Name if necessary', 4000);
@@ -789,7 +791,7 @@
 		width: 12rem;
 	}
 
-	.cr-fields-list {
+	:global(.cr-fields-list) {
 		display: grid;
 		grid-template-rows: 1.3rem;
 		grid-auto-rows: 1.3rem;
@@ -798,6 +800,13 @@
 		padding: 0;
 		margin: 0 0 2rem 0;
 		color: navy;
+		:global(div) {
+			background-color: #f0f8ff;
+			border: 1px solid #ccc;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
 	}
 	.cr-remove-hint {
 		position: absolute;
@@ -846,22 +855,6 @@
 		overflow-y: auto;
 	}
 
-	// .cr-right-column {
-	// 	.cr-caption-one,
-	// 	.cr-caption-two {
-	// 		position: absolute;
-	// 		top: -1.5rem;
-	// 		left: 0.5rem;
-	// 		display: inline-block;
-	// 		color: skyblue;
-	// 		cursor: pointer;
-	// 	}
-	// 	.cr-caption-two {
-	// 		left: 15rem;
-	// 		font-size: 13px;
-	// 		line-height: 22px;
-	// 	}
-	// }
 	.cr-right-column {
 		@include container($head: 'Select UI Fields from ORM', $head-color: skyblue);
 	}
@@ -907,14 +900,7 @@
 		cursor: pointer;
 		width: 25rem !important;
 	}
-	/* all global classes */
-	:global(.cr-list-el) {
-		background: #f0f8ff;
-		border: 1px solid #ccc;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
+
 	:global(.cr-list-el:first-child) {
 		border-top-left-radius: 10px;
 		border-top-right-radius: 10px;
