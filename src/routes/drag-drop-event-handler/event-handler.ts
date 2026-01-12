@@ -1,7 +1,7 @@
 // lib/utils/event-helper.ts
-
 // import { browser } from '$app/environment'
 import * as utils from '$lib/utils'
+import type { TEventType, TMap } from '$lib/utils'
 // ✅ Keep type definitions
 export const TEvent = {
   click: 'click',
@@ -13,45 +13,36 @@ export const TEvent = {
   drop: 'drop',
 } as const
 
-export type TEventType = typeof TEvent[keyof typeof TEvent]
-export type TMap = Map<TEventType, { callback: (event: MouseEvent) => void; listener: (e: Event) => void, querySelector?: string }>
-
 export type TEventHandlerReturnValue = () => {
   setup(element: string | HTMLElement, eventType: TEventType, callback: (event: MouseEvent) => void, querySelector?: string): void
   remove(element: HTMLElement | string, eventType: TEventType): void
   destroy(): void
 }
 
-
-// ✅ Pure factory function
+// ✅ Pure factory function 
 export const createEventHandler = () => {
   const managedElements = new Set<HTMLElement>()
   const elementListeners = new WeakMap<HTMLElement, TMap>()
 
-  function matchesQuerySelector(target: HTMLElement, query: string) {
-    if (query.replace(/\s+/, '').indexOf(',') !== -1) {
-      const list = query.split(',')
-      for (let i = 0; i < list.length; i++) {
-        if (target.matches(list[i])) {
-          return true
-        }
-      }
-      return false
-    } else {
-      return target.matches(query)
-    }
-  }
+  function findMatchingChild(target: HTMLElement, querySelector: string) {
 
+    for (const el of Array.from(target.children)) {
+      if (el.classList.contains(querySelector)) {
+        return el
+      }
+    }
+    return null
+  }
   return {
     setup(
       element: HTMLElement | string,
       eventType: TEventType,
-      callback: (event: MouseEvent) => void,
+      callback: (event: Event) => void,
       querySelector?: string
     ) {
       const hostEl = utils.resolveElement(element)
       if (!hostEl) {
-        throw new Error(`Element not found: ${element}`)
+        throw new Error(`eh Element not found: ${element}`)
       }
 
       if (!elementListeners.has(hostEl)) {
@@ -63,14 +54,19 @@ export const createEventHandler = () => {
       if (eventMap.has(eventType)) {
         return
       }
-
-      const listener = (event: MouseEvent) => {
-        const target = event.target as HTMLElement
+      const listener = (event: Event) => {
+        let target = event.target as HTMLElement
         if (querySelector) {
-          if (matchesQuerySelector(target, querySelector)) {
+          if (target.matches(querySelector)) {
             callback(event)
+          } else {
+            const child = findMatchingChild(target, querySelector)
+            if (child) {
+              target = child as HTMLElement
+            }
           }
         } else {
+          console.log('eh call anyhow')
           callback(event)
         }
       }
@@ -84,6 +80,7 @@ export const createEventHandler = () => {
       const map = elementListeners.get(hostEl as HTMLElement)
 
       if (!map || !map.has(eventType)) {
+        console.log(`No handler found for event "${eventType}" on`, hostEl)
         return
       }
 

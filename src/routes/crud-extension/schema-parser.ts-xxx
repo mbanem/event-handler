@@ -1,0 +1,254 @@
+
+import { schema } from '../crud-support/schema_prisma'
+import { handleTryCatch } from '$lib/utils/index'
+import { createEventHandler, type TEventType } from '../../lib/utils/event-handler'
+
+export type TUI = Record<string, string>
+export const UI: TUI = {
+  ui: 'ui',
+  namesOnly: 'namesOnly',
+  nonUI: 'nonUI',
+  all: 'all'
+} as const
+
+export type Field = { name: string; type: string; attrs?: string }
+export type UIType = (typeof UI)[keyof typeof UI]
+export type Model = {
+  fields: { name: string; type: string; attrs?: string }[]
+  attrs?: string[]
+}
+export type Models = Record<string, Model>
+
+export type TEventHandler = {
+  setup(element: string | HTMLElement, eventType: TEventType, callback: (event: MouseEvent) => void, querySelector?: string): void
+  remove(element: HTMLElement | string, eventType: TEventType): void
+  destroy(): void
+}
+export type TParseReturn = {
+  UI: TUI,
+  uiModels: Models,
+  nuiModels: Models,
+  eventHandler: TEventHandler,
+}
+/**
+ * build models = Record<ModelName, Model>
+ * @param (schemaContent) from schema.prisma
+ */
+function parsePrismaSchema(schemaContent: string): TParseReturn {
+
+  const UI = {
+    ui: 'ui',
+    namesOnly: 'namesOnly',
+    nonUI: 'nonUI',
+    all: 'all'
+  } as const
+  type UIType = (typeof UI)[keyof typeof UI]
+
+  let models: Models = {}
+  let uiModels: Models = {}
+  let nuiModels: Models = {}
+
+  const eventHandler = createEventHandler()
+
+
+  let strModelNames = '|'
+  const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms
+
+  models = {}
+  type Fields = { name: string; type: string; attrs?: string }[]
+  let fields: Fields = []
+  let modelMatch = null
+  const fieldStrips: Record<string, string> = {}
+
+  type fieldNames = {
+    modelName: string
+    namesList: string
+  }
+  const fieldNames: Record<string, string> = {}
+  const ordered = [
+    'id',
+    'authorId',
+    'userId',
+    'employeeId',
+    'customerId',
+    'ownerId',
+    'firstName',
+    'lastName',
+    'middleName',
+    'name',
+    'completed',
+    'profileId',
+    'dob',
+    'dateOfBirth',
+    'email',
+    'password',
+    'bio',
+    'biography',
+    'address',
+    'city',
+    'state',
+    'title',
+    'content',
+    'category',
+    'role',
+    'updatedAt',
+    'priority',
+    'price'
+  ]
+  /**
+   *  LEADING array part sorted by ordered followed by leftowers
+   */
+  function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
+    let orderedFields: { name: string; type: string; attrs?: string }[] = []
+    let leftoverFields: { name: string; type: string; attrs?: string }[] = []
+
+    /**
+     * Inside sortModelsByOrdered check if field is UI/data-entry field
+     * @param field: type Field= { name: string; type: string; attrs?: string }
+     */
+    function isUICandidate({ name, type, attrs }: Field): boolean {
+      type = type.toLowerCase().trim()
+      attrs = attrs ?? ''
+      if (
+        strModelNames.indexOf(`|${type}|`) !== -1 ||
+        strModelNames.indexOf(`|${name}|`) !== -1
+      ) {
+        return false
+      }
+      if (
+        /[\|\|]/.test(type) ||
+        name.includes('@@') ||
+        (type === 'Date' && /createdAt/i.test(name)) ||
+        /hash|token/i.test(name)
+      ) {
+        return false
+      }
+      const ui =
+        /\b@id @default(uuid())\b/i.test(attrs) ||
+        ['string', 'number', 'boolean', 'role'].includes(type)
+
+      return ui
+    }
+
+    for (const [modelName, model] of Object.entries(models)) {
+      let uiNames = '|'
+      let uiStrips = '|'
+      fieldNames[modelName] = ''
+      fieldStrips[modelName] = ''
+      // must create entry for model name as uiModels[modelName].fields
+      // are two-step deep so it does not exists until first ste is done
+      uiModels[modelName] = { fields: [], attrs: [] }
+      nuiModels[modelName] = { fields: [], attrs: [] }
+      if (kind === UI.ui || kind === UI.all) {
+        for (const key of ordered) {
+          // ordered array holds UI/data-entry field names
+          const field = model.fields.find((field) => field.name === key) as Field
+          if (field) {
+            orderedFields.push(field)
+            uiNames += field.name + '|'
+            uiStrips += `${field.name}: ${field.type}` + '|'
+          }
+        }
+        for (const field of model.fields) {
+          // for rest of fields not selected by ordered test if they are UI candidates
+          if (!orderedFields.includes(field) && isUICandidate(field)) {
+            orderedFields.push(field)
+            uiNames += field.name + '|'
+            uiStrips += `${field.name}: ${field.type}` + '|'
+          }
+        }
+      }
+      for (const field of model.fields) {
+        if (!orderedFields.includes(field)) {
+          leftoverFields.push(field)
+        }
+      }
+      orderedFields = orderedFields.filter(Boolean)
+      uiModels[modelName].fields = orderedFields
+      nuiModels[modelName].fields = leftoverFields
+      nuiModels[modelName].attrs = models[modelName].attrs
+      fieldNames[modelName] = uiNames
+      fieldStrips[modelName] = uiStrips
+      // cr-prepare for next model
+      orderedFields = []
+      leftoverFields = []
+      uiNames = ''
+    }
+    return [uiModels, nuiModels]
+  }
+  /**
+   * makes LIST od model names |User|Profile|Todo|...
+   * @param schema.prisma
+   */
+  function makeStrModelNames(schemaContent: string) {
+    let modelMatch = null
+    while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
+      strModelNames += modelMatch[1] + '|'
+    }
+  }
+
+  makeStrModelNames(schemaContent)
+
+  try {
+    while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
+      const [, modelName, body] = modelMatch
+      const modelAttrs: string[] = []
+
+      // // Remove block comments first
+      const bodyWithoutBlocks = body.replace(/\/\*[\s\S]*?\*\//g, '')
+
+      const lines = bodyWithoutBlocks
+        .split('\n')
+        .map((line) => line.trim().replace(/\s{2,}|\t/gm, ' '))
+        .filter(Boolean)
+
+      for (let line of lines) {
+        line = line
+          .trim()
+          .replace(/String/g, 'string')
+          .replace(/DateTime/g, 'Date')
+          .replace(/Int/g, 'number')
+          .replace(/Boolean/g, 'boolean')
+          .replace(/[?]/g, '')
+
+        if (line.startsWith('//')) {
+          continue
+        }
+
+        const parts = line.split(/\s+/) // split on whitespace
+
+        if (line.startsWith('@@')) {
+          // Block attribute
+          modelAttrs.push(line)
+        } else if (parts.length >= 2) {
+          // build fields incrementally
+          fields.push({
+            name: parts[0],
+            type: parts[1],
+            attrs: parts.slice(2).join(' ')
+          })
+        }
+      }
+      models[modelName] = {
+        fields: fields, //: sortObjectKeys(fields),
+        attrs: modelAttrs
+      }
+
+      fields = []
+    }
+  } catch (err) {
+    handleTryCatch(err)
+  }
+  [uiModels, nuiModels] = sortModelsByOrdered(models, UI.all)
+  models = {}
+  return {
+    UI,
+    uiModels,
+    nuiModels,
+    eventHandler,
+  }
+}
+
+export async function getPrismaModels() {
+  return parsePrismaSchema(schema)
+}

@@ -190,7 +190,7 @@ Object.defineProperty(Model, 'initialized', {
   }
 })
 
-console.log(model.initialized)
+// console.log(model.initialized)
 // Initialization call (usually at app startup)
 
 // console.log(Model.modelTypes)

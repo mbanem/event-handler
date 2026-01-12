@@ -1,29 +1,28 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { createEventHandler } from '$lib/utils';
 	// import { createEventHandler } from '$lib/utils/event-handler'
 	// const handlerManager = createEventHandler();
-
-	const TEventType = {
+	const eh = createEventHandler();
+	export const TEvent = {
 		click: 'click',
 		mouseover: 'mouseover',
-		mouseout: 'mouseout'
+		mouseout: 'mouseout',
+		dragstart: 'dragstart',
+		dragover: 'dragover',
+		dragend: 'dragend',
+		drop: 'drop'
 	} as const;
 
-	type TEventType = (typeof TEventType)[keyof typeof TEventType];
+	export type TEventType = (typeof TEvent)[keyof typeof TEvent];
 	let etypeEl: HTMLElement | null = null;
 	let disabled = true;
 	let eventType = ''; // track current value
 	let blockParent: HTMLDivElement | null = null;
 	let selectEl: HTMLSelectElement | null = null;
-	let eventListEl: HTMLDivelement | null = null;
+	let eventListEl: HTMLDivElement | null = null;
 	let listLength = $state(0);
-	// Track all elements we've attached listeners to
-	const managedElements = new Set<HTMLElement>();
-	// Store per-element listeners
-	const elementListeners = new WeakMap<
-		HTMLElement,
-		Map<string, { listener: (e: Event) => void }>
-	>();
+	let contEl: HTMLDivElement | null = null;
 
 	/**
 	 * scrols fields list to show the last element
@@ -45,130 +44,52 @@
 		}
 	};
 
-	/**
-	 * returns the event handler for a given element and event type
-	 */
-	function getEventHandler(element: HTMLElement | string, eventType: string) {
-		const target = resolveElement(element);
-		const map = elementListeners.get(target);
-		return map.get(eventType).callback;
-	}
-	/**
-	 * resolve element arg if given query selector string or return it if object
-	 */
-	function resolveElement(element: HTMLElement | string) {
-		if (typeof element === 'string') {
-			return document.querySelector(element);
-		}
-		return element;
-	}
-
-	/**
-	 * set event handler for a given element, eventType, callback
-	 * and restricts to only element for a given query selector
-	 */
-	function setupEventHandler(
-		element: HTMLElement | string,
-		eventType: TEventType,
-		querySelector: string,
-		callback: () => void
-	) {
-		// Resolve element
-		const hostEl = resolveElement(element);
-
-		if (!hostEl) {
-			throw new Error(`Element not found: ${element}`);
-		}
-
-		// Ensure map exists for this element
-		if (!elementListeners.has(hostEl)) {
-			elementListeners.set(hostEl, new Map());
-			managedElements.add(hostEl); // 👈 track for cleanup
-		}
-		const eventMap = elementListeners.get(hostEl)!;
-
-		// If already listening for this event on this element, skip
-		if (eventMap.has(eventType)) {
-			console.warn(`Event "${eventType}" already registered on`, hostEl);
-			return;
-		}
-
-		// Create listener
-		const listener = (e: Event) => {
-			const target = e.target as HTMLElement;
-			if (target.matches(querySelector)) {
-				callback();
-			}
-		};
-
-		// Store and attach
-		eventMap.set(eventType, { querySelector, callback, listener });
-		hostEl.addEventListener(eventType, listener);
-	}
-
-	/**
-	 * remove event handler for a given element and eventType
-	 */
-	function removeEventHandler(element: HTMLElement | string, eventType: TEventType) {
-		const hostEl = resolveElement(element);
-		const map = elementListeners.get(hostEl);
-
-		if (!map || !map.has(eventType)) {
-			console.warn(`No handler found for event "${eventType}" on`, hostEl);
-			return;
-		}
-		const { listener } = map.get(eventType)!;
-		hostEl.removeEventListener(eventType, listener);
-		map.delete(eventType);
-		if (map.size === 0) {
-			map.clear();
-		}
-	}
-	// Cleanup function (called on destroy)
-	function cleanup() {
-		managedElements.forEach((element) => {
-			const eventMap = elementListeners.get(element);
-			if (eventMap) {
-				eventMap.forEach(({ listener }, eventType) => {
-					element.removeEventListener(eventType, listener);
-				});
-			}
-		});
-		managedElements.clear();
-	}
-
-	function setIsDisabled(e: KeyboardEvent | MouseEvent) {
-		event.preventDefault();
-		const target = e.target as HTMLInputElement;
-		eventType = target.value;
-		disabled = !Object.values(TEventType).includes(eventType as any);
-	}
+	// function setIsDisabled(e: KeyboardEvent | MouseEvent) {
+	// 	event.preventDefault();
+	// 	const target = e.target as HTMLInputElement;
+	// 	eventType = target.value;
+	// 	disabled = !Object.values(TEventType).includes(eventType as any);
+	// }
 
 	// Callbacks
 	function onClick() {
 		eventListEl.innerHTML += 'click!<br/>';
 		scroll(eventListEl as HTMLDivElement);
 	}
+	function onClickA(e: MouseEvent) {
+		console.log('onClickA', e.target.innerText);
+	}
 	function onMouseOver() {
 		eventListEl.innerHTML += 'mouseover!<br/>';
 		scroll(eventListEl as HTMLDivElement);
 	}
+	function onMouseOverA(e: MouseEvent) {
+		console.log('onMouseOverA', e.target.innerText);
+	}
 	function onMouseOut() {
 		eventListEl.innerHTML += 'mouseout!<br/>';
 		scroll(eventListEl as HTMLDivElement);
+	}
+	function onMouseOutA(e: MouseEvent) {
+		console.log('onMouseOutA', e.target.innerText);
 	}
 
 	// attach event handlers
 	onMount(() => {
 		eventListEl = document.getElementById('eventListId');
 		blockParent = document.getElementById('blockParent') as HTMLDivElement;
+		contEl = document.getElementById('cont') as HTMLDivElement;
 		// handlerManager.setup('#blockParent', 'click', '.pp', onClick);
 		// etypeEl = document.getElementById('etype')
-		setupEventHandler('#blockParent', 'click', '.pp', onClick);
-		setupEventHandler('#blockParent', 'mouseover', '.tt', onMouseOver);
-		setupEventHandler('#blockParent', 'mouseout', '.tt', onMouseOut);
+		eh.setup('#blockParent', 'click', onClick, '.pp');
+		eh.setup('#blockParent', 'mouseover', onMouseOver, '.tt');
+		eh.setup('#blockParent', 'mouseout', onMouseOut, '.tt');
+
+		eh.setup('.conta', 'mouseover', onMouseOverA, '.three');
+		eh.setup('.conta', 'click', onClickA, '.one,.three');
+		eh.setup('.conta', 'mouseout', (event: MouseEvent) => onMouseOutA(event), '.three,.four');
 	});
-	onDestroy(cleanup);
+	onDestroy(eh.destroy);
 	// onDestroy(() => {
 	//   handlerManager.destroy(); // ← runs cleanup
 	// });
@@ -180,9 +101,9 @@
 	function remove() {
 		if (!blockParent) return;
 		const eventType = selectEl?.options[selectEl?.selectedIndex].value as TEventType;
-		const type = Object.keys(TEventType).find((t) => t === eventType);
+		const type = Object.keys(TEvent).find((t) => t === eventType);
 		const regex = new RegExp(`\\/?${type}\\/?`, 'g');
-		removeEventHandler('#blockParent', eventType as TEventType);
+		eh.remove('#blockParent', eventType as TEventType);
 		blockParent.innerHTML = blockParent.innerHTML.replace(regex, '');
 		if (selectEl && selectEl.selectedIndex !== -1) {
 			selectEl.remove(selectEl.selectedIndex);
@@ -191,7 +112,7 @@
 </script>
 
 <!-- dismantling the handlers is possible on demand -->
-<button onclick={cleanup} style="margin-top:1rem;">kill WeakMap</button>
+<button onclick={eh.destroy} style="margin-top:1rem;">kill WeakMap</button>
 
 <!-- <input id="etype" onkeyup={setIsDisabled} placeholder="eventType" /> -->
 <select bind:this={selectEl} onchange={remove}>
@@ -217,6 +138,13 @@
 		<p>list length: {listLength}</p>
 		<div id="eventListId" class="event-list"></div>
 	</div>
+</div>
+
+<div class="conta" id="cont">
+	<div class="one">Paragraph One -- click</div>
+	<div class="two">Paragraph Two</div>
+	<div class="three">Paragraph Three -- click, over, out</div>
+	<div class="four">Paragraph Fourv -- out</div>
 </div>
 
 <style>
@@ -267,5 +195,8 @@
 	}
 	.tt {
 		color: green;
+	}
+	.conta {
+		color: red;
 	}
 </style>

@@ -20,6 +20,7 @@
 	<a href="/parse-prisma">Parse Prisma</a>
 	<a href="/dots-on-click">Dots on Click</a>
 	<a href="/boundary">Boundary</a>
+	<a href="/drag-drop-event-handler">Drag-Drop-Event-Handler</a>
 	<a href="/">Home</a>
 </div>
 {@render children()}

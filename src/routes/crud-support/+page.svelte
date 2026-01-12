@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { schema } from './schema_prisma';
+	import { browser } from '$app/environment';
+	import { schema } from './schema_prisma.ts';
 	import { handleTryCatch } from '$lib/utils/index';
-	import { createEventHandler, type TEventTypeType } from '../../lib/utils/event-handler';
+	import { createEventHandler } from '$lib/utils/';
 
 	type Field = { name: string; type: string; attrs?: string };
 	type Model = {
@@ -23,6 +24,7 @@
 	let fieldStrips: Record<string, string> = {};
 	let fieldsListEl: HTMLDivElement;
 	let fieldListsInitialized = false;
+
 	const UI = {
 		ui: 'ui',
 		namesOnly: 'namesOnly',
@@ -85,84 +87,6 @@
 	let msg = '';
 
 	/**
-	 *  LEADING array part sorted by ordered followed by leftowers
-	 */
-	function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
-		let orderedFields: { name: string; type: string; attrs?: string }[] = [];
-		let leftoverFields: { name: string; type: string; attrs?: string }[] = [];
-
-		/**
-		 * Inside sortModelsByOrdered check if field is UI/data-entry field
-		 * @param field: type Field= { name: string; type: string; attrs?: string }
-		 */
-		function isUICandidate({ name, type, attrs }: Field): boolean {
-			type = type.toLowerCase().trim();
-			attrs = attrs ?? '';
-			if (strModelNames.indexOf(`|${type}|`) !== -1 || strModelNames.indexOf(`|${name}|`) !== -1) {
-				return false;
-			}
-			if (
-				/[\|\|]/.test(type) ||
-				name.includes('@@') ||
-				(type === 'Date' && /createdAt/i.test(name)) ||
-				/hash|token/i.test(name)
-			) {
-				return false;
-			}
-			const ui =
-				/\b@id @default(uuid())\b/i.test(attrs) ||
-				['string', 'number', 'boolean', 'role'].includes(type);
-
-			return ui;
-		}
-
-		for (const [modelName, model] of Object.entries(models)) {
-			let uiNames = '|';
-			let uiStrips = '|';
-			fieldNames[modelName] = '';
-			fieldStrips[modelName] = '';
-			// must create entry for model name as uiModels[modelName].fields
-			// are two-step deep so it does not exists until first ste is done
-			uiModels[modelName] = { fields: [], attrs: [] };
-			nuiModels[modelName] = { fields: [], attrs: [] };
-			if (kind === UI.ui || kind === UI.all) {
-				for (const key of ordered) {
-					// ordered array holds UI/data-entry field names
-					const field = model.fields.find((field) => field.name === key) as Field;
-					if (field) {
-						orderedFields.push(field);
-						uiNames += field.name + '|';
-						uiStrips += `${field.name}: ${field.type}` + '|';
-					}
-				}
-				for (const field of model.fields) {
-					// for rest of fields not selected by ordered test if they are UI candidates
-					if (!orderedFields.includes(field) && isUICandidate(field)) {
-						orderedFields.push(field);
-						uiNames += field.name + '|';
-						uiStrips += `${field.name}: ${field.type}` + '|';
-					}
-				}
-			}
-			for (const field of model.fields) {
-				if (!orderedFields.includes(field)) {
-					leftoverFields.push(field);
-				}
-			}
-			orderedFields = orderedFields.filter(Boolean);
-			uiModels[modelName].fields = orderedFields;
-			nuiModels[modelName].fields = leftoverFields;
-			nuiModels[modelName].attrs = models[modelName].attrs;
-			fieldNames[modelName] = uiNames;
-			fieldStrips[modelName] = uiStrips;
-			// cr-prepare for next model
-			orderedFields = [];
-			leftoverFields = [];
-			uiNames = '';
-		}
-		return [uiModels, nuiModels];
-	}
-	/**
 	 * build models = Record<ModelName, Model>
 	 * @param (schemaContent) from schema.prisma
 	 */
@@ -173,17 +97,90 @@
 		let modelMatch = null;
 
 		/**
-		 * makes LIST od model names |User|Profile|Todo|...
-		 * @param schema.prisma
+		 *  LEADING array part sorted by ordered followed by leftowers
 		 */
-		function makeStrModelNames(schemaContent: string) {
-			let modelMatch = null;
-			while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
-				strModelNames += modelMatch[1] + '|';
+		function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
+			let orderedFields: { name: string; type: string; attrs?: string }[] = [];
+			let leftoverFields: { name: string; type: string; attrs?: string }[] = [];
+
+			/**
+			 * Inside sortModelsByOrdered check if field is UI/data-entry field
+			 * @param field: type Field= { name: string; type: string; attrs?: string }
+			 */
+			function isUICandidate({ name, type, attrs }: Field): boolean {
+				type = type.toLowerCase().trim();
+				attrs = attrs ?? '';
+				if (
+					strModelNames.indexOf(`|${type}|`) !== -1 ||
+					strModelNames.indexOf(`|${name}|`) !== -1
+				) {
+					return false;
+				}
+				if (
+					/[\|\|]/.test(type) ||
+					name.includes('@@') ||
+					(type === 'Date' && /createdAt/i.test(name)) ||
+					/hash|token/i.test(name)
+				) {
+					return false;
+				}
+				const ui =
+					/\b@id @default(uuid())\b/i.test(attrs) ||
+					['string', 'number', 'boolean', 'role'].includes(type);
+
+				return ui;
 			}
+
+			for (const [modelName, model] of Object.entries(models)) {
+				let uiNames = '|';
+				let uiStrips = '|';
+				fieldNames[modelName] = '';
+				fieldStrips[modelName] = '';
+				// must create entry for model name as uiModels[modelName].fields
+				// are two-step deep so it does not exists until first ste is done
+				uiModels[modelName] = { fields: [], attrs: [] };
+				nuiModels[modelName] = { fields: [], attrs: [] };
+				if (kind === UI.ui || kind === UI.all) {
+					for (const key of ordered) {
+						// ordered array holds UI/data-entry field names
+						const field = model.fields.find((field) => field.name === key) as Field;
+						if (field) {
+							orderedFields.push(field);
+							uiNames += field.name + '|';
+							uiStrips += `${field.name}: ${field.type}` + '|';
+						}
+					}
+					for (const field of model.fields) {
+						// for rest of fields not selected by ordered test if they are UI candidates
+						if (!orderedFields.includes(field) && isUICandidate(field)) {
+							orderedFields.push(field);
+							uiNames += field.name + '|';
+							uiStrips += `${field.name}: ${field.type}` + '|';
+						}
+					}
+				}
+				for (const field of model.fields) {
+					if (!orderedFields.includes(field)) {
+						leftoverFields.push(field);
+					}
+				}
+				orderedFields = orderedFields.filter(Boolean);
+				uiModels[modelName].fields = orderedFields;
+				nuiModels[modelName].fields = leftoverFields;
+				nuiModels[modelName].attrs = models[modelName].attrs;
+				fieldNames[modelName] = uiNames;
+				fieldStrips[modelName] = uiStrips;
+				// cr-prepare for next model
+				orderedFields = [];
+				leftoverFields = [];
+				uiNames = '';
+			}
+			return [uiModels, nuiModels];
 		}
 
-		makeStrModelNames(schemaContent);
+		while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
+			strModelNames += modelMatch[1] + '|';
+		}
 
 		try {
 			while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
@@ -415,6 +412,14 @@
 		spanEl.textContent = fieldName;
 
 		const divEl = document.createElement('div');
+
+		// divEl.innerHTML = `<div
+		// draggable='true',
+		// ondragstart={handleDragStart},
+		// ondragover={handleDragOver},
+		// ondroop={handledrop}>
+		// 	<span>{fieldName}</span>
+		// </div>`
 
 		// Append spanEl to divEl
 		divEl.appendChild(spanEl);
@@ -684,7 +689,7 @@
 		</div>
 
 		<div id="middleColumnId" class="cr-middle-column cr-middle-column-height">
-			<div class="cr-fields-list cr-fields-list-height" id="fieldsListId"></div>
+			<div class="cr-fields-list" id="fieldsListId"></div>
 			<p id="removeHintId" class="cr-remove-hint">click to remove</p>
 		</div>
 
@@ -800,12 +805,21 @@
 		padding: 0;
 		margin: 0 0 2rem 0;
 		color: navy;
+		user-select: none;
 		:global(div) {
 			background-color: #f0f8ff;
 			border: 1px solid #ccc;
 			display: flex;
 			align-items: center;
 			justify-content: center;
+		}
+		:global(div:first-child) {
+			border-top-left-radius: 10px;
+			border-top-right-radius: 10px;
+		}
+		:global(div:last-child) {
+			border-bottom-left-radius: 10px;
+			border-bottom-right-radius: 10px;
 		}
 	}
 	.cr-remove-hint {
@@ -901,14 +915,6 @@
 		width: 25rem !important;
 	}
 
-	:global(.cr-list-el:first-child) {
-		border-top-left-radius: 10px;
-		border-top-right-radius: 10px;
-	}
-	:global(.cr-list-el:last-child) {
-		border-bottom-left-radius: 10px;
-		border-bottom-right-radius: 10px;
-	}
 	:global(.cr-model-attr) {
 		grid-column: span 2;
 		width: 18rem;
