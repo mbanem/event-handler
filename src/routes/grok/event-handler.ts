@@ -199,7 +199,7 @@ export const createEventHandler = () => {
     },
 
     destroy() {
-      alert('destroy')
+      // let ix = 1
       wrappers.forEach(wrapper => {
         const eventMap = wrapperListeners.get(wrapper as HTMLElement)
         for (const [eventType, { callback: _, listener: ls }] of eventMap as TMap) {
@@ -209,6 +209,9 @@ export const createEventHandler = () => {
       dropWrappers.forEach(obj => {
         for (const [eventType, handler] of Object.entries(obj.handlers)) {
           obj.wrapper.removeEventListener(eventType as TEventType, handler as THandler)
+          // if (typeof window !== 'undefined') {
+          //   localStorage.setItem('drag-drop' + ix++, eventType)
+          // }
         }
       })
     }

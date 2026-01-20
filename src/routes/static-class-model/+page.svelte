@@ -388,4 +388,13 @@ export const actions: Actions = {
 	// });
 </script>
 
-<pre id="block-pre" style="color:navy;font-size:13px;tab-size:16px;width:100vw;"></pre>
+<pre id="block-pre"></pre>
+
+<style lang="scss">
+	pre {
+		color: var(--pre-color);
+		font-size: 13px;
+		tab-size: 16px;
+		width: 100vw;
+	}
+</style>

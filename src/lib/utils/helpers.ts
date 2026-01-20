@@ -4,14 +4,6 @@ export const handleTryCatch = (err: unknown, info?: string) => {
   console.log(info, msg)
 }
 
-// ✅ Helper function (no state, pure)
-export function resolveElement(element: HTMLElement | string): HTMLElement | null {
-  if (!browser) return null
-  if (typeof element === 'string') {
-    return document.querySelector(element)
-  }
-  return element
-}
 
 // utils/dragReorder.ts
 
@@ -20,7 +12,7 @@ export function resolveElement(element: HTMLElement | string): HTMLElement | nul
  * @param container The parent element (e.g., #fieldsListId)
  * @param querySelector is element draggable
  */
-export function enableDragReorder(
+export function enableDragDrop(
   container: HTMLElement,
 
 ) {

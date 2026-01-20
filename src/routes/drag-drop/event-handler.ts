@@ -1,4 +1,6 @@
-import { browser } from '$app/environment'
+// import { browser } from '$app/environment'
+import * as utils from './utils'
+type TDragDropHandlers = Record<string, ((e: DragEvent) => void)>
 
 // ✅ Keep type definitions
 export const CEvent = {
@@ -10,9 +12,10 @@ export const CEvent = {
   dragend: 'dragend',
   drop: 'drop',
 } as const
+// const draggable = 'draggable'
+type cleanup = (() => void)
 type THandler = (e: MouseEvent) => void
 type THandlers = Record<string, THandler>
-type TDragDropHandlers = Record<string, ((e: DragEvent) => void)>
 
 export type TEventType = typeof CEvent[keyof typeof CEvent]
 export type TMap = Map<TEventType, { callback: (event: MouseEvent) => void; listener: (e: MouseEvent) => void }>
@@ -23,26 +26,19 @@ export type TEventHandlerReturnValue = () => {
   destroy(): void
 }
 
-export function resolveElement(element: HTMLElement | string): HTMLElement | null {
-  if (!browser) return null
-  if (typeof element === 'string') {
-    return document.querySelector(element)
-  }
-  return element
-}
 
 // ✅ Pure factory function
 export const createEventHandler = () => {
-  const wrapperListeners = new WeakMap<HTMLElement, TMap>()
-  const ehHandlersWM = new WeakMap<HTMLElement, THandlers>()
-  const wrappers = new Set<HTMLElement>()
-  const dropWrappers = new Set<{ wrapper: HTMLElement, handlers: TDragDropHandlers }>()
-  // const dragDropHandlers = new WeakMap<HTMLElement, TDragDropHandlers>()
-  let wrapperEl: HTMLElement
+  // const managedElements = new Set<HTMLElement>()
+  const elementListeners = new WeakMap<HTMLElement, TMap>()
+  const ehHandlersWM = new WeakMap<HTMLElement, THandlers>
+  const hostsExcluded = new Set()
+  const cleanupDragDropHandlers = new Set<THandler>()
+
   function matchesQuerySelector(event: MouseEvent) {
     const el = event.target as HTMLElement
     // if it is a wrapper ignore it
-    if (wrappers.has(el)) {
+    if (hostsExcluded.has(el)) {
       return
     }
     if (el.dataset.eventList) {
@@ -54,12 +50,8 @@ export const createEventHandler = () => {
   function enableDragReorder(
     element: HTMLElement
   ) {
-    const container = resolveElement(element) as HTMLElement
+    const container = utils.resolveElement(element)
     let draggedEl: HTMLElement | null = null
-
-    for (const child of Array.from(container.children) as HTMLElement[]) {
-      child.setAttribute('draggable', 'true')
-    }
 
     const handleDragStart = (e: DragEvent) => {
       const target = e.target as HTMLElement
@@ -83,11 +75,12 @@ export const createEventHandler = () => {
         resetOpacity()
         return
       }
-      // Move dragged element before or after drop target
+
+      // Move dragged element before drop target
       if (e.shiftKey) {
         dropTarget.after(draggedEl)
       } else {
-        container.insertBefore(draggedEl, dropTarget)
+        (container as HTMLElement).insertBefore(draggedEl, dropTarget)
       }
       resetOpacity()
     }
@@ -108,11 +101,15 @@ export const createEventHandler = () => {
       'dragend': handleDragEnd
     }
     // Attach listeners 
-    for (const [eventType, handler] of Object.entries(handlers)) {
-      container.addEventListener(eventType as TEventType, handler as THandler)
+    for (const [key, value] of Object.entries(handlers)) {
+      container?.addEventListener(key as TEventType, value as THandler)
     }
-    // console.log('returning handlers', handlers)
-    return handlers
+    // Return cleanupDragDropHandlers function
+    return () => {
+      for (const [key, value] of Object.entries(handlers)) {
+        container?.removeEventListener(key as TEventType, value as THandler)
+      }
+    }
   }
 
   return {
@@ -120,57 +117,48 @@ export const createEventHandler = () => {
       wrapper: HTMLElement | string,
       eventHandlers?: THandlers
     ) {
-      wrapperEl = resolveElement(wrapper) as HTMLElement
+      const wrapperEl = utils.resolveElement(wrapper)
       if (!wrapperEl) {
-        throw new Error(`Element not found:`)
-      }
-
-      // if it is only drag and drop
-      if (!eventHandlers) {
-        const handls = enableDragReorder(wrapperEl)
-        if (handls) {
-          dropWrappers.add({ wrapper: wrapperEl, handlers: handls })
-        } else {
-          console.log('not set to dragDropHandlers')
-        }
-        return
+        throw new Error(`Element not found: `)
       }
       // save wrappers to ignore events on them; include only its children
-      wrappers.add(wrapperEl)
+      hostsExcluded.add(wrapperEl)
+
+      // if it is only drag and drop
+      if (!eventHandlers && Array.from(wrapperEl.classList).join().includes('draggable')) {
+        cleanupDragDropHandlers.add(enableDragReorder(wrapperEl) as cleanup)
+        return
+      }
       // save all event handlers that the wrapper wants to be handled
       ehHandlersWM.set(wrapperEl, eventHandlers as THandlers)
 
-      // wrapperEl has no listeners registerd yet -- so open a list for them
-      if (!wrapperListeners.has(wrapperEl)) {
-        wrapperListeners.set(wrapperEl, new Map())
+      // wrapperEl has no liteners registerd yet so open a list for them
+      if (!elementListeners.has(wrapperEl)) {
+        elementListeners.set(wrapperEl, new Map())
       }
 
-      const eventMap = wrapperListeners.get(wrapperEl)!
+      // // eventMap shold hold listeners wrapper what wrapper is interestedd inhandlers exists
+      const eventMap = elementListeners.get(wrapperEl)!
+      // what wrapper handlers exists
       const handlers = ehHandlersWM.get(wrapperEl) as THandlers
       // without filtering additional element DOMStringMap(0) appears; maybe Svelte hydration inserted new line
-      // const children = wrapperEl.children as HTMLCollection
-      // const children = Array.from(wrapperEl.children) as HTMLElement[];
-      // for (let i = 0; i < children.length; i++) {
-      for (const child of Array.from(wrapperEl.children) as HTMLElement[]) {
-        if (!(child as HTMLElement).dataset.eventList) {
-          continue
-        }
-        const eventList = (child as HTMLElement).dataset.eventList as string
-        // children have a list of events thay want to listen on
-        for (const eventType of eventList.split(' ')) {
+      for (const child of Array.from(wrapperEl.children as HTMLCollection).filter((child) => (child as HTMLElement).dataset.eventList)) {
+        // children have a list of events thay want to liten on
+        for (const eventType of ((child as HTMLElement).dataset.eventList as string).split(' ')) {
           if (handlers[eventType]) {
             if (!eventMap.has(eventType as TEventType)) {
               // create a new event handler for wrapperEl child and its data-event-list events
-              const handler = (ehHandlersWM.get(wrapperEl) as THandlers)[eventType] as THandler
+              const handler = ((ehHandlersWM).get(wrapperEl) as THandlers)[eventType] as THandler
 
               const listener = (event: MouseEvent) => {
                 event.preventDefault()
+                // const target = event.target as HTMLElement
                 // when this event occurs check if element is interested in firing on it
                 if (matchesQuerySelector(event)) {
                   handler(event)
                 }
               }
-              // register this event for the wrapper
+              // we register this event for the wrapper
               eventMap.set(eventType as TEventType, { callback: handler, listener })
               // add event listener to DOM on wrapper as event will propagate to
               // it but we fire only if event.target is a child intersted in it
@@ -182,8 +170,8 @@ export const createEventHandler = () => {
     },
 
     remove(element: HTMLElement | string, eventType: TEventType) {
-      const wrapperEl = resolveElement(element)
-      const map = wrapperListeners.get(wrapperEl as HTMLElement)
+      const wrapperEl = utils.resolveElement(element)
+      const map = elementListeners.get(wrapperEl as HTMLElement)
 
       if (!map || !map.has(eventType)) {
         return
@@ -194,22 +182,28 @@ export const createEventHandler = () => {
       map.delete(eventType)
 
       if (map.size === 0) {
-        wrapperListeners.delete(wrapperEl as HTMLElement)
+        // managedElements.delete(wrapperEl as HTMLElement)
+        elementListeners.delete(wrapperEl as HTMLElement)
       }
     },
 
     destroy() {
-      alert('destroy')
-      wrappers.forEach(wrapper => {
-        const eventMap = wrapperListeners.get(wrapper as HTMLElement)
-        for (const [eventType, { callback: _, listener: ls }] of eventMap as TMap) {
-          (wrapper as HTMLElement).removeEventListener(eventType, ls)
-        }
+      // console.log('destroy')
+      // managedElements.forEach((element) => {
+      //   const eventMap = elementListeners.get(element)
+      //   if (eventMap) { 
+      //     eventMap.forEach(({ listener }, eventType) => {
+      //       element.removeEventListener(eventType, listener) 
+      //     }) 
+      //   } 
+      // }) 
+      // managedElements.clear() 
+      hostsExcluded.forEach(wrapper => {
+
+        const map = elementListeners.get(wrapper as HTMLElement)
       })
-      dropWrappers.forEach(obj => {
-        for (const [eventType, handler] of Object.entries(obj.handlers)) {
-          obj.wrapper.removeEventListener(eventType as TEventType, handler as THandler)
-        }
+      cleanupDragDropHandlers.forEach(cleanup => {
+        cleanup(event as MouseEvent)
       })
     }
   }

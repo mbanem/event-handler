@@ -1,42 +1,24 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
+	import { CEvent, type TEventType } from '$lib/utils';
 	import { createEventHandler } from '$lib/utils';
-	// import { createEventHandler } from '$lib/utils/event-handler'
-	// const handlerManager = createEventHandler();
-	const eh = createEventHandler();
-	export const TEvent = {
-		click: 'click',
-		mouseover: 'mouseover',
-		mouseout: 'mouseout',
-		dragstart: 'dragstart',
-		dragover: 'dragover',
-		dragend: 'dragend',
-		drop: 'drop'
-	} as const;
-
-	export type TEventType = (typeof TEvent)[keyof typeof TEvent];
-	let etypeEl: HTMLElement | null = null;
-	let disabled = true;
-	let eventType = ''; // track current value
-	let blockParent: HTMLDivElement | null = null;
+	let eventListEl: HTMLDivElement;
+	let blockParent: HTMLDivElement;
+	let contEl: HTMLSelectElement | null = null;
+	let count = $state(0);
 	let selectEl: HTMLSelectElement | null = null;
-	let eventListEl: HTMLDivElement | null = null;
-	let listLength = $state(0);
-	let contEl: HTMLDivElement | null = null;
+	const eh = createEventHandler();
 
-	/**
-	 * scrols fields list to show the last element
-	 * @param el
-	 */
 	const scroll = (el: HTMLDivElement) => {
-		const els = eventListEl.children;
-		listLength = els.length;
+		const els = el.children;
 		const max = 50;
 		if (els.length > max) {
 			for (let i = 0; i < max / 2; i++) {
 				els[0].remove(); // always delete the top one
 			}
+			eventListEl.style.color = eventListEl.style.color === 'navy' ? 'green' : 'navy';
 		}
+		count = listLength = els.length;
 		if (el.offsetHeight + el.scrollTop > el.getBoundingClientRect().height - 20) {
 			setTimeout(() => {
 				el.scrollTo(0, el.scrollHeight);
@@ -44,52 +26,41 @@
 		}
 	};
 
-	// function setIsDisabled(e: KeyboardEvent | MouseEvent) {
-	// 	event.preventDefault();
-	// 	const target = e.target as HTMLInputElement;
-	// 	eventType = target.value;
-	// 	disabled = !Object.values(TEventType).includes(eventType as any);
-	// }
-
+	function handleList(e: MouseEvent) {
+		(eventListEl as HTMLDivElement).innerHTML += `${e.type}!<br/>`;
+		scroll(eventListEl);
+	}
 	// Callbacks
-	function onClick() {
-		eventListEl.innerHTML += 'click!<br/>';
-		scroll(eventListEl as HTMLDivElement);
+	function onClick(e: MouseEvent) {
+		console.log('onClick Handler');
+		handleList(e);
 	}
 	function onClickA(e: MouseEvent) {
-		console.log('onClickA', e.target.innerText);
+		// console.log('onClickA', (e.target as HTMLDivElement).innerText);
+		handleList(e);
 	}
-	function onMouseOver() {
-		eventListEl.innerHTML += 'mouseover!<br/>';
-		scroll(eventListEl as HTMLDivElement);
+	function onMouseOver(e: MouseEvent) {
+		handleList(e);
 	}
 	function onMouseOverA(e: MouseEvent) {
-		console.log('onMouseOverA', e.target.innerText);
+		// console.log('onMouseOverA', (e.target as HTMLDivElement).innerText);
+		handleList(e);
 	}
-	function onMouseOut() {
-		eventListEl.innerHTML += 'mouseout!<br/>';
-		scroll(eventListEl as HTMLDivElement);
+	function onMouseOut(e: MouseEvent) {
+		handleList(e);
 	}
 	function onMouseOutA(e: MouseEvent) {
-		console.log('onMouseOutA', e.target.innerText);
+		// console.log('onMouseOutA', (e.target as HTMLDivElement).innerText);
+		handleList(e);
 	}
+	let listLength = $state(0);
+	const selectOptions = {
+		null: 'Select Event to remove it handler',
+		mouseout: 'Remove mouseout Handler',
+		click: 'Remove click Handler',
+		mouseover: 'Remove mouseover Handler'
+	};
 
-	// attach event handlers
-	onMount(() => {
-		eventListEl = document.getElementById('eventListId');
-		blockParent = document.getElementById('blockParent') as HTMLDivElement;
-		contEl = document.getElementById('cont') as HTMLDivElement;
-		// handlerManager.setup('#blockParent', 'click', '.pp', onClick);
-		// etypeEl = document.getElementById('etype')
-		eh.setup('#blockParent', 'click', onClick, '.pp');
-		eh.setup('#blockParent', 'mouseover', onMouseOver, '.tt');
-		eh.setup('#blockParent', 'mouseout', onMouseOut, '.tt');
-
-		eh.setup('.conta', 'mouseover', onMouseOverA, '.three');
-		eh.setup('.conta', 'click', onClickA, '.one,.three');
-		eh.setup('.conta', 'mouseout', (event: MouseEvent) => onMouseOutA(event), '.three,.four');
-	});
-	onDestroy(eh.destroy);
 	// onDestroy(() => {
 	//   handlerManager.destroy(); // ← runs cleanup
 	// });
@@ -101,7 +72,7 @@
 	function remove() {
 		if (!blockParent) return;
 		const eventType = selectEl?.options[selectEl?.selectedIndex].value as TEventType;
-		const type = Object.keys(TEvent).find((t) => t === eventType);
+		const type = Object.keys(CEvent as unknown as TEventType).find((t) => t === eventType);
 		const regex = new RegExp(`\\/?${type}\\/?`, 'g');
 		eh.remove('#blockParent', eventType as TEventType);
 		blockParent.innerHTML = blockParent.innerHTML.replace(regex, '');
@@ -109,6 +80,21 @@
 			selectEl.remove(selectEl.selectedIndex);
 		}
 	}
+	// attach event handlers
+	onMount(() => {
+		eventListEl = document.getElementById('eventListId') as HTMLDivElement;
+		eventListEl.style.color = 'navy';
+		blockParent = document.getElementById('blockParent') as HTMLDivElement;
+		contEl = document.getElementById('cont') as HTMLDivElement;
+		// handlerManager.setup('#blockParent', 'click', '.pp', onClick);
+		// etypeEl = document.getElementById('etype')
+		eh.setup('#blockParent', { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
+		eh.setup('.conta', { click: onClickA, mouseover: onMouseOverA, mouseout: onMouseOutA });
+
+		return () => {
+			eh.destroy();
+		};
+	});
 </script>
 
 <!-- dismantling the handlers is possible on demand -->
@@ -116,10 +102,9 @@
 
 <!-- <input id="etype" onkeyup={setIsDisabled} placeholder="eventType" /> -->
 <select bind:this={selectEl} onchange={remove}>
-	<option value={undefined}>Select to clear event Handler</option>
-	<option value="click">clear click handler</option>
-	<option value="mouseover">clear mouseover handler</option>
-	<option value="mouseout">clear mouseout handler</option>
+	{#each Object.entries(selectOptions) as [key, value] (key)}
+		<option value={key}>{value}</option>
+	{/each}
 </select>
 <!-- <button {disabled} onclick={() => remove('#blockParent', eventType as TEventType)}>
 	remove eventType handler
@@ -129,10 +114,10 @@
 <!-- wrapper for elements to obtain event handlers -->
 <div class="grid-wrapper">
 	<div id="blockParent">
-		<p class="tt">The First Paragraph mouseover/mouseout</p>
-		<p class="tt">The Second Paragraph mouseover/mouseout</p>
-		<p class="pp">The Third Paragraph click</p>
-		<p class="tt">The Fourth Paragraph mouseover/mouseout</p>
+		<p data-event-list="mouseover mouseout">The First Paragraph mouseover mouseout</p>
+		<p data-event-list="click mouseover">The Second Paragraph click mouseover</p>
+		<p data-event-list="click">The Third Paragraph click</p>
+		<p data-event-list="click mouseover mouseout">The Fourth Paragraph click mouseover mouseout</p>
 	</div>
 	<div class="right-column">
 		<p>list length: {listLength}</p>
@@ -141,10 +126,12 @@
 </div>
 
 <div class="conta" id="cont">
-	<div class="one">Paragraph One -- click</div>
-	<div class="two">Paragraph Two</div>
-	<div class="three">Paragraph Three -- click, over, out</div>
-	<div class="four">Paragraph Fourv -- out</div>
+	<div data-event-list="click">Paragraph One -- click</div>
+	<div data-event-list="mouseover">Paragraph Two -- mouseover</div>
+	<div data-event-list="click mouseover mouseout">
+		Paragraph Three -- click, mouseover, mouseout
+	</div>
+	<div data-event-list="mouseout">Paragraph Four -- mouseout</div>
 </div>
 
 <style>
@@ -172,7 +159,6 @@
 	.event-list {
 		height: 10rem;
 		overflow-y: auto;
-		color: navy;
 		padding: 1rem;
 		&::before {
 			position: absolute;
@@ -190,13 +176,16 @@
 	p {
 		cursor: pointer;
 	}
-	.pp {
-		color: navy;
-	}
-	.tt {
-		color: green;
-	}
 	.conta {
-		color: red;
+		color: green;
+		padding: 1rem;
+		border: 1px solid gray;
+		border-radius: 6px;
+		width: max-content;
+		margin-top: 1rem;
+		div {
+			padding: 2px 0;
+			cursor: pointer;
+		}
 	}
 </style>
