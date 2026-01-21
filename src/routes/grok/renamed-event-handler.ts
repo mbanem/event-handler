@@ -59,9 +59,6 @@ export const createEventHandler = () => {
 
     for (const child of Array.from(container.children) as HTMLElement[]) {
       child.setAttribute('draggable', 'true')
-      for (const c of Array.from(child.children) as HTMLElement[]) {
-        (c).style.pointerEvents = 'none'
-      }
     }
 
     const handleDragStart = (e: DragEvent) => {
@@ -156,8 +153,7 @@ export const createEventHandler = () => {
       // for (let i = 0; i < children.length; i++) {
       for (const child of Array.from(wrapperEl.children) as HTMLElement[]) {
         if (!(child as HTMLElement).dataset.eventList) {
-          // continue
-          child.setAttribute('data-event-list', 'click mouseover mouseout')
+          continue
         }
         const eventList = (child as HTMLElement).dataset.eventList as string
         // children have a list of events thay want to listen on
@@ -203,6 +199,7 @@ export const createEventHandler = () => {
     },
 
     destroy() {
+      // let ix = 1
       wrappers.forEach(wrapper => {
         const eventMap = wrapperListeners.get(wrapper as HTMLElement)
         for (const [eventType, { callback: _, listener: ls }] of eventMap as TMap) {
@@ -212,6 +209,9 @@ export const createEventHandler = () => {
       dropWrappers.forEach(obj => {
         for (const [eventType, handler] of Object.entries(obj.handlers)) {
           obj.wrapper.removeEventListener(eventType as TEventType, handler as THandler)
+          // if (typeof window !== 'undefined') {
+          //   localStorage.setItem('drag-drop' + ix++, eventType)
+          // }
         }
       })
     }

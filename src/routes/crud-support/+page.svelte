@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { schema } from './schema_prisma';
-	import { handleTryCatch } from '$lib/utils';
+	import * as utils from '$lib/utils';
+	import { handleTryCatch, createEventHandler } from '$lib/utils';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	type Field = { name: string; type: string; attrs?: string };
 	type Model = {
@@ -60,6 +62,7 @@
 		'price',
 		'updatedAt'
 	];
+	const eh = createEventHandler();
 	let strModelNames = '|';
 	const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms;
 
@@ -79,6 +82,7 @@
 	let timer: NodeJS.Timeout | string | number | undefined; //ReturnValue<typeof setTimeout>;
 	let fieldNameAndType = 'Field Name and Type';
 	let unacceptable = '  not a UI field';
+	let deletedFields = new SvelteMap<string, Node>();
 	// global msg set by isFieldFormatValid, isInFieldStrips and isInListEls
 	let msg = '';
 	/**
@@ -406,7 +410,7 @@
 		span.textContent = fieldName;
 
 		const div = document.createElement('div');
-		div.className = 'cr-list-el';
+		div.className = 'cr-list-el'; // TODO is this necessary
 		div.dataset.fieldIndex = getUniqueId();
 
 		// Append span to div
@@ -445,34 +449,6 @@
 			const listEls = (fieldsListEl as HTMLDivElement).querySelectorAll(
 				'.cr-list-el'
 			) as NodeListOf<HTMLDivElement>;
-			listEls.forEach((el) => {
-				el.addEventListener('mouseenter', () => {
-					removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
-					removeHintEl.style.left = String(el.offsetLeft + 12) + 'px';
-					removeHintEl.style.opacity = '1';
-				});
-
-				el.addEventListener('mouseleave', () => {
-					removeHintEl.style.opacity = '0';
-				});
-
-				el.addEventListener('click', () => {
-					removeHintEl.style.opacity = '0';
-
-					if (fieldNameEl.value === '') {
-						fieldNameEl.value = el.innerText;
-						fieldNameEl.focus();
-					}
-					const index = el.dataset.fieldIndex;
-					const fieldName = fieldNameFromIndex(index as string);
-					fields = fields.filter((fname) => fname !== fieldName);
-					if (el.innerText) {
-						const fn = el.innerText.match(/([^:]+)/)?.[1];
-						fieldNames[modelName] = fieldNames[modelName].replace(new RegExp(`\\|${fn}\\|`), '|');
-					}
-					el.remove();
-				});
-			});
 			fieldListsInitialized = true;
 		}, 0);
 	}
@@ -562,18 +538,56 @@
 					return;
 				}
 
-				let value = (fieldNameEl as HTMLInputElement).value.trim();
-				if (!value || !isFieldAcceptable(value)) {
+				let fieldName = (fieldNameEl as HTMLInputElement).value.trim();
+				if (!fieldName || !isFieldAcceptable(fieldName)) {
 					return;
 				}
 
-				value = adjustFiledNameAndType(value);
-				renderField(value);
+				if (deletedFields.has(fieldName)) {
+					(fieldsListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
+					return;
+				}
+
+				fieldName = adjustFiledNameAndType(fieldName);
+				renderField(fieldName);
 				scroll(fieldsListEl as HTMLDivElement as HTMLDivElement);
 			});
 		}
 	}, 200);
+	// listEls.forEach((el) => {
+	// 	el.addEventListener('mouseenter', () => {
+	function onMouseOver(e: MouseEvent) {
+		const el = e.target as HTMLElement;
+		removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
+		removeHintEl.style.left = String(el.offsetLeft + 12) + 'px';
+		removeHintEl.style.opacity = '1';
+	}
 
+	// el.addEventListener('mouseleave', () => {
+	function onMouseOut(e: MouseEvent) {
+		removeHintEl.style.opacity = '0';
+	}
+
+	// el.addEventListener('click', () => {
+	function onClick(e: MouseEvent) {
+		const el = e.target as HTMLElement;
+		removeHintEl.style.opacity = '0';
+
+		if (fieldNameEl.value === '') {
+			fieldNameEl.value = el.innerText;
+			fieldNameEl.focus();
+		}
+		// const index = el.dataset.fieldIndex;
+		// const fieldName = fieldNameFromIndex(index as string);
+		// fields = fields.filter((fname) => fname !== fieldName);
+		// if (el.innerText) {
+		// 	const fn = el.innerText.match(/([^:]+)/)?.[1];
+		// 	fieldNames[modelName] = fieldNames[modelName].replace(new RegExp(`\\|${fn}\\|`), '|');
+		// }
+		deletedFields.set(el.innerText, el);
+		el.remove();
+	}
+	// });
 	nuiModels = {};
 	onMount(() => {
 		fieldNameEl = document.getElementById('fieldNameId') as HTMLInputElement;
@@ -627,29 +641,41 @@
 					const fld = `${field.name}: ${field.type}`;
 					fields.push(fld);
 					renderField(fld);
+					await utils.sleep(100);
 				}
 				if (pipeElsString === '!') {
 					for (const field of uiModels[modelName].fields) {
 						pipeElsString += `${field.name}: ${field.type}|`;
 					}
 				}
+				// field list takes time to load field names
+				setTimeout(() => {
+					eh.setup(fieldsListEl, { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
+					// drag-drop to move fieldNames up and down the fields list
+					eh.setup(fieldsListEl);
+				}, 0);
+
 				//----------------
 			} else {
 				// ----------- PRISMA KEYUP HANDLER clicked on a field name in <details> block ---------------
 				const el = event.target as HTMLDivElement;
-				let fieldStr = el.innerText;
+				let fieldName = el.innerText;
 				try {
 					const type = el.nextSibling?.textContent?.match(/type:(\w+)/)?.[1] as string;
-					fieldStr += ': ' + type;
+					fieldName += ': ' + type;
 				} catch (err: unknown) {
 					handleTryCatch(err);
 				}
-
-				if (!isFieldAcceptable(fieldStr)) {
+				if (!isFieldAcceptable(fieldName)) {
 					return;
 				}
-				renderField(fieldStr);
-				fieldStrips[modelName] += fieldStr + '|';
+				if (deletedFields.has(fieldName)) {
+					(fieldsListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
+					return;
+				}
+
+				renderField(fieldName);
+				fieldStrips[modelName] += fieldName + '|';
 			}
 		});
 	});

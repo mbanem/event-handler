@@ -4,7 +4,15 @@ export const handleTryCatch = (err: unknown, info?: string) => {
   console.log(info, msg)
 }
 
-
+export const sleep = async (ms: number) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // ms here is a dummy but required by
+      // resolve to send out some value
+      resolve(ms)
+    }, ms)
+  })
+}
 // utils/dragReorder.ts
 
 /**
