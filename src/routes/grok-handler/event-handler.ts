@@ -1,3 +1,5 @@
+import { browser } from '$app/environment'
+
 // event-handler.ts (updated version)
 type SupportedMouseEvent =
   | 'click'
@@ -11,9 +13,12 @@ type SupportedMouseEvent =
   | 'mouseleave'
   | 'contextmenu'
 
+type THandler = (e: MouseEvent) => void
 type THandlers = Partial<Record<SupportedMouseEvent, (e: MouseEvent) => void>>
-
+type TDragDropHandlers = Record<string, ((e: DragEvent) => void)>
 type TWrapper = HTMLElement | string
+export type TEventType = typeof CEvent[keyof typeof CEvent]
+export type TMap = Map<TEventType, { callback: (event: MouseEvent) => void; listener: (e: MouseEvent) => void }>
 
 interface EventConfig {
   element: HTMLElement
@@ -22,23 +27,101 @@ interface EventConfig {
 
 class EventHandler {
   private wrapper: HTMLElement | null = null;
+  // private wrappers = new Set<HTMLElement>()
+  private dropWrappers = new Set<{ wrapper: HTMLElement, handlers: TDragDropHandlers }>()
   private supportedHandlers: THandlers = {};
   private childConfigs: Map<HTMLElement, EventConfig> = new Map();
   private boundHandlers: Map<SupportedMouseEvent, EventListener> = new Map();  // NEW: to store bound functions for proper removal
 
+  enableDragReorder(
+    element: HTMLElement
+  ) {
+    const wrapper = this.resolveElement(element) as HTMLElement
+    let draggedEl: HTMLElement | null = null
+
+    for (const child of Array.from(wrapper.children) as HTMLElement[]) {
+      child.setAttribute('draggable', 'true')
+      for (const c of Array.from(child.children) as HTMLElement[]) {
+        (c).style.pointerEvents = 'none'
+      }
+    }
+
+    const handleDragStart = (e: DragEvent) => {
+      const target = e.target as HTMLElement
+      draggedEl = target
+      // Optional: add visual feedback
+      target.style.opacity = '0.5'
+      e.dataTransfer?.setData('text/plain', '') // required for Firefox
+    }
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault() // essential!
+    }
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault()
+      if (!draggedEl) {
+        return
+      }
+      const dropTarget = e.target as HTMLElement
+      if (!dropTarget || dropTarget === draggedEl) {
+        resetOpacity()
+        return
+      }
+      // Move dragged element before or after drop target
+      if (e.shiftKey) {
+        dropTarget.after(draggedEl)
+      } else {
+        wrapper.insertBefore(draggedEl, dropTarget)
+      }
+      resetOpacity()
+    }
+
+    const handleDragEnd = () => {
+      resetOpacity()
+      draggedEl = null
+    }
+
+    const resetOpacity = () => {
+      if (draggedEl) draggedEl.style.opacity = ''
+    }
+
+    const handlers: TDragDropHandlers = {
+      'dragstart': handleDragStart,
+      'dragover': handleDragOver,
+      'drop': handleDrop,
+      'dragend': handleDragEnd
+    }
+    // Attach listeners 
+    for (const [eventType, handler] of Object.entries(handlers)) {
+      wrapper.addEventListener(eventType as TEventType, handler as THandler)
+    }
+    // console.log('returning handlers', handlers)
+    return handlers
+  }
+
   /**
    * Set up event delegation
-   * @param wrapper - container element or CSS selector
+   * @param wrapper - wrapper element or CSS selector
    * @param handlers - event handlers for supported mouse events
    */
-  setup(wrapper: TWrapper, handlers: THandlers): void {
+  setup(wrapper: TWrapper, handlers?: THandlers): void {
     // Resolve wrapper element
-    this.wrapper = this.resolveWrapper(wrapper)
+    this.wrapper = this.resolveElement(wrapper)
     if (!this.wrapper) {
       console.warn('EventHandler: Could not resolve wrapper element')
       return
     }
 
+    // if it is only drag and drop
+    if (!handlers) {
+      const handlers = this.enableDragReorder(this.wrapper)
+      if (handlers) {
+        this.dropWrappers.add({ wrapper: this.wrapper, handlers })
+      }
+      return
+    }
+    // this.wrappers.add(this.wrapper)
     // Remove any previous listeners (using stored bound handlers)
     this.removeAllListeners()
 
@@ -56,7 +139,7 @@ class EventHandler {
     this.attachDelegationListeners()
   }
 
-  private resolveWrapper(wrapper: TWrapper): HTMLElement | null {
+  private resolveElement(wrapper: TWrapper): HTMLElement | null {
     if (wrapper instanceof HTMLElement) {
       return wrapper
     }
@@ -173,9 +256,28 @@ class EventHandler {
 
     this.childConfigs.clear()
     this.supportedHandlers = {}
+    let ix = 1, iy = 1
+    // this.wrappers.forEach(wrapper => {
+    //   const eventMap = this.wrapperListeners.get(wrapper as HTMLElement)
+    //   for (const [eventType, { callback: _, listener: ls }] of eventMap as TMap) {
+    //     (wrapper as HTMLElement).removeEventListener(eventType, ls)
+    //     if (browser) {
+    //       localStorage.setItem(`click-over-out${ix++}`, `${eventType} ${wrapper.innerText.slice(0, 20)}`)
+    //     }
+    //   }
+    // })
+    this.dropWrappers.forEach(obj => {
+      for (const [eventType, handler] of Object.entries(obj.handlers)) {
+        obj.wrapper.removeEventListener(eventType as TEventType, handler as THandler)
+        if (browser) {
+          localStorage.setItem(`drag-drop${iy++}`, `${eventType} ${obj.wrapper.innerText.slice(0, 20)}`)
+        }
+      }
+    })
     this.wrapper = null
   }
 }
+
 
 export function createEventHandler(): EventHandler {
   return new EventHandler()

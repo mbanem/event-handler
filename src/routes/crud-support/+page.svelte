@@ -2,7 +2,9 @@
 	import { onMount } from 'svelte';
 	import { schema } from './schema_prisma';
 	import * as utils from '$lib/utils';
-	import { handleTryCatch, createEventHandler } from '$lib/utils';
+	import { handleTryCatch } from '$lib/utils';
+	// import { createEventHandler } from '../grok/event-handler';
+	import { createEventHandler } from '$lib/utils';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	type Field = { name: string; type: string; attrs?: string };
@@ -567,7 +569,9 @@
 	function onMouseOut(e: MouseEvent) {
 		removeHintEl.style.opacity = '0';
 	}
-
+	function onDrop(e: MouseEvent) {
+		console.log('onDrop');
+	}
 	// el.addEventListener('click', () => {
 	function onClick(e: MouseEvent) {
 		const el = e.target as HTMLElement;
@@ -628,6 +632,7 @@
 					clearLabelText();
 					pipeElsString = `!`;
 					clearListEls();
+					eh.destroy();
 					return;
 				}
 				setLabelCaption('pink', 'Change Route Name if necessary', 4000);
@@ -650,6 +655,7 @@
 				}
 				// field list takes time to load field names
 				setTimeout(() => {
+					fieldsListEl.ondrop = onDrop;
 					eh.setup(fieldsListEl, { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
 					// drag-drop to move fieldNames up and down the fields list
 					eh.setup(fieldsListEl);
@@ -678,6 +684,14 @@
 				fieldStrips[modelName] += fieldName + '|';
 			}
 		});
+		// for (let i = 1; i < 10; i++) {
+		// 	console.log(localStorage.getItem(`click-over-out${i}`));
+		// 	console.log(localStorage.getItem(`drag-drop${i}`));
+		// }
+		// localStorage.clear();
+		return () => {
+			eh.destroy();
+		};
 	});
 	// -----------------------------------
 	// for Wevschema Extension
@@ -697,6 +711,9 @@
 	}
 </script>
 
+<svelte:head>
+	<title>CRUD Support</title>
+</svelte:head>
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
 		<cr-pre class="cr-span-two">

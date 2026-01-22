@@ -1,3 +1,5 @@
+import { browser } from '$app/environment'
+
 // event-handler.ts (updated version)
 type TEventType =
   | 'click'
@@ -25,20 +27,24 @@ interface EventConfig {
 
 class EventHandler {
   private wrapper: HTMLElement | null = null;
-  private wrappers = new Set<HTMLElement>();
+  // private wrappers = new Set<HTMLElement>();
   private supportedHandlers: THandlers = {};
   private childConfigs: Map<HTMLElement, EventConfig> = new Map();
   private boundHandlers: Map<TEventType, EventListener> = new Map();  // NEW: to store bound functions for proper removal
-  private dragDropHandlers = new WeakMap<HTMLElement, TDragDropHandlers>()
+  private dropWrappers = new Set<{ wrapper: HTMLElement, handlers: TDragDropHandlers }>()
 
   // drag-drop for reordering a list of HTMLElements
   private enableDragReorder(
     wrapper: HTMLElement
   ) {
     let draggedEl: HTMLElement | null = null
+    console.log('drag-drop wrapper', wrapper.innerText.slice(0, 20))
 
     for (const child of Array.from(wrapper.children) as HTMLElement[]) {
       child.setAttribute('draggable', 'true')
+      for (const chld of Array.from(child.children) as HTMLElement[]) {
+        (chld).style.pointerEvents = 'none'
+      }
     }
     const handleDragStart = (e: DragEvent) => {
       const target = e.target as HTMLElement
@@ -105,11 +111,15 @@ class EventHandler {
       return
     }
 
-    this.wrappers.add(this.wrapper)
+    // this.wrappers.add(this.wrapper)
     if (!handlers) {
-      this.dragDropHandlers.set(this.wrapper, this.enableDragReorder(this.wrapper))
+      const handlers = this.enableDragReorder(this.wrapper)
+      if (handlers) {
+        this.dropWrappers.add({ wrapper: this.wrapper, handlers })
+      }
       return
     }
+    console.log('click-over-out wrapper', this.wrapper.innerText.slice(0, 20))
     // Remove any previous listeners (using stored bound handlers)
     this.removeAllListeners()
 
@@ -155,6 +165,7 @@ class EventHandler {
   }
 
   private registerInterestedChildren(): void {
+    console.log('registerInterestedChildren entry')
     if (!this.wrapper) return
 
     // Use Array.from for iterable HTMLCollection + type safety
@@ -187,6 +198,7 @@ class EventHandler {
         })
       }
     }
+    console.log('registerInterestedChildren exit')
   }
 
   private getBoundHandler(eventName: TEventType): EventListener {
@@ -197,25 +209,29 @@ class EventHandler {
   }
 
   private attachDelegationListeners(): void {
+    console.log('attachDelegationListeners entry')
     if (!this.wrapper) return
 
     // We attach listeners only for events we actually have handlers for
     for (const eventName of Object.keys(this.supportedHandlers) as TEventType[]) {
       this.wrapper.addEventListener(eventName, this.getBoundHandler(eventName))
     }
+    console.log('attachDelegationListeners exit')
+
   }
 
   private removeAllListeners(): void {
+    console.log('removeAllListeners entrry')
     if (!this.wrapper) return
 
     for (const [eventName, boundHandler] of this.boundHandlers) {
       this.wrapper.removeEventListener(eventName, boundHandler)
     }
     this.boundHandlers.clear()  // Clear after removal
+    console.log('removeAllListeners exit')
   }
 
   private handleEvent(e: MouseEvent): void {
-    console.log('handleEvent called for type:', e.type)  // DEBUG: add this to confirm firing
 
     if (!this.wrapper) return
 
@@ -230,6 +246,7 @@ class EventHandler {
         console.log('Found matching child:', current)  // DEBUG
         const handler = this.supportedHandlers[e.type as TEventType]
         if (handler) {
+          console.log('handleEvent called for type:', e.type)  // DEBUG: add this to confirm firing
           handler(e)
         }
         return // We handled it - stop bubbling up
@@ -244,15 +261,24 @@ class EventHandler {
 
     this.childConfigs.clear()
     this.supportedHandlers = {}
-    this.wrapper = null
-    for (const wrapper of this.wrappers) {
-      if (this.dragDropHandlers.has(wrapper)) {
-        const handlers = this.dragDropHandlers.get(wrapper) as TDragDropHandlers
-        for (const [eventType, handler] of Object.entries(handlers)) {
-          wrapper.removeEventListener(eventType as TEventType, handler as THandler)
+    // for (const wrapper of this.wrappers) {
+    //   if (this.dragDropHandlers.has(wrapper)) {
+    //     const handlers = this.dragDropHandlers.get(wrapper) as TDragDropHandlers
+    //     for (const [eventType, handler] of Object.entries(handlers)) {
+    //       wrapper.removeEventListener(eventType as TEventType, handler as THandler)
+    //     }
+    //   }
+    // }
+    this.dropWrappers.forEach(obj => {
+      let iy = 1
+      for (const [eventType, handler] of Object.entries(obj.handlers)) {
+        obj.wrapper.removeEventListener(eventType as TEventType, handler as THandler)
+        if (browser) {
+          localStorage.setItem(`drag-drop${iy++}`, `${eventType} ${obj.wrapper.innerText.slice(0, 20)}`)
         }
       }
-    }
+    })
+    this.wrapper = null
   }
 }
 

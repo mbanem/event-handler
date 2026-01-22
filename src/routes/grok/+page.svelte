@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { createEventHandler } from '$lib/utils';
+	// import { createEventHandler } from '$lib/utils';
+	import { createEventHandler } from './event-handler';
 	import * as utils from '$lib/utils';
 	const eh = createEventHandler();
 	// let cleanup: (() => void) | null = null;

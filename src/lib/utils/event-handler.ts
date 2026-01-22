@@ -33,30 +33,17 @@ export function resolveElement(element: HTMLElement | string): HTMLElement | nul
 
 // ✅ Pure factory function
 export const createEventHandler = () => {
-  const wrapperListeners = new WeakMap<HTMLElement, TMap>()
-  const ehHandlersWM = new WeakMap<HTMLElement, THandlers>()
+  let wrapperListeners = new WeakMap<HTMLElement, TMap>()
+  let ehHandlersWM = new WeakMap<HTMLElement, THandlers>()
   const wrappers = new Set<HTMLElement>()
   const dropWrappers = new Set<{ wrapper: HTMLElement, handlers: TDragDropHandlers }>()
-  // const dragDropHandlers = new WeakMap<HTMLElement, TDragDropHandlers>()
   let wrapperEl: HTMLElement
-  function matchesQuerySelector(event: MouseEvent) {
-    const el = event.target as HTMLElement
-    // if it is a wrapper ignore it
-    if (wrappers.has(el)) {
-      return
-    }
-    if (el.dataset.eventList) {
-      return el.dataset.eventList.split(' ').includes(event.type)
-    }
-    return false
-  }
 
   function enableDragReorder(
     element: HTMLElement
   ) {
     const container = resolveElement(element) as HTMLElement
     let draggedEl: HTMLElement | null = null
-
     for (const child of Array.from(container.children) as HTMLElement[]) {
       child.setAttribute('draggable', 'true')
       for (const c of Array.from(child.children) as HTMLElement[]) {
@@ -114,7 +101,6 @@ export const createEventHandler = () => {
     for (const [eventType, handler] of Object.entries(handlers)) {
       container.addEventListener(eventType as TEventType, handler as THandler)
     }
-    // console.log('returning handlers', handlers)
     return handlers
   }
 
@@ -133,8 +119,6 @@ export const createEventHandler = () => {
         const handls = enableDragReorder(wrapperEl)
         if (handls) {
           dropWrappers.add({ wrapper: wrapperEl, handlers: handls })
-        } else {
-          console.log('not set to dragDropHandlers')
         }
         return
       }
@@ -170,7 +154,8 @@ export const createEventHandler = () => {
               const listener = (event: MouseEvent) => {
                 event.preventDefault()
                 // when this event occurs check if element is interested in firing on it
-                if (matchesQuerySelector(event)) {
+                // if (matchesQuerySelector(event)) {
+                if (child.dataset?.eventList?.split(' ').includes(event.type)) {
                   handler(event)
                 }
               }
@@ -203,17 +188,29 @@ export const createEventHandler = () => {
     },
 
     destroy() {
+      // return
+      let ix = 1, iy = 1
       wrappers.forEach(wrapper => {
         const eventMap = wrapperListeners.get(wrapper as HTMLElement)
         for (const [eventType, { callback: _, listener: ls }] of eventMap as TMap) {
           (wrapper as HTMLElement).removeEventListener(eventType, ls)
+          if (browser) {
+            localStorage.setItem(`click-over-out${ix++}`, `${eventType} ${wrapper.innerText.slice(0, 20)}`)
+          }
         }
       })
       dropWrappers.forEach(obj => {
         for (const [eventType, handler] of Object.entries(obj.handlers)) {
           obj.wrapper.removeEventListener(eventType as TEventType, handler as THandler)
+          if (browser) {
+            localStorage.setItem(`drag-drop${iy++}`, `${eventType} ${obj.wrapper.innerText.slice(0, 20)}`)
+          }
         }
       })
+      wrappers.clear()
+      dropWrappers.clear()
+      wrapperListeners = new WeakMap<HTMLElement, TMap>()
+      ehHandlersWM = new WeakMap<HTMLElement, THandlers>()
     }
   }
 }

@@ -3,7 +3,8 @@
 	// import { browser } from '$app/environment';
 	import { schema } from './schema_prisma.ts';
 	import { handleTryCatch } from '$lib/utils/index';
-	import { createEventHandler } from '$lib/utils';
+	// import { createEventHandler } from '$lib/utils';
+	import { createEventHandler } from '../grok/event-handler';
 
 	type Field = { name: string; type: string; attrs?: string };
 	type Model = {
