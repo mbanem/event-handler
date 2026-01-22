@@ -313,11 +313,11 @@
 	/**
 	 * querySelector for candidate fieldsheld in CSS class '.cr-list-el' entries
 	 */
-	function getListEls() {
-		return (fieldsListEl as HTMLDivElement).querySelectorAll(
-			'.cr-list-el'
-		) as NodeListOf<HTMLDivElement>;
-	}
+	// function getListEls() {
+	// 	return (fieldsListEl as HTMLDivElement).querySelectorAll(
+	// 		'.cr-list-el'
+	// 	) as NodeListOf<HTMLDivElement>;
+	// }
 
 	/**<details><summary>
 	 * return built |fieldName: type| string of expanded fields
@@ -398,11 +398,11 @@
 		// check if field is already in the candidates list
 		const regex = new RegExp(`\\b${field.name}\\b`);
 
-		getListEls().forEach((listEl) => {
-			if (regex.test((listEl.firstElementChild as HTMLSpanElement).innerText)) {
-				found = true;
-			}
-		});
+		// getListEls().forEach((listEl) => {
+		// 	if (regex.test((listEl.firstElementChild as HTMLSpanElement).innerText)) {
+		// 		found = true;
+		// 	}
+		// });
 		if (found) msg += unacceptable;
 		return found;
 	}
@@ -497,7 +497,7 @@
 	setTimeout(() => {
 		if (fieldNameEl) {
 			(routeNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
-				buttonNotAllowed = !routeName || !fieldsListEl.children;
+				setButtonAvailability();
 			});
 			(fieldNameEl as HTMLInputElement).addEventListener('change', (event: Event) => {
 				nokeyup = true;
@@ -510,6 +510,7 @@
 					return;
 				}
 				renderField(value);
+				setButtonAvailability();
 			});
 
 			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
@@ -549,6 +550,9 @@
 		console.log('onDrop');
 	}
 
+	function setButtonAvailability() {
+		buttonNotAllowed = !fieldsListEl.innerText || !routeNameEl.value;
+	}
 	function onClick(e: MouseEvent) {
 		const el = e.target as HTMLElement;
 		removeHintEl.style.opacity = '0';
@@ -559,6 +563,7 @@
 		}
 		deletedFields.set(el.innerText, el);
 		el.remove();
+		setButtonAvailability();
 	}
 
 	nuiModels = {};
@@ -625,11 +630,11 @@
 				}
 				// field list takes time to load field names
 				setTimeout(() => {
-					buttonNotAllowed = false;
 					fieldsListEl.ondrop = onDrop;
 					eh.setup(fieldsListEl, { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
 					// drag-drop to move fieldNames up and down the fields list
 					eh.setup(fieldsListEl);
+					buttonNotAllowed = false;
 				}, 0);
 
 				//----------------
@@ -648,6 +653,7 @@
 				}
 				if (deletedFields.has(fieldName)) {
 					(fieldsListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
+					setButtonAvailability();
 					return;
 				}
 
@@ -680,14 +686,13 @@
 			stopRenderField = false;
 		}, 100);
 	}
-	let routeName = $state('');
 	let buttonNotAllowed = $state<boolean>(true);
 </script>
 
 <svelte:head>
 	<title>CRUD Support</title>
 </svelte:head>
-<p>{buttonNotAllowed}</p>
+
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
 		<cr-pre class="cr-span-two">
@@ -703,15 +708,14 @@
 
 		<div class="cr-left-column">
 			<label for="routeNameId"> Route Name </label>
-			<input
-				id="routeNameId"
-				bind:value={routeName}
-				type="text"
-				placeholder="app name equal routes folder name"
-			/>
+			<input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
 			<label for="fieldNameId"> Field Name and Type </label>
 			<input id="fieldNameId" type="text" placeholder="fieldName: type" />
-			<div id="createBtnId" style="font-size: 14px !important;" class:notallowed={buttonNotAllowed}>
+			<div
+				id="createBtnId"
+				style="font-size: 14px !important;cursor:pointer;"
+				class:notallowed={buttonNotAllowed}
+			>
 				Create CRUD Support
 			</div>
 			<div class="cr-crud-support-done cr-hidden"></div>
