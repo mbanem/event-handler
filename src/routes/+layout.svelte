@@ -122,23 +122,8 @@
 			color: tomato;
 		}
 	}
-	/*  appluing theme*/
-	:root {
-		--bg: #f8f9fa;
-		--text: #212529;
-		--card: #ffffff;
-		--btn-bg: #121212;
-		--btn-text: white;
-		--pre-color: navy;
-	}
-	:global(.dark) {
-		--bg: #121212;
-		--text: #e0e0e0;
-		--card: #1e1e1e;
-		--btn-bg: #f8f9fa;
-		--btn-text: white;
-		--pre-color: skyblue;
-	}
+	/*  applying theme  */
+
 	.theme-container {
 		min-height: 100vh;
 		background: var(--bg);

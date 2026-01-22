@@ -410,13 +410,13 @@
 		// Create nested  elements
 		const span = document.createElement('span');
 		span.textContent = fieldName;
-
 		const div = document.createElement('div');
 		div.className = 'cr-list-el'; // TODO is this necessary
-		div.dataset.fieldIndex = getUniqueId();
-
 		// Append span to div
 		div.appendChild(span);
+
+		// rendering simple div via innerHTML is slow compared to objects
+		// div.innerHTML = `<span class='cr-list-el'>${fieldName}</span>`;
 		// append div to the fieldsListEl
 		(fieldsListEl as HTMLDivElement).appendChild(div);
 	}
@@ -428,29 +428,9 @@
 		if (!isFieldAcceptable(fieldName)) {
 			return;
 		}
-		const listEls = getListEls();
-		// nested function
-		/**
-		 * click-handler gets field name event.target from data-field-index
-		 *
-		 */
-		const fieldNameFromIndex = (index: string) => {
-			let name = '';
-			listEls.forEach((listEl) => {
-				if (listEl.dataset.fieldIndex === index) {
-					name = (listEl as HTMLDivElement)?.innerText;
-				}
-			});
-			return name;
-		};
+
 		setTimeout(() => {
 			addToFieldList(fieldName);
-			// so getBoundingClientRect() can be destructured
-			// const { x, y } = (fieldsListEl as HTMLDivElement).getBoundingClientRect()
-
-			const listEls = (fieldsListEl as HTMLDivElement).querySelectorAll(
-				'.cr-list-el'
-			) as NodeListOf<HTMLDivElement>;
 			fieldListsInitialized = true;
 		}, 0);
 	}
@@ -516,10 +496,7 @@
 	let nokeyup = false;
 	setTimeout(() => {
 		if (fieldNameEl) {
-			// --------- field name data entry handler ---------------
-
 			(fieldNameEl as HTMLInputElement).addEventListener('change', (event: Event) => {
-				// --------- field name data entry handler ---------------
 				nokeyup = true;
 				if (clear.length) {
 					setLabelCaption('black', 'FieldName and Type', 0, 'field');
@@ -531,10 +508,7 @@
 				}
 				renderField(value);
 			});
-			// ------------- KEYUP HANDLER  keyboard handler ---------------------
 			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
-				// ----------- KEYUP HANDLER  keyboard handler ---------------------
-
 				if (nokeyup) {
 					nokeyup = false;
 					return;
@@ -556,8 +530,7 @@
 			});
 		}
 	}, 200);
-	// listEls.forEach((el) => {
-	// 	el.addEventListener('mouseenter', () => {
+
 	function onMouseOver(e: MouseEvent) {
 		const el = e.target as HTMLElement;
 		removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
@@ -565,14 +538,13 @@
 		removeHintEl.style.opacity = '1';
 	}
 
-	// el.addEventListener('mouseleave', () => {
 	function onMouseOut(e: MouseEvent) {
 		removeHintEl.style.opacity = '0';
 	}
 	function onDrop(e: MouseEvent) {
 		console.log('onDrop');
 	}
-	// el.addEventListener('click', () => {
+
 	function onClick(e: MouseEvent) {
 		const el = e.target as HTMLElement;
 		removeHintEl.style.opacity = '0';
@@ -581,17 +553,10 @@
 			fieldNameEl.value = el.innerText;
 			fieldNameEl.focus();
 		}
-		// const index = el.dataset.fieldIndex;
-		// const fieldName = fieldNameFromIndex(index as string);
-		// fields = fields.filter((fname) => fname !== fieldName);
-		// if (el.innerText) {
-		// 	const fn = el.innerText.match(/([^:]+)/)?.[1];
-		// 	fieldNames[modelName] = fieldNames[modelName].replace(new RegExp(`\\|${fn}\\|`), '|');
-		// }
 		deletedFields.set(el.innerText, el);
 		el.remove();
 	}
-	// });
+
 	nuiModels = {};
 	onMount(() => {
 		fieldNameEl = document.getElementById('fieldNameId') as HTMLInputElement;
@@ -732,7 +697,7 @@
 			<input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
 			<label for="fieldNameId"> Field Name and Type </label>
 			<input id="fieldNameId" type="text" placeholder="fieldName: type" />
-			<button id="createBtnId" disabled>Create CRUD Support</button>
+			<div id="createBtnId" disabled style="font-size: 14px !important;">Create CRUD Support</div>
 			<div class="cr-crud-support-done cr-hidden"></div>
 			<div id="messagesId" style="z-index:10;width:20rem;">Messages:</div>
 		</div>
@@ -781,13 +746,8 @@
 	</div>
 
 	<div id="rightColumnId" class="cr-right-column">
-		<p
-			class="collapse-all"
-			onclick={closeSchemaModels}
-			onkeypress={closeSchemaModels}
-			aria-hidden={true}
-		>
-			(collapse all)
+		<p onclick={closeSchemaModels} onkeypress={closeSchemaModels} aria-hidden={true}>
+			collapse all
 		</p>
 		<div id="schemaContainerId"></div>
 	</div>
@@ -823,11 +783,12 @@
 	}
 
 	.cr-left-column {
-		@include container($head: 'Application Settings', $head-color: skyblue);
+		@include container($head: 'Application Settings');
 		border: 1px solid gray;
 		border-radius: 8px;
 		height: 60vh;
 		padding: 1rem 0 0 0.4rem;
+		background-color: var(--panel-bg-color);
 		label,
 		button,
 		div {
@@ -836,16 +797,17 @@
 	}
 
 	.cr-middle-column {
-		@include container($head: 'Candidate Fields', $head-color: skyblue);
+		@include container($head: 'Candidate Fields', $head-color: navy);
 		position: relative;
 		border: 1px solid gray;
 		border-radius: 5px;
 		padding: 1rem 6px 0 6px;
 		height: auto;
 		width: 12rem;
+		background-color: var(--panel-bg-color);
 	}
 
-	.cr-fields-list {
+	:global(.cr-fields-list) {
 		display: grid;
 		grid-template-rows: 1.3rem;
 		grid-auto-rows: 1.3rem;
@@ -854,6 +816,22 @@
 		padding: 0;
 		margin: 0 0 2rem 0;
 		color: navy;
+		:global(.cr-list-el) {
+			background: var(--candidate-bg-color);
+			color: var(--candidate-color);
+			border: 1px solid #ccc;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		:global(.cr-list-el:first-child) {
+			border-top-left-radius: 10px;
+			border-top-right-radius: 10px;
+		}
+		:global(.cr-list-el:last-child) {
+			border-bottom-left-radius: 10px;
+			border-bottom-right-radius: 10px;
+		}
 	}
 	.cr-remove-hint {
 		position: absolute;
@@ -902,27 +880,26 @@
 		overflow-y: auto;
 	}
 
-	// .cr-right-column {
-	// 	.cr-caption-one,
-	// 	.cr-caption-two {
-	// 		position: absolute;
-	// 		top: -1.5rem;
-	// 		left: 0.5rem;
-	// 		display: inline-block;
-	// 		color: skyblue;
-	// 		cursor: pointer;
-	// 	}
-	// 	.cr-caption-two {
-	// 		left: 15rem;
-	// 		font-size: 13px;
-	// 		line-height: 22px;
-	// 	}
-	// }
 	.cr-right-column {
+		position: relative;
 		@include container($head: 'Select UI Fields from ORM', $head-color: skyblue);
+		background-color: var(--panel-bg-color);
+		p {
+			position: absolute;
+			padding: 1px 0.3rem;
+			background-color: var(--bg);
+			top: -1.3rem;
+			left: 16.8rem;
+			font-size: 12px;
+			cursor: pointer;
+			border: 0.5px solid;
+			border-radius: 6px;
+			// margin: 0 0.5rem;
+		}
 	}
 	.embellishments {
-		@include container($head: 'Include Components', $head-color: skyblue);
+		@include container($head: 'Include Components', $head-color: rgb(71, 71, 198));
+		background-color: var(--panel-bg-color);
 
 		position: relative;
 		grid-column: span 2;
@@ -937,7 +914,10 @@
 		border-radius: 6px;
 		user-select: none;
 	}
-
+	input {
+		color: var(--input-color);
+		background-color: var(--input-bg-color);
+	}
 	.checkbox-item {
 		display: contents;
 	}
@@ -964,7 +944,7 @@
 		width: 25rem !important;
 	}
 	/* all global classes */
-	:global(.cr-list-el) {
+	/*:global(.cr-list-el) {
 		background: #f0f8ff;
 		border: 1px solid #ccc;
 		display: flex;
@@ -978,7 +958,7 @@
 	:global(.cr-list-el:last-child) {
 		border-bottom-left-radius: 10px;
 		border-bottom-right-radius: 10px;
-	}
+	}*/
 	:global(.cr-model-attr) {
 		grid-column: span 2;
 		width: 18rem;
@@ -993,8 +973,8 @@
 		overflow-y: auto;
 	}
 	:global(.cr-model-name) {
-		color: #3e3e3e;
-		background-color: #e3e3e3;
+		color: var(--summary-color);
+		background-color: var(--summary-bg-color);
 		margin-top: 3px;
 		width: 18rem;
 		border-radius: 6px;
@@ -1031,5 +1011,17 @@
 	:global(.cr-fields-column p:nth-child(even)) {
 		font-weight: 400 !important;
 		font-size: 12px !important; /* prisma attrs column */
+	}
+	#createBtnId {
+		outline: none;
+		border: 1px solid gray;
+		border-radius: 5px;
+		font-weight: 400;
+		padding: 4px 1rem;
+		color: #f8f9fa;
+		background-color: navy;
+		border: 1px solid gray;
+		width: max-content;
+		cursor: pointer;
 	}
 </style>
