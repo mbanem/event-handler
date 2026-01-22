@@ -496,6 +496,9 @@
 	let nokeyup = false;
 	setTimeout(() => {
 		if (fieldNameEl) {
+			(routeNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
+				buttonNotAllowed = !routeName || !fieldsListEl.children;
+			});
 			(fieldNameEl as HTMLInputElement).addEventListener('change', (event: Event) => {
 				nokeyup = true;
 				if (clear.length) {
@@ -508,6 +511,7 @@
 				}
 				renderField(value);
 			});
+
 			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
 				if (nokeyup) {
 					nokeyup = false;
@@ -597,6 +601,7 @@
 					clearLabelText();
 					pipeElsString = `!`;
 					clearListEls();
+					closeSchemaModels();
 					eh.destroy();
 					return;
 				}
@@ -620,6 +625,7 @@
 				}
 				// field list takes time to load field names
 				setTimeout(() => {
+					buttonNotAllowed = false;
 					fieldsListEl.ondrop = onDrop;
 					eh.setup(fieldsListEl, { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
 					// drag-drop to move fieldNames up and down the fields list
@@ -660,7 +666,6 @@
 	});
 	// -----------------------------------
 	// for Wevschema Extension
-
 	let stopRenderField = false;
 	function closeSchemaModels() {
 		stopRenderField = true;
@@ -669,16 +674,20 @@
 		fieldNameEl.value = '';
 		const children = schemaContainerEl?.children as HTMLCollection;
 		closeDetails(children);
+		buttonNotAllowed = true;
 		setTimeout(() => {
 			fieldsListEl.innerHTML = '';
 			stopRenderField = false;
 		}, 100);
 	}
+	let routeName = $state('');
+	let buttonNotAllowed = $state<boolean>(true);
 </script>
 
 <svelte:head>
 	<title>CRUD Support</title>
 </svelte:head>
+<p>{buttonNotAllowed}</p>
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
 		<cr-pre class="cr-span-two">
@@ -694,10 +703,17 @@
 
 		<div class="cr-left-column">
 			<label for="routeNameId"> Route Name </label>
-			<input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
+			<input
+				id="routeNameId"
+				bind:value={routeName}
+				type="text"
+				placeholder="app name equal routes folder name"
+			/>
 			<label for="fieldNameId"> Field Name and Type </label>
 			<input id="fieldNameId" type="text" placeholder="fieldName: type" />
-			<div id="createBtnId" disabled style="font-size: 14px !important;">Create CRUD Support</div>
+			<div id="createBtnId" style="font-size: 14px !important;" class:notallowed={buttonNotAllowed}>
+				Create CRUD Support
+			</div>
 			<div class="cr-crud-support-done cr-hidden"></div>
 			<div id="messagesId" style="z-index:10;width:20rem;">Messages:</div>
 		</div>
@@ -854,7 +870,7 @@
 		grid-column: 1 / span 2;
 		text-align: justify;
 		font-size: 12px;
-		color: skyblue;
+		color: var(--pre-color);
 	}
 	input[type='text'] {
 		width: 18rem;
@@ -887,6 +903,7 @@
 		p {
 			position: absolute;
 			padding: 1px 0.3rem;
+			color: var(--close-all-color);
 			background-color: var(--bg);
 			top: -1.3rem;
 			left: 16.8rem;
@@ -894,7 +911,9 @@
 			cursor: pointer;
 			border: 0.5px solid;
 			border-radius: 6px;
-			// margin: 0 0.5rem;
+			&:hover {
+				background-color: var(--close-all-bg-hover);
+			}
 		}
 	}
 	.embellishments {
@@ -1023,5 +1042,9 @@
 		border: 1px solid gray;
 		width: max-content;
 		cursor: pointer;
+	}
+	.notallowed {
+		opacity: 0.3;
+		cursor: not-allowed;
 	}
 </style>

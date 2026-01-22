@@ -68,7 +68,13 @@ export const createEventHandler = () => {
       if (!draggedEl) {
         return
       }
+      const parent = draggedEl.parentElement as HTMLElement
+      console.log(parent.innerText.slice(0, 20))
       const dropTarget = e.target as HTMLElement
+      if (parent && parent.ondrop) {
+        console.log('calling drop')
+        // parent.ondrop(e)
+      }
       if (!dropTarget || dropTarget === draggedEl) {
         resetOpacity()
         return

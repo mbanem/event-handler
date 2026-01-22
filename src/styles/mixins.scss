@@ -14,7 +14,9 @@
   --summary-color: navy;
   --candidate-color: navy;
   --candidate-bg-color: aliceblue;
-
+  --close-all-color: navy;
+  --close-all-bg-color: aliceblue;
+  --close-all-bg-hover: skyblue;
 }
 
 :global(.dark) {
@@ -33,6 +35,9 @@
   --summary-color: #121212;
   --candidate-color: skyblue;
   --candidate-bg-color: #121212;
+  --close-all-color: skyblue;
+  --close-all-bg-color: #121212;
+  --close-all-bg-hover: #656565;
 }
 
 @mixin container($head: 'container',

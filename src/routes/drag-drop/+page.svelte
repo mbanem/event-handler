@@ -81,10 +81,16 @@
 	function mouseoutHandler(e: MouseEvent) {
 		toggleColor(e);
 	}
+	function onDrop(e: MouseEvent) {
+		toggleColor(e);
+	}
 	onMount(() => {
-		const container = utils.resolveElement('.draggable-one');
+		const container = utils.resolveElement('.draggable-one') as HTMLElement;
+		container.ondrop = onDrop;
 		eh.setup(container as HTMLElement);
-		eh.setup('.dd-column');
+		const ddcol = utils.resolveElement('.dd-column') as HTMLElement;
+		ddcol.ondrop = onDrop;
+		eh.setup(ddcol);
 
 		eh.setup('.middle-column', { click: cHandler, mouseover: overHandler });
 		eh.setup('.right-column', {
@@ -118,10 +124,10 @@
 </script>
 
 <div class="grid-wrapper">
-	<div>Drag Drop Block</div>
+	<div>Drag Drop First</div>
 	<div>Wrapper no mouseout</div>
 	<div>Wrapper all mouse events</div>
-	<div>Drag Drop Block</div>
+	<div>Drag Drop Last</div>
 
 	<div class="draggable-one" data-column="0">
 		{#each Object.entries(options) as [key, value] (key)}
