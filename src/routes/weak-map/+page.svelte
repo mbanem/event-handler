@@ -71,12 +71,22 @@
 		const optionText = selOption.text;
 		const groupText =
 			((selOption as HTMLOptionElement).parentNode as HTMLOptGroupElement).label || 'No Group';
+<<<<<<< HEAD
+=======
+		console.log(`${groupText}/${optionText}`);
+>>>>>>> 4a175c26130a680c273d30b63449c01ba98e4bed
 	}
 	function removeSelected() {
 		const selOption = (selectEl as HTMLSelectElement).options[
 			(selectEl as HTMLSelectElement).selectedIndex
 		] as HTMLOptionElement;
+<<<<<<< HEAD
 		const group = (selOption.parentElement as HTMLOptGroupElement).label || '';
+=======
+		console.log(selOption);
+		const group = (selOption.parentElement as HTMLOptGroupElement).label || '';
+		console.log(group, resolveElement(group));
+>>>>>>> 4a175c26130a680c273d30b63449c01ba98e4bed
 		eh.remove(resolveElement(group) as HTMLElement, selOption.value as TEventType);
 		const itemText = selOption.innerText;
 		if (options[group]) {
@@ -117,6 +127,10 @@
 		selectAndSetup('.conta', { click: onClickA, mouseover: onMouseOverA, mouseout: onMouseOutA });
 		eh.setup('#blockParent', { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
 		eh.setup('.conta', { click: onClickA, mouseover: onMouseOverA, mouseout: onMouseOutA });
+<<<<<<< HEAD
+=======
+		console.log(JSON.stringify(options, null, 2));
+>>>>>>> 4a175c26130a680c273d30b63449c01ba98e4bed
 		return () => {
 			eh.destroy();
 		};
