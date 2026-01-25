@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { CEvent, type TEventType } from '$lib/utils';
-	import { createEventHandler } from '$lib/utils';
+	import { resolveElement, createEventHandler, type TEventType } from '$lib/utils';
+
+	type THandler = (event: MouseEvent) => void;
+	type THandlers = Record<string, THandler>;
+	// type TParams = Record<string, THandlers>;
 	let eventListEl: HTMLDivElement;
-	let blockParent: HTMLDivElement;
-	let contEl: HTMLSelectElement | null = null;
-	let count = $state(0);
 	let selectEl: HTMLSelectElement | null = null;
 	const eh = createEventHandler();
 
@@ -18,7 +18,7 @@
 			}
 			eventListEl.style.color = eventListEl.style.color === 'navy' ? 'green' : 'navy';
 		}
-		count = listLength = els.length;
+		listLength = els.length;
 		if (el.offsetHeight + el.scrollTop > el.getBoundingClientRect().height - 20) {
 			setTimeout(() => {
 				el.scrollTo(0, el.scrollHeight);
@@ -32,25 +32,21 @@
 	}
 	// Callbacks
 	function onClick(e: MouseEvent) {
-		console.log('onClick Handler');
 		handleList(e);
 	}
 	function onClickA(e: MouseEvent) {
-		// console.log('onClickA', (e.target as HTMLDivElement).innerText);
 		handleList(e);
 	}
 	function onMouseOver(e: MouseEvent) {
 		handleList(e);
 	}
 	function onMouseOverA(e: MouseEvent) {
-		// console.log('onMouseOverA', (e.target as HTMLDivElement).innerText);
 		handleList(e);
 	}
 	function onMouseOut(e: MouseEvent) {
 		handleList(e);
 	}
 	function onMouseOutA(e: MouseEvent) {
-		// console.log('onMouseOutA', (e.target as HTMLDivElement).innerText);
 		handleList(e);
 	}
 	let listLength = $state(0);
@@ -68,29 +64,59 @@
 	// function removeClick() {
 	//   handlerManager.remove('#blockParent', 'click');
 	// }
-	// let eventType:TEventType | '' = ''
-	function remove() {
-		if (!blockParent) return;
-		const eventType = selectEl?.options[selectEl?.selectedIndex].value as TEventType;
-		const type = Object.keys(CEvent as unknown as TEventType).find((t) => t === eventType);
-		const regex = new RegExp(`\\/?${type}\\/?`, 'g');
-		eh.remove('#blockParent', eventType as TEventType);
-		blockParent.innerHTML = blockParent.innerHTML.replace(regex, '');
-		if (selectEl && selectEl.selectedIndex !== -1) {
-			selectEl.remove(selectEl.selectedIndex);
+	function getSelectedOptionDetails() {
+		const selOption = (selectEl as HTMLSelectElement).options[
+			(selectEl as HTMLSelectElement).selectedIndex
+		] as HTMLOptionElement;
+		const optionText = selOption.text;
+		const groupText =
+			((selOption as HTMLOptionElement).parentNode as HTMLOptGroupElement).label || 'No Group';
+	}
+	function removeSelected() {
+		const selOption = (selectEl as HTMLSelectElement).options[
+			(selectEl as HTMLSelectElement).selectedIndex
+		] as HTMLOptionElement;
+		const group = (selOption.parentElement as HTMLOptGroupElement).label || '';
+		eh.remove(resolveElement(group) as HTMLElement, selOption.value as TEventType);
+		const itemText = selOption.innerText;
+		if (options[group]) {
+			options[group] = options[group].filter((el) => el !== itemText);
+			if (options[group].length === 0) {
+				delete options[group];
+			}
+		} else {
+			delete options[itemText];
 		}
+	}
+	let options: Record<string, string[]> = $state({});
+	function selectAndSetup(selector: HTMLElement | string, handlers: THandlers) {
+		const wrapper = resolveElement(selector) as HTMLElement;
+		let group = '';
+		if (wrapper.id) {
+			group = wrapper.id;
+		} else if (wrapper.classList) {
+			group = wrapper.classList[0];
+		}
+		const eventTypes = [];
+		for (const eventType of Object.keys(handlers)) {
+			eventTypes.push(eventType);
+		}
+		options[group] = eventTypes; //Object.keys(handler);
 	}
 	// attach event handlers
 	onMount(() => {
 		eventListEl = document.getElementById('eventListId') as HTMLDivElement;
 		eventListEl.style.color = 'navy';
-		blockParent = document.getElementById('blockParent') as HTMLDivElement;
-		contEl = document.getElementById('cont') as HTMLDivElement;
 		// handlerManager.setup('#blockParent', 'click', '.pp', onClick);
 		// etypeEl = document.getElementById('etype')
+		selectAndSetup('#blockParent', {
+			click: onClick,
+			mouseover: onMouseOver,
+			mouseout: onMouseOut
+		});
+		selectAndSetup('.conta', { click: onClickA, mouseover: onMouseOverA, mouseout: onMouseOutA });
 		eh.setup('#blockParent', { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
 		eh.setup('.conta', { click: onClickA, mouseover: onMouseOverA, mouseout: onMouseOutA });
-
 		return () => {
 			eh.destroy();
 		};
@@ -101,19 +127,20 @@
 <button onclick={eh.destroy} style="margin-top:1rem;">kill WeakMap</button>
 
 <!-- <input id="etype" onkeyup={setIsDisabled} placeholder="eventType" /> -->
-<select bind:this={selectEl} onchange={remove}>
-	{#each Object.entries(selectOptions) as [key, value] (key)}
-		<option value={key}>{value}</option>
+<select bind:this={selectEl} class="select-list">
+	{#each Object.entries(options) as [group, eventTypes] (group)}
+		<optgroup label={group}>
+			{#each eventTypes as eventType (eventType)}
+				<option value={eventType}>{eventType}</option>
+			{/each}
+		</optgroup>
 	{/each}
 </select>
-<!-- <button {disabled} onclick={() => remove('#blockParent', eventType as TEventType)}>
-	remove eventType handler
-</button> -->
-<!-- <button onclick={() => (disabled = !disabled)}>toggle disabled</button> -->
+<button onclick={removeSelected}>remove selected</button>
 
 <!-- wrapper for elements to obtain event handlers -->
 <div class="grid-wrapper">
-	<div id="blockParent">
+	<div id="blockParent" class="mass">
 		<p data-event-list="mouseover mouseout">The First Paragraph mouseover mouseout</p>
 		<p data-event-list="click mouseover">The Second Paragraph click mouseover</p>
 		<p data-event-list="click">The Third Paragraph click</p>
@@ -175,6 +202,10 @@
 	}
 	p {
 		cursor: pointer;
+	}
+	.select-list {
+		margin: 0;
+		padding: 0;
 	}
 	.conta {
 		color: green;
