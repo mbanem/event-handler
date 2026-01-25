@@ -26,7 +26,13 @@ export type TEventHandlerReturnValue = () => {
 export function resolveElement(element: HTMLElement | string): HTMLElement | null {
   if (!browser) return null
   if (typeof element === 'string') {
-    return document.querySelector(element)
+    if ('.#'.includes(element[0])) {
+      return document.querySelector(element)
+    }
+    if (document.querySelector(`.${element}`)) {
+      return document.querySelector(`.${element}`)
+    }
+    return document.querySelector(`#${element}`)
   }
   return element
 }
@@ -39,6 +45,17 @@ export const createEventHandler = () => {
   const dropWrappers = new Set<{ wrapper: HTMLElement, handlers: TDragDropHandlers }>()
   let wrapperEl: HTMLElement
 
+  function matchesQuerySelector(event: MouseEvent) {
+    const el = event.target as HTMLElement
+    // if it is a wrapper ignore it
+    if (wrappers.has(el)) {
+      return
+    }
+    if (el.dataset.eventList) {
+      return el.dataset.eventList.split(' ').includes(event.type)
+    }
+    return false
+  }
   function enableDragReorder(
     element: HTMLElement
   ) {
@@ -69,11 +86,9 @@ export const createEventHandler = () => {
         return
       }
       const parent = draggedEl.parentElement as HTMLElement
-      console.log(parent.innerText.slice(0, 20))
       const dropTarget = e.target as HTMLElement
       if (parent && parent.ondrop) {
-        console.log('calling drop')
-        // parent.ondrop(e)
+        parent.ondrop(e)
       }
       if (!dropTarget || dropTarget === draggedEl) {
         resetOpacity()
@@ -141,9 +156,6 @@ export const createEventHandler = () => {
       const eventMap = wrapperListeners.get(wrapperEl)!
       const handlers = ehHandlersWM.get(wrapperEl) as THandlers
       // without filtering additional element DOMStringMap(0) appears; maybe Svelte hydration inserted new line
-      // const children = wrapperEl.children as HTMLCollection
-      // const children = Array.from(wrapperEl.children) as HTMLElement[];
-      // for (let i = 0; i < children.length; i++) {
       for (const child of Array.from(wrapperEl.children) as HTMLElement[]) {
         if (!(child as HTMLElement).dataset.eventList) {
           // continue
@@ -159,9 +171,11 @@ export const createEventHandler = () => {
 
               const listener = (event: MouseEvent) => {
                 event.preventDefault()
+                if (wrappers.has(event.target as HTMLElement)) {
+                  return
+                }
                 // when this event occurs check if element is interested in firing on it
-                // if (matchesQuerySelector(event)) {
-                if (child.dataset?.eventList?.split(' ').includes(event.type)) {
+                if (matchesQuerySelector(event)) {
                   handler(event)
                 }
               }
@@ -194,7 +208,6 @@ export const createEventHandler = () => {
     },
 
     destroy() {
-      // return
       let ix = 1, iy = 1
       wrappers.forEach(wrapper => {
         const eventMap = wrapperListeners.get(wrapper as HTMLElement)

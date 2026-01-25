@@ -2,9 +2,7 @@
 	import { onMount } from 'svelte';
 	import { schema } from './schema_prisma';
 	import * as utils from '$lib/utils';
-	import { handleTryCatch } from '$lib/utils';
-	// import { createEventHandler } from '../grok/event-handler';
-	import { createEventHandler } from '$lib/utils';
+	import { handleTryCatch, createEventHandler } from '$lib/utils';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	type Field = { name: string; type: string; attrs?: string };
@@ -289,14 +287,6 @@
 		</div>
 		`;
 	}
-	// for finding an element from the fields list every fieldName is given id
-	// as data-field-index HTML attribute and retrieved on click event and read
-	// as element.dataset.fieldIndex
-	const getUniqueId = () => {
-		// convert to a string from an integer of base 36
-		return Math.random().toString(36).slice(2);
-	};
-
 	// we do not clear all the entries and rebuild from the fields
 	// but just add a newly entered in the Field Name fieldNameId
 	let fields: string[] = [];
@@ -309,15 +299,6 @@
 			(child[1].children[0] as HTMLElement).removeAttribute('open');
 		}
 	}
-
-	/**
-	 * querySelector for candidate fieldsheld in CSS class '.cr-list-el' entries
-	 */
-	// function getListEls() {
-	// 	return (fieldsListEl as HTMLDivElement).querySelectorAll(
-	// 		'.cr-list-el'
-	// 	) as NodeListOf<HTMLDivElement>;
-	// }
 
 	/**<details><summary>
 	 * return built |fieldName: type| string of expanded fields
@@ -349,10 +330,12 @@
 		const inFieldStrips = isInFieldStrips(value);
 		const inListEls = isInListEls({ name, type });
 
-		if (!formatValid || !inFieldStrips || inListEls) {
-			if (formatValid && inFieldStrips && inListEls) {
-				msg = 'Already selected';
-			}
+		if (inListEls) {
+			msg = 'Already selected';
+		} else if (!formatValid || !inFieldStrips) {
+			msg = 'Invalid format or not UI field';
+		}
+		if (msg) {
 			setLabelCaption('pink', msg, 2000, 'field');
 			return false;
 		}
@@ -394,17 +377,7 @@
 		return tf;
 	}
 	function isInListEls(field: Field) {
-		let found = false;
-		// check if field is already in the candidates list
-		const regex = new RegExp(`\\b${field.name}\\b`);
-
-		// getListEls().forEach((listEl) => {
-		// 	if (regex.test((listEl.firstElementChild as HTMLSpanElement).innerText)) {
-		// 		found = true;
-		// 	}
-		// });
-		if (found) msg += unacceptable;
-		return found;
+		return fieldsListEl.innerText.includes(`${field.name}: ${field.type}`);
 	}
 	function addToFieldList(fieldName: string) {
 		// Create nested  elements
@@ -425,10 +398,6 @@
 	 * @param fieldName
 	 */
 	function renderField(fieldName: string) {
-		if (!isFieldAcceptable(fieldName)) {
-			return;
-		}
-
 		setTimeout(() => {
 			addToFieldList(fieldName);
 			fieldListsInitialized = true;
@@ -513,19 +482,21 @@
 				setButtonAvailability();
 			});
 
-			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (_) => {
+			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event: KeyboardEvent) => {
 				if (nokeyup) {
 					nokeyup = false;
 					return;
 				}
 
 				let fieldName = (fieldNameEl as HTMLInputElement).value.trim();
-				if (!fieldName || !isFieldAcceptable(fieldName)) {
+				if (!fieldName || !isFieldAcceptable(fieldName) || event.key !== 'Enter') {
 					return;
 				}
 
+				fieldNameEl.value = '';
 				if (deletedFields.has(fieldName)) {
 					(fieldsListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
+					deletedFields.delete(fieldName);
 					return;
 				}
 
@@ -585,10 +556,7 @@
 		)[0] as HTMLElement;
 		schemaContainerEl.innerHTML = prismaSumDetailsBlock;
 
-		// ------------ click on SUMMARY or DETAILS -----------------
-
 		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
-			// ------------ click on SUMMARY or DETAILS -----------------
 			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
 				middleColumnEl.classList.toggle('cr-middle-column-height');
 				// now at app level active modelName
@@ -651,12 +619,13 @@
 				if (!isFieldAcceptable(fieldName)) {
 					return;
 				}
+				fieldNameEl.value = '';
 				if (deletedFields.has(fieldName)) {
 					(fieldsListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
 					setButtonAvailability();
+					deletedFields.delete(fieldName);
 					return;
 				}
-
 				renderField(fieldName);
 				fieldStrips[modelName] += fieldName + '|';
 			}
@@ -684,6 +653,7 @@
 		setTimeout(() => {
 			fieldsListEl.innerHTML = '';
 			stopRenderField = false;
+			deletedFields.clear();
 		}, 100);
 	}
 	let buttonNotAllowed = $state<boolean>(true);
@@ -966,22 +936,6 @@
 		cursor: pointer;
 		width: 25rem !important;
 	}
-	/* all global classes */
-	/*:global(.cr-list-el) {
-		background: #f0f8ff;
-		border: 1px solid #ccc;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	:global(.cr-list-el:first-child) {
-		border-top-left-radius: 10px;
-		border-top-right-radius: 10px;
-	}
-	:global(.cr-list-el:last-child) {
-		border-bottom-left-radius: 10px;
-		border-bottom-right-radius: 10px;
-	}*/
 	:global(.cr-model-attr) {
 		grid-column: span 2;
 		width: 18rem;
