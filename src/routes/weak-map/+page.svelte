@@ -8,6 +8,9 @@
 	let selectEl: HTMLSelectElement | null = null;
 	const eh = createEventHandler();
 
+	const clearEventList = () => {
+		eventListEl.innerHTML = '';
+	};
 	const scroll = (el: HTMLDivElement) => {
 		const els = el.children;
 		const max = 50;
@@ -50,15 +53,20 @@
 		handleList(e);
 	}
 	let listLength = $state(0);
+	let selectedGroup = $state('First Container');
 
-	// function getSelectedOptionDetails() {
-	// 	const selOption = (selectEl as HTMLSelectElement).options[
-	// 		(selectEl as HTMLSelectElement).selectedIndex
-	// 	] as HTMLOptionElement;
-	// 	const optionText = selOption.text;
-	// 	const groupText =
-	// 		((selOption as HTMLOptionElement).parentNode as HTMLOptGroupElement).label || 'No Group';
-	// }
+	function getSelectedOptionDetails() {
+		const selOption = (selectEl as HTMLSelectElement).options[
+			(selectEl as HTMLSelectElement).selectedIndex
+		] as HTMLOptionElement;
+		const groupText =
+			((selOption as HTMLOptionElement).parentNode as HTMLOptGroupElement).label || 'No Group';
+		if (groupText !== 'No Group') {
+			selectedGroup = groupText
+				.replace(/^./, (m) => m.toUpperCase())
+				.replace(/-./, (m) => ' ' + m[1].toUpperCase());
+		}
+	}
 	function removeSelected() {
 		const selOption = (selectEl as HTMLSelectElement).options[
 			(selectEl as HTMLSelectElement).selectedIndex
@@ -89,21 +97,28 @@
 			eventTypes.push(eventType);
 		}
 		options[group] = eventTypes; //Object.keys(handler);
+		console.log('options', options);
 	}
 	// attach event handlers
 	onMount(() => {
 		eventListEl = document.getElementById('eventListId') as HTMLDivElement;
 		eventListEl.style.color = 'navy';
-		// handlerManager.setup('#blockParent', 'click', '.pp', onClick);
-		// etypeEl = document.getElementById('etype')
-		selectAndSetup('#blockParent', {
+		selectAndSetup('.first-container', {
 			click: onClick,
 			mouseover: onMouseOver,
 			mouseout: onMouseOut
 		});
-		selectAndSetup('.conta', { click: onClickA, mouseover: onMouseOverA, mouseout: onMouseOutA });
-		eh.setup('#blockParent', { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
-		eh.setup('.conta', { click: onClickA, mouseover: onMouseOverA, mouseout: onMouseOutA });
+		selectAndSetup('.second-container', {
+			click: onClickA,
+			mouseover: onMouseOverA,
+			mouseout: onMouseOutA
+		});
+		eh.setup('.first-container', { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
+		eh.setup('.second-container', {
+			click: onClickA,
+			mouseover: onMouseOverA,
+			mouseout: onMouseOutA
+		});
 		return () => {
 			eh.destroy();
 		};
@@ -111,35 +126,37 @@
 </script>
 
 <!-- dismantling the handlers is possible on demand -->
-<button onclick={eh.destroy} style="margin-top:1rem;">kill WeakMap</button>
+<div class="command-row">
+	<button onclick={eh.destroy} style="margin-top:1rem;">kill WeakMap</button>
 
-<!-- <input id="etype" onkeyup={setIsDisabled} placeholder="eventType" /> -->
-<select bind:this={selectEl} class="select-list">
-	{#each Object.entries(options) as [group, eventTypes] (group)}
-		<optgroup label={group}>
-			{#each eventTypes as eventType (eventType)}
-				<option value={eventType}>{eventType}</option>
-			{/each}
-		</optgroup>
-	{/each}
-</select>
-<button onclick={removeSelected}>remove selected</button>
-
+	<!-- <input id="etype" onkeyup={setIsDisabled} placeholder="eventType" /> -->
+	<select bind:this={selectEl} class="select-list" onchange={getSelectedOptionDetails}>
+		{#each Object.entries(options) as [group, eventTypes] (group)}
+			<optgroup label={group}>
+				{#each eventTypes as eventType (eventType)}
+					<option value={eventType}>{eventType}</option>
+				{/each}
+			</optgroup>
+		{/each}
+	</select>
+	<p>{selectedGroup}</p>
+	<button onclick={removeSelected}>remove selected</button>
+</div>
 <!-- wrapper for elements to obtain event handlers -->
 <div class="grid-wrapper">
-	<div id="blockParent" class="mass">
+	<div class="first-container">
 		<p data-event-list="mouseover mouseout">The First Paragraph mouseover mouseout</p>
 		<p data-event-list="click mouseover">The Second Paragraph click mouseover</p>
 		<p data-event-list="click">The Third Paragraph click</p>
 		<p data-event-list="click mouseover mouseout">The Fourth Paragraph click mouseover mouseout</p>
 	</div>
 	<div class="right-column">
-		<p>list length: {listLength}</p>
+		<p onclick={clearEventList}>list length: {listLength} (clear)</p>
 		<div id="eventListId" class="event-list"></div>
 	</div>
 </div>
 
-<div class="conta" id="cont">
+<div class="second-container">
 	<div data-event-list="click">Paragraph One -- click</div>
 	<div data-event-list="mouseover">Paragraph Two -- mouseover</div>
 	<div data-event-list="click mouseover mouseout">
@@ -148,24 +165,57 @@
 	<div data-event-list="mouseout">Paragraph Four -- mouseout</div>
 </div>
 
-<style>
+<style lang="scss">
+	:root {
+		--first-container: 'First Container';
+		--second-container: 'Second Container';
+	}
+	.command-row {
+		position: relative;
+		margin: 0;
+		padding: 0;
+		width: max-content;
+		p {
+			position: absolute;
+			top: -1.2rem;
+			left: 5.3rem;
+			padding: 0 0.5rem;
+			color: navy;
+			background-color: white;
+			z-index: 3;
+		}
+	}
 	.grid-wrapper {
 		display: grid;
-		grid-template-columns: 20rem 10rem;
+		grid-template-columns: 21rem 10rem;
 		gap: 1rem;
+		margin-top: 2rem;
 	}
-	#blockParent,
-	.right-column {
+	.first-container {
+		@include container($head: 'First Container', $head-color: skyblue);
 		border: 1px solid gray;
 		border-radius: 10px;
+		color: navy;
+		margin: 0;
+		padding: 0 0 0 6px;
+		p {
+			padding: 0;
+			margin: 5px 6px;
+			&:first-child {
+				margin-top: 1rem;
+			}
+		}
 	}
 	.right-column {
 		position: relative;
+		border: 1px solid gray;
+		border-radius: 10px;
 		p {
 			position: absolute;
-			top: -1.8rem;
-			left: 0.5rem;
-			padding: 3px 0.5rem;
+			top: -1.5rem;
+			left: 1rem;
+			padding: 0 0.3rem;
+			color: navy;
 			background-color: white;
 			z-index: 3;
 		}
@@ -191,16 +241,26 @@
 		cursor: pointer;
 	}
 	.select-list {
+		position: relative;
 		margin: 0;
 		padding: 0;
+		width: 8rem;
+		p {
+			position: absolute;
+			top: -1.2rem;
+			left: 1rem;
+			padding: 0 0.5rem;
+			z-index: 5;
+		}
 	}
-	.conta {
+	.second-container {
+		@include container($head: 'Second Container', $head-color: skyblue);
 		color: green;
 		padding: 1rem;
 		border: 1px solid gray;
 		border-radius: 6px;
 		width: max-content;
-		margin-top: 1rem;
+		margin-top: 2rem;
 		div {
 			padding: 2px 0;
 			cursor: pointer;

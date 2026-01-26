@@ -47,13 +47,14 @@
 		return getComputedStyle(grid as HTMLElement).gridTemplateRows.split(' ').length;
 	}
 	// function gridCell(row: number, column: number);
+	const colors = ['violet', 'tomato', 'blue', 'green', 'navy'];
 	function toggleColor(e: MouseEvent) {
 		const el = e.target as HTMLElement;
 		const style = el.style;
 		style.color = style.color === 'red' ? 'green' : 'red';
 
 		const column = Number(el.parentElement?.dataset.column);
-		const color = column === 1 ? 'tomato' : 'blue';
+		const color = colors[column];
 		let header = ([...Object.entries((grid as HTMLElement).children)][column][1] as HTMLElement)
 			.innerText;
 		header = header
@@ -66,6 +67,7 @@
 		reportClicksEl.innerHTML += `<p>[${header}]: <span style='color:${color}'>${e.type}</span>Handler</p>`;
 		scroll(reportClicksEl);
 	}
+	// handlers
 	function clickHandler(e: MouseEvent) {
 		toggleColor(e);
 	}
@@ -84,6 +86,7 @@
 	function onDrop(e: MouseEvent) {
 		toggleColor(e);
 	}
+
 	onMount(() => {
 		const container = utils.resolveElement('.draggable-one') as HTMLElement;
 		container.ondrop = onDrop;
