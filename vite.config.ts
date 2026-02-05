@@ -1,6 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite'
 import { defineConfig } from 'vite'
-import path from 'path'
+// import path from 'path'
 
 export default defineConfig({
 	css: {
@@ -8,7 +8,10 @@ export default defineConfig({
 			scss: {
 				// svelte.config.js must define $styles alias as
 				// './src/styles/mixins' does not work in this version
-				additionalData: "@use '$styles/mixins' as *;"
+				additionalData: `
+					@use '$styles/variables' as *;
+					@use '$styles/mixins' as *;
+				`
 			}
 		}
 	},
