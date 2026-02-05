@@ -1,5 +1,8 @@
 <script lang="ts">
 	let position = $state({ x: 0, y: 0 });
+	function makeException() {
+		position = null;
+	}
 </script>
 
 <svelte:window
@@ -10,10 +13,9 @@
 />
 
 <p>
-	defined as: let position = $state(&lcub; x: 0, y: 0 &rcub;); current $state = (&lcub;x:{position.x},
-	y:{position.y}&rcub;)
+	current mouse position: (&lcub;x:{position.x}, y:{position.y}&rcub;)
 </p>
 
-<button onclick={() => (position = null)} style="margin:2rem 0 0 6rem;">
+<button onclick={makeException} style="margin:2rem 0 0 6rem;">
 	clicking this button sets position to
 </button>

@@ -27,7 +27,9 @@
 		unacceptable null. The state could be restored by selecting this button
 
 		error: {error}
-		<button onclick={reset} style="margin:0.5rem 0 0 6.5rem;width:15rem;">oops! try again</button>
+		<button onclick={reset} style="margin:0.5rem 0 0 6.5rem;width:15rem;"
+				>Exception happened! try again</button
+			>
 		</pre>
 	{/snippet}
 </svelte:boundary>

@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { resolveElement, createEventHandler, handleTryCatch, type TEventType } from '$lib/utils';
+	import { resolveElement, createEventHandler, type TEventType } from '$lib/utils';
 
+	type THandler = (event: MouseEvent) => void;
+	type THandlers = Record<string, THandler>;
 	let eventListEl: HTMLDivElement;
 	let selectEl: HTMLSelectElement;
 	const eh = createEventHandler();
 
+	let listLength = $state(0);
 	const clearEventList = () => {
 		eventListEl.innerHTML = '';
 	};
@@ -50,9 +53,6 @@
 	function onMouseOutA(e: MouseEvent) {
 		handleList(e);
 	}
-	let listLength = $state(0);
-
-	let selectedGroup = $state('First Container');
 
 	// function getSelectedOptionDetails() {
 	// 	const selIx = selectEl.selectedIndex;
@@ -66,29 +66,11 @@
 	// 	}
 	// }
 	const eventTypes = ['click', 'mouseover', 'mouseout'];
-
-	let options: Record<string, typeof eventTypes> = $state({
+	let options: Record<string, typeof eventTypes> = {
 		'First Container': eventTypes,
-		'Second Container': eventTypes
-	});
-
-	function optGroup(ix?: number) {
-		try {
-			if (ix === undefined) {
-				ix = selectEl.selectedIndex;
-			}
-			return JSON.parse(selectEl.options[ix].value).group;
-		} catch (err) {
-			handleTryCatch(err, 'optGroup from <select> <option>');
-		}
-	}
-	function removeEventHandler(group: string, eventType: TEventType) {
-		const selector = group.trim().replace(/\s+/, '-').toLowerCase();
-		eh.remove(resolveElement(selector) as HTMLElement, eventType);
-	}
-	function onchange() {
-		selectedGroup = optGroup();
-	}
+		'Second Container': eventTypes,
+		'Third Container': eventTypes
+	};
 	function oLength(group?: string) {
 		try {
 			if (group) {
@@ -106,91 +88,89 @@
 	}
 	function removeSelected() {
 		let selIx = selectEl.selectedIndex;
-		const str = selectEl.options[selIx].value;
-		const { group, eventType } = JSON.parse(str); //as { group: string; eventType: (typeof eventTypes)[number] }
-		options[group] = options[group].filter((el) => el !== eventType);
-		removeEventHandler(group, eventType);
+		// console.log('removeSelected fired', selIx)
+		const { group, opt } = JSON.parse((selectEl.options[selIx] as HTMLOptionElement).value);
+		options[group] = options[group].filter((el) => el !== opt);
 		if (!oLength(group)) {
 			delete options[group];
 		}
 		const ol = oLength();
 		if (!ol) {
 			selIx = -1;
-			selectedGroup = 'All handlers cleared';
 		} else {
 			if (selIx >= ol - 1) {
 				selIx = selIx - 1;
 			}
 		}
 		selectEl.selectedIndex = selIx;
-		console.log('selected option', selectEl.options[selIx]);
 	}
-	// function st(obj: unknown) {
-	function st(obj: { group: string; eventType: (typeof eventTypes)[number] }) {
+	function st(obj: unknown) {
 		return JSON.stringify(obj);
 	}
-	// function selectAndSetup(selector: HTMLElement | string, handlers: THandlers) {
-	// 	const wrapper = resolveElement(selector) as HTMLElement;
-	// 	let group = '';
-	// 	if (wrapper.id) {
-	// 		group = wrapper.id;
-	// 	} else if (wrapper.classList) {
-	// 		group = wrapper.classList[0];
-	// 	}
-	// 	const eventTypes = [];
-	// 	for (const eventType of Object.keys(handlers)) {
-	// 		eventTypes.push(eventType);
-	// 	}
-	// 	options[group] = eventTypes; //Object.keys(handler);
-	// }
+	function selectAndSetup(selector: HTMLElement | string, handlers: THandlers) {
+		const wrapper = resolveElement(selector) as HTMLElement;
+		let group = '';
+		if (wrapper.id) {
+			group = wrapper.id;
+		} else if (wrapper.classList) {
+			group = wrapper.classList[0];
+		}
+		const eventTypes = [];
+		for (const eventType of Object.keys(handlers)) {
+			eventTypes.push(eventType);
+		}
+		options[group] = eventTypes; //Object.keys(handler);
+		// console.log('options', options);
+	}
 	// attach event handlers
 	onMount(() => {
 		eventListEl = document.getElementById('eventListId') as HTMLDivElement;
 		eventListEl.style.color = 'navy';
-		// selectAndSetup('.first-container', {
-		// 	click: onClick,
-		// 	mouseover: onMouseOver,
-		// 	mouseout: onMouseOut
-		// });
-		// selectAndSetup('.second-container', {
-		// 	click: onClickA,
-		// 	mouseover: onMouseOverA,
-		// 	mouseout: onMouseOutA
-		// });
+		selectAndSetup('.first-container', {
+			click: onClick,
+			mouseover: onMouseOver,
+			mouseout: onMouseOut
+		});
+		selectAndSetup('.second-container', {
+			click: onClickA,
+			mouseover: onMouseOverA,
+			mouseout: onMouseOutA
+		});
 		eh.setup('.first-container', { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
 		eh.setup('.second-container', {
 			click: onClickA,
 			mouseover: onMouseOverA,
 			mouseout: onMouseOutA
 		});
-
-		selectEl = document.getElementById('selectEvent') as HTMLSelectElement;
-		(selectEl as HTMLSelectElement).selectedIndex = 5;
-		selectedGroup = optGroup(5);
-
+		// selectEl = document.getElementById('selbox') as HTMLSelectElement;
+		setTimeout(() => {
+			selectEl.selectedIndex = 8; // = 'mouseover';
+		}, 400);
 		return () => {
 			eh.destroy();
 		};
 	});
+	// @ts-expect-error onMount bindings should be established
+	selectEl.selectedIndex = 8;
 </script>
 
 <!-- dismantling the handlers is possible on demand -->
 <div class="command-row">
 	<button onclick={eh.destroy} style="margin-top:1rem;">kill WeakMap</button>
 
-	<!-- <input id="etype" onkeyup={setIsDisabled} placeholder="eventType" /> -->
-	<select id="selectEvent" class="select-list" {onchange}>
-		{#each Object.entries(options) as [group, eventTypes] (group)}
+	<select bind:this={selectEl}>
+		{#each Object.entries(options) as [group, opts] (group)}
 			<optgroup label={group}>
-				{#each eventTypes as eventType (eventType)}
-					<option value={st({ group, eventType })}>{eventType}</option>
+				{#each opts as opt (opt)}
+					<option value={st({ group, opt })}>{opt}</option>
 				{/each}
 			</optgroup>
 		{/each}
 	</select>
-	<p>{selectedGroup}</p>
+
 	<button onclick={removeSelected}>remove selected</button>
 </div>
+
 <!-- wrapper for elements to obtain event handlers -->
 <div class="grid-wrapper">
 	<div class="first-container">
@@ -199,19 +179,27 @@
 		<p data-event-list="click">The Third Paragraph click</p>
 		<p data-event-list="click mouseover mouseout">The Fourth Paragraph click mouseover mouseout</p>
 	</div>
+
+	<div class="second-container">
+		<div data-event-list="click">Paragraph One -- click</div>
+		<div data-event-list="mouseover">Paragraph Two -- mouseover</div>
+		<div data-event-list="click mouseover mouseout">
+			Paragraph Three -- click, mouseover, mouseout
+		</div>
+		<div data-event-list="mouseout">Paragraph Four -- mouseout</div>
+	</div>
+	<div class="third-container">
+		<p data-event-list="mouseover mouseout">The First Paragraph mouseover mouseout</p>
+		<p data-event-list="click mouseover">The Second Paragraph click mouseover</p>
+		<p data-event-list="click">The Third Paragraph click</p>
+		<p data-event-list="click mouseover mouseout">The Fourth Paragraph click mouseover mouseout</p>
+	</div>
 	<div class="right-column">
-		<p onclick={clearEventList}>list length: {listLength} (clear)</p>
+		<p onclick={clearEventList} onkeyup={clearEventList} aria-hidden={true}>
+			list length: {listLength} (clear)
+		</p>
 		<div id="eventListId" class="event-list"></div>
 	</div>
-</div>
-
-<div class="second-container">
-	<div data-event-list="click">Paragraph One -- click</div>
-	<div data-event-list="mouseover">Paragraph Two -- mouseover</div>
-	<div data-event-list="click mouseover mouseout">
-		Paragraph Three -- click, mouseover, mouseout
-	</div>
-	<div data-event-list="mouseout">Paragraph Four -- mouseout</div>
 </div>
 
 <style lang="scss">
@@ -236,9 +224,10 @@
 	}
 	.grid-wrapper {
 		display: grid;
-		grid-template-columns: 21rem 11rem;
+		grid-template-columns: repeat(3, 21rem);
 		gap: 1rem;
 		margin-top: 2rem;
+		align-items: start;
 	}
 	.first-container {
 		@include container($head: 'First Container', $head-color: skyblue);
@@ -302,7 +291,8 @@
 			z-index: 5;
 		}
 	}
-	.second-container {
+	.second-container,
+	.third-container {
 		@include container($head: 'Second Container', $head-color: skyblue);
 		color: green;
 		padding: 1rem;
@@ -314,5 +304,8 @@
 			padding: 2px 0;
 			cursor: pointer;
 		}
+	}
+	.third-container {
+		@include container($head: 'Third Container', $head-color: skyblue);
 	}
 </style>

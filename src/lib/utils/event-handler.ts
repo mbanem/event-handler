@@ -191,6 +191,7 @@ export const createEventHandler = () => {
     },
 
     remove(element: HTMLElement | string, eventType: TEventType) {
+      console.log('remove', element, eventType)
       const wrapperEl = resolveElement(element)
       const map = wrapperListeners.get(wrapperEl as HTMLElement)
 

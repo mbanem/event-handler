@@ -460,10 +460,10 @@ created in the route specified in the Route Name input box.
   let tablesModel = 'waiting for schemaModels '
   let rootPath = ''
   const vscode = acquireVsCodeApi()
-  const noPrismaSchemaL = true ? true : false;
+  const noPrismaSchemaL = false ? true : false;
   const installPartTwoPending = false ? true : false;
 
-  vscode.postMessage({ command: 'log', text: "noPrismaSchema:true; pending: false" })
+  vscode.postMessage({ command: 'log', text: "noPrismaSchema:false; pending: false" })
 
   let noSchemaText = 'based on variable noPrismaSchema got from getWebviewContent ' + noPrismaSchemaL ? 'FOUND NO SCHEMA' : 'YES, SCHEMA FOUND'
 

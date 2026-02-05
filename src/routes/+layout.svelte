@@ -128,6 +128,8 @@
 		min-height: 100vh;
 		background: var(--bg);
 		color: var(--text);
+		margin:0;
+		padding:0;
 		transition:
 			background 0.4s ease,
 			color 0.4s ease;

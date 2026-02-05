@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { schema } from './schema_prisma';
-	import * as utils from '$lib/utils';
-	import { handleTryCatch, createEventHandler } from '$lib/utils';
+	import { sleep, handleTryCatch, createEventHandler } from '$lib/utils';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	type Field = { name: string; type: string; attrs?: string };
@@ -16,10 +15,10 @@
 	let nuiModels: Models = {};
 	let modelName = '';
 
-	type fieldNames = {
-		modelName: string;
-		namesList: string;
-	};
+	// type fieldNames = {
+	// 	modelName: string;
+	// 	namesList: string;
+	// };
 	let fieldNames: Record<string, string> = {};
 	let fieldStrips: Record<string, string> = {};
 	let fieldsListEl: HTMLDivElement;
@@ -79,7 +78,7 @@
 	let fieldLabelEl: HTMLLabelElement;
 	let fieldNameEl: HTMLInputElement;
 
-	let timer: NodeJS.Timeout | string | number | undefined; //ReturnValue<typeof setTimeout>;
+	let timer: string | number | undefined; //ReturnValue<typeof setTimeout>;
 	let fieldNameAndType = 'Field Name and Type';
 	let unacceptable = '  not a UI field';
 	let deletedFields = new SvelteMap<string, Node>();
@@ -290,6 +289,16 @@
 	// we do not clear all the entries and rebuild from the fields
 	// but just add a newly entered in the Field Name fieldNameId
 	let fields: string[] = [];
+	function anyOpenDetails() {
+		let open = false;
+		const dets = schemaContainerEl?.children as HTMLCollection;
+		for (const child of Object.entries(dets)) {
+			if ((child[1].children[0] as HTMLElement).hasAttribute('open')) {
+				open = true;
+			}
+		}
+		return open;
+	}
 	/**
 	 * Closes all opened <details>
 	 * @param dets
@@ -433,7 +442,7 @@
 	 * clear a label message after timeout
 	 */
 	function clearLabelText() {
-		clearTimeout(timer);
+		clearTimeout(Number(timer));
 
 		routeLabelEl.style.color = '';
 		routeLabelNode.textContent = 'Route Name';
@@ -481,7 +490,6 @@
 				renderField(value);
 				setButtonAvailability();
 			});
-
 			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event: KeyboardEvent) => {
 				if (nokeyup) {
 					nokeyup = false;
@@ -514,10 +522,10 @@
 		removeHintEl.style.opacity = '1';
 	}
 
-	function onMouseOut(e: MouseEvent) {
+	function onMouseOut(_: MouseEvent) {
 		removeHintEl.style.opacity = '0';
 	}
-	function onDrop(e: MouseEvent) {
+	function onDrop(_: MouseEvent) {
 		console.log('onDrop');
 	}
 
@@ -578,6 +586,10 @@
 					eh.destroy();
 					return;
 				}
+				if (anyOpenDetails()) {
+					closeSchemaModels();
+					await sleep(500);
+				}
 				setLabelCaption('pink', 'Change Route Name if necessary', 4000);
 				// ------------ adding fields into listEls --------------------
 				routeNameEl.value = modelName.toLowerCase();
@@ -589,7 +601,7 @@
 					const fld = `${field.name}: ${field.type}`;
 					fields.push(fld);
 					renderField(fld);
-					await utils.sleep(100);
+					await sleep(100);
 				}
 				if (pipeElsString === '!') {
 					for (const field of uiModels[modelName].fields) {
@@ -599,7 +611,11 @@
 				// field list takes time to load field names
 				setTimeout(() => {
 					fieldsListEl.ondrop = onDrop;
-					eh.setup(fieldsListEl, { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
+					eh.setup(fieldsListEl, {
+						click: onClick,
+						mouseover: onMouseOver,
+						mouseout: onMouseOut
+					});
 					// drag-drop to move fieldNames up and down the fields list
 					eh.setup(fieldsListEl);
 					buttonNotAllowed = false;
@@ -639,6 +655,7 @@
 			eh.destroy();
 		};
 	});
+
 	// -----------------------------------
 	// for Wevschema Extension
 	let stopRenderField = false;
@@ -654,7 +671,7 @@
 			fieldsListEl.innerHTML = '';
 			stopRenderField = false;
 			deletedFields.clear();
-		}, 100);
+		}, 400);
 	}
 	let buttonNotAllowed = $state<boolean>(true);
 </script>
@@ -736,9 +753,6 @@
 	</div>
 
 	<div id="rightColumnId" class="cr-right-column">
-		<p onclick={closeSchemaModels} onkeypress={closeSchemaModels} aria-hidden={true}>
-			collapse all
-		</p>
 		<div id="schemaContainerId"></div>
 	</div>
 </div>
@@ -746,7 +760,10 @@
 <style lang="scss">
 	.cr-main-grid {
 		display: grid;
+		padding: 0.6rem 0 0 0.6rem;
 		grid-template-columns: 33rem 20rem;
+		margin-top: 0.5rem;
+		width: 100vw;
 	}
 
 	.cr-grid-wrapper {
@@ -773,13 +790,16 @@
 	}
 
 	.cr-left-column {
-		@include container($head: 'Application Settings');
+		@include container($head: 'Application Settings', $head-color: navy);
 		border: 1px solid gray;
 		border-radius: 8px;
-		height: 60vh;
-		padding: 1rem 0 0 0.4rem;
+		height: 54vh;
+		padding: 1rem 0 0 0.7rem;
 		background-color: var(--panel-bg-color);
-		label,
+		label {
+			display: block;
+			color: var(--candidate-color);
+		}
 		button,
 		div {
 			display: block;
@@ -872,26 +892,11 @@
 
 	.cr-right-column {
 		position: relative;
-		@include container($head: 'Select UI Fields from ORM', $head-color: skyblue);
+		@include container($head: 'Select UI Fields from ORM', $head-color: navy);
 		background-color: var(--panel-bg-color);
-		p {
-			position: absolute;
-			padding: 1px 0.3rem;
-			color: var(--close-all-color);
-			background-color: var(--bg);
-			top: -1.3rem;
-			left: 16.8rem;
-			font-size: 12px;
-			cursor: pointer;
-			border: 0.5px solid;
-			border-radius: 6px;
-			&:hover {
-				background-color: var(--close-all-bg-hover);
-			}
-		}
 	}
 	.embellishments {
-		@include container($head: 'Include Components', $head-color: rgb(71, 71, 198));
+		@include container($head: 'Include Components', $head-color: navy);
 		background-color: var(--panel-bg-color);
 
 		position: relative;
