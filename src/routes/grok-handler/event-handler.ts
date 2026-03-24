@@ -96,7 +96,7 @@ class EventHandler {
     for (const [eventType, handler] of Object.entries(handlers)) {
       wrapper.addEventListener(eventType as TEventType, handler as THandler)
     }
-    // console.log('returning handlers', handlers)
+
     return handlers
   }
 
@@ -227,7 +227,7 @@ class EventHandler {
   }
 
   private handleEvent(e: MouseEvent): void {
-    // console.log('handleEvent called for type:', e.type)  // DEBUG: add this to confirm firing
+
 
     if (!this.wrapper) return
 
@@ -239,7 +239,7 @@ class EventHandler {
     while (current && current !== this.wrapper) {
       const config = this.childConfigs.get(current)
       if (config && config.events.has(e.type as SupportedMouseEvent)) {
-        // console.log('Found matching child:', current)  // DEBUG
+
         const handler = this.supportedHandlers[e.type as SupportedMouseEvent]
         if (handler) {
           handler(e)

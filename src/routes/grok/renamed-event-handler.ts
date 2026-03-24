@@ -131,7 +131,7 @@ export const createEventHandler = () => {
         if (handls) {
           dropWrappers.add({ wrapper: wrapperEl, handlers: handls })
         } else {
-          console.log('not set to dragDropHandlers')
+          // console.log('not set to dragDropHandlers')
         }
         return
       }

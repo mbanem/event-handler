@@ -4,7 +4,7 @@
 		const sortedKeys = (
 			Object.keys(rec as Record<string, object>) as Array<keyof typeof rec>
 		).sort();
-		// console.log(sortedKeys);
+
 		const sortedRec = sortedKeys.reduce(
 			(acc, key) => {
 				acc[key] = rec[key];
@@ -23,7 +23,6 @@
 		createdAt: { type: 'Date', prismaAttrs: '@default(now())' },
 		updatedAt: { type: 'Date', prismaAttrs: '@updatedAt()' }
 	};
-	// console.log(sortRecordByKey(unsortedRecord));
 </script>
 
 <div class="grid-wrapper">
@@ -45,7 +44,7 @@
 		gap: 1rem;
 	}
 	pre {
-		color: navy;
+		color: var(--candidate-color);
 		font-size: 13px;
 		tab-size: 16px;
 		width: max-content;

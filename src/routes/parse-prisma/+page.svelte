@@ -38,8 +38,6 @@
 	// ------end instead of enum --------
 
 	type FieldInfo = [type: string, prismaAttrs: string];
-	type KeyType = string;
-	type ValueType = FieldInfo | ModelInfo;
 	// type FieldType = string;
 	type FieldName = string;
 	type RFNameFInfo = Record<FieldName, FieldInfo>;
@@ -47,8 +45,6 @@
 		fields: RFNameFInfo;
 		modelAttrs: string[]; // e.g. ["@@map(\"users\")", "@@index([email])"]
 	};
-
-	type SortInputArg = Record<KeyType, ValueType>;
 
 	const ordered = [
 		'id',
@@ -133,19 +129,19 @@
 	 * array leading part sorted by orderd followed by lefowers
 	 */
 	function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
-		// console.log('models\n',JSON.stringify(models,null,2))
+
 		let orderedFields: { name: string; type: string; attrs?: string }[] = [];
 		let leftoverFields: { name: string; type: string; attrs?: string }[] = [];
 		const uiModels: Models = {};
 		const nuiModels: Models = {};
 		for (const [modelName, model] of Object.entries(models)) {
-			// console.log(modelName)
+
 			const fields = [];
 			// const mFields = [...model.fields];
 			uiModels[modelName] = {};
 			nuiModels[modelName] = {};
-			// console.log(uiModels);
-			// console.log(
+
+
 			// 	'field["firstName"]',
 			// 	model.fields.find((field) => field.name === 'firstName')
 			// );
@@ -171,7 +167,7 @@
 			// 		return !ordered.includes(key);
 			// 	});
 			// }
-			// console.log(modelName) //, 'orderedFields', orderedFields);
+
 			uiModels[modelName].fields = orderedFields;
 			nuiModels[modelName].fields = leftoverFields;
 
@@ -180,10 +176,10 @@
 			leftoverFields = [];
 			// nuiModels[modelName].attrs = model.attrs;
 		}
-		// console.log('orderedFields', orderedFields)
-		// console.log('uiModels\n', uiModels, '\nnuiModels\n',nuiModels);
+
+
 		return [uiModels, nuiModels]; //.filter(Boolean);
-		// console.log(models);
+
 	}
 
 	/**
@@ -199,10 +195,10 @@
 
 		try {
 			while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
-				// console.log('modelMatch', modelMatch);
+
 				const [, modelName, body] = modelMatch;
 
-				// console.log('modelName\n', modelName, '\nbody\n', body);
+
 				// Grok / X suggest amodelNamemodelNamevoiding the undefined by adding ?? '' to modelMatch[xx]
 				// const modelName = modelMatch[1] ?? '';
 				// const body = modelMatch[2] ?? '';
@@ -231,7 +227,7 @@
 					if (line.startsWith('//')) {
 						continue; // skip single-line comment
 					}
-					// console.log('LINE', line);
+
 					// if (line.startsWith('@@')) {
 					// 	modelAttrs.push(line);
 					// 	continue;
@@ -254,7 +250,7 @@
 							type: parts[1],
 							attrs: parts.slice(2).join(' ')
 						});
-						// console.log('Field:', fieldName, fieldType, attrs || '');
+
 					}
 
 					// if (!fieldName) {
@@ -267,29 +263,29 @@
 					// so we cannot say [ type: fieldType, prismaAttrs: rest.join(' ')]
 					// fields.push({ name: fieldName, type: fieldType, attrs: prismaAttrs });
 				}
-				// console.log('before sort fields',fields)
+
 				// fields.type = 'RFNameFInfo';
 				// let sorted = sortArrByOrdered(fields, UI.all)
-				// console.log('sorted', sorted)
-				// console.log('FIELDS', fields, 'ATTRS', modelAttrs);
-				// console.log(sortObjectKeys(fields));
 
-				// console.log('modelName', modelName);
-				// console.log('FIELDS', fields);
-				// console.log('modelAttrs', modelAttrs);
+
+
+
+
+
+
 				models[modelName] = {
 					fields: fields, //: sortObjectKeys(fields),
 					attrs: modelAttrs
 				};
 
-				// console.log('models', models);
+
 				// sortArrByOrdered(fields);
 
 				// models is Record<string, Model> a dictionary mod+-elName, Model
 				// Object.entries(models) return [key, val] where key is modelName
 				// and val is the Model
 				// for (const [modelName, model] of Object.entries(models)) {
-				// 	console.log(modelName, '\n');
+
 				// 	for (const field of model.fields) {
 				// 		console.log(field.name, field.type, field.attrs);
 				// 	}
@@ -306,13 +302,13 @@
 			console.log('Again!');
 			handleTryCatch(err);
 		}
-		// console.log('MODELS', models);
+
 		// const [models, nuiModels] = sortModelsByOrdered(models, UI.all);
 		const [uiModels, nuiModels] = sortModelsByOrdered(models, UI.all);
-		console.log('uiModels\n', uiModels, '\nnuiModels\n', nuiModels);
+
 		return;
 		for (const [modelName, modelInfo] of Object.entries(models)) {
-			// console.log(
+
 			// 	'modelName',
 			// 	JSON.stringify(modelName, null, 2),
 			// 	'\nmodelInfo.fields: FieldName:string, FieldInfo:[type:string, prismaAttrs:string]',
@@ -326,9 +322,9 @@
 			}*/
 
 			let [, fields] = Object.entries(modelInfo)[0];
-			// console.log('fields', JSON.stringify(fields, null, 2));
+
 			for (let [fieldName, fieldInfo] of Object.entries(fields)) {
-				// console.log(
+
 				// 	'fieldName',
 				// 	fieldName,
 				// 	'\nfieldInfo.type',
@@ -345,7 +341,7 @@
 					if ('0|1'.includes(fieldName)) {
 						continue;
 					}
-					// console.log(fieldName, '-------------------------- fieldInfo', fieldInfo);
+
 					// 			// type could be optional, so remove ? if any as it cannot match model name
 					// 			type = type.replace(/\?/g, '');
 					// 			if (fieldName.includes('password')) {
@@ -382,10 +378,10 @@
 			// 	uiModels[modelName] = uiFields;
 			// 	uiFields = {};
 		}
-		// console.log('\nuiModels\n', uiModels);
+
 	}
 
-	console.log('caling parsePrismaSchema(schema)');
+
 	parsePrismaSchema(schema);
 
 	// function dateTimeToDate(type: string) {
@@ -396,7 +392,7 @@
 	// }
 	function sortRecByKey<T extends Record<string, object>>(rec: T) {
 		const sortedKeys = (Object.keys(rec as T) as Array<keyof T>).sort();
-		// console.log(sortedKeys);
+
 		const sortedRec = sortedKeys.reduce(
 			(acc, key) => {
 				acc[key] = rec[key];
@@ -421,7 +417,7 @@
 	// 		}
 	// 		return acc;
 	// 	}, {} as TRStrObj);
-	// 	// console.log('ord', ord);
+
 	// 	const whole = ordered.reduce((acc, ordKey) => {
 	// 		if (!objKeys.includes(`|${ordKey}|`)) {
 	// 			acc[ordKey] = obj[ordKey];
@@ -429,7 +425,7 @@
 	// 		}
 	// 		return acc;
 	// 	}, ord as TRStrObj);
-	// 	// console.log('whole', whole);
+
 	// 	const result: TRStrObj = {};
 	// 	for (const key in whole) {
 	// 		if (whole[key] !== undefined) {
@@ -448,7 +444,7 @@
 	// 				`;
 	// 		for (const fieldName in mdl.fields) {
 	// 			const { type, prismaAttrs } = mdl.fields[fieldName];
-	// 			// console.log('  ', fieldName, type, prismaAttrs);
+
 	// 			if (
 	// 				prismaAttrs.includes('@id') ||
 	// 				prismaAttrs.includes('@default') ||

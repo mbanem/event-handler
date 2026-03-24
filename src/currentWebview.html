@@ -107,15 +107,17 @@
       left: 0.5rem;
       display: inline-block;
       color: skyblue;
-      cursor:pointer;
+      cursor: pointer;
     }
+
     .collapse-all {
-      color:lightgreen;
-      font-size:12px;
+      color: lightgreen;
+      font-size: 12px;
       border: 1px solid gray;
-      border-radius:4px;
+      border-radius: 4px;
       padding: 2px 0 2px 1rem;
     }
+
     .embellishments {
       position: relative;
       grid-column: span 2;
@@ -273,17 +275,19 @@
     .crud-support-done {
       width: max-content;
       padding: 5px 2rem;
-      margin:1rem 0 0 0;
+      margin: 1rem 0 0 0;
       color: lightgreen;
       font-size: 14px;
       border: 1px solid gray;
-      border-radius:5px;
-      cursor:pointer;
+      border-radius: 5px;
+      cursor: pointer;
       text-align: center;
     }
+
     .hidden {
       display: none;
     }
+
     .dbname-block {
       display: grid;
       grid-template-columns: repeat(3, 12rem);
@@ -312,11 +316,12 @@
   </style>
 
 </head>
-<body>
-<div>
-  <h2 style='margin-left:8rem;'>Create CRUD Support</h2>
 
-  <pre id='installPartOneId' class='hidden'>
+<body>
+  <div>
+    <h2 style='margin-left:8rem;'>Create CRUD Support</h2>
+
+    <pre id='installPartOneId' class='hidden'>
       <h3>Prisma Installation Part One</h3>
 The Extension 'Create CRUD Form Support' found that Prisma ORM is not installed 
 in your project and it can help with installing it. In this the first part of the 
@@ -364,7 +369,7 @@ installation
 <button id='installPartOneBtnId'>Install Prisma ORM</button><button id='cancelPartOneBtnId'>Cancel</button>
   </pre>
 
-  <pre id='installPartTwoId' class='hidden'>
+    <pre id='installPartTwoId' class='hidden'>
           <h3>Prisma Installation Part Two</h3>
 We assume that you finished below tasks
   1)  Ctrl + double-click on .env file to open it beside this Extension and
@@ -389,9 +394,9 @@ Prisma, otherwise you can enter yourself the following commands
   <button id='installPartTwoBtnId' style='margin-left:14rem;'>continue</button><button id='cancelPartTwoBtnId'>cancel</button>  
   </pre>
 
-  <div id='crudUIBlockId' class='main-grid hidden'>
-    <div class='grid-wrapper'>
-      <pre class="span-two">
+    <div id='crudUIBlockId' class='main-grid hidden'>
+      <div class='grid-wrapper'>
+        <pre class="span-two">
 To create a UI Form for CRUD operations against the underlying ORM fill
 out the <i>Candidate Fields</i> by entering field names in the <i>Field Name</i> input
 box with its datatype, e.g. firstName: string,  and pressing the Enter key
@@ -401,67 +406,69 @@ The UI Form +page.svelte with accompanying +page.server.ts will be
 created in the route specified in the Route Name input box.
       </pre>
 
-      <div class='left-column'>
-        <label for="routeNameId">Route Name
-          <input id="routeNameId" type="text" />
-        </label>
-        <label for='fieldNameId'>Field Name
-          <input id="fieldNameId" type="text" />
-        </label>
-        <button id="createBtnId" disabled>Create CRUD Support</button>
-        <div class='crud-support-done hidden'></div>
-        <div id='messagesId' style='z-index:10;width:20rem;'>Messages:</div>
-      </div>
+        <div class='left-column'>
+          <label for="routeNameId">Route Name
+            <input id="routeNameId" type="text" />
+          </label>
+          <label for='fieldNameId'>Field Name
+            <input id="fieldNameId" type="text" />
+          </label>
+          <button id="createBtnId" disabled>Create CRUD Support</button>
+          <div class='crud-support-done hidden'></div>
+          <div id='messagesId' style='z-index:10;width:20rem;'>Messages:</div>
+        </div>
 
-      <div class='middle-column'>
-        <span class='candidate-fields-caption'>Candidate Fields</span>
-        <div class="fields-list" id="fieldsListId"></div>
-        <p id="removeHintId" class='remove-hint'>click to remove</p>
-      </div>
+        <div class='middle-column'>
+          <span class='candidate-fields-caption'>Candidate Fields</span>
+          <div class="fields-list" id="fieldsListId"></div>
+          <p id="removeHintId" class='remove-hint'>click to remove</p>
+        </div>
 
 
-      <div style='display:flex;height:1.4re !important;margin:0;padding:0;'>
-        <input id="inputBoxWidthId" type="text" value='16rem' style='margin:0 1rem 0 0; padding:0 0 0 1rem;width:7rem;height:1.4rem !important;line-height:1.1rem;display:inline-block;' placeholder='CSS px, rem, ...'/>
-        <label for="CRInput" style='display:inline-block;width:max-content'>All input boxes CSS width</label>
+        <div style='display:flex;height:1.4re !important;margin:0;padding:0;'>
+          <input id="inputBoxWidthId" type="text" value='16rem'
+            style='margin:0 1rem 0 0; padding:0 0 0 1rem;width:7rem;height:1.4rem !important;line-height:1.1rem;display:inline-block;'
+            placeholder='CSS px, rem, ...' />
+          <label for="CRInput" style='display:inline-block;width:max-content'>All input boxes CSS width</label>
+        </div>
+        <div class="embellishments">
+          <div class="checkbox-item">
+            <input id="CRInput" type="checkbox" checked />
+            <label for="CRInput">CRInput component</label>
+          </div>
+          <div class="checkbox-item">
+            <input id="CRSpinner" type="checkbox" checked />
+            <label for="CRSpinner">CRSpinner component</label>
+          </div>
+          <div class="checkbox-item">
+            <input id="CRActivity" type="checkbox" checked />
+            <label for="CRActivity">CRActivity component</label>
+          </div>
+          <div class="checkbox-item">
+            <input id="CRTooltip" type="checkbox" checked />
+            <label for="CRTooltip">Tooltip component</label>
+          </div>
+          <div class="checkbox-item">
+            <input id="CRSummaryDetail" type="checkbox" checked />
+            <label for="CRSummaryDetail">Summary/Details component</label>
+          </div>
+        </div>
       </div>
-      <div class="embellishments">
-        <div class="checkbox-item">
-          <input id="CRInput" type="checkbox" checked />
-          <label for="CRInput">CRInput component</label>
+      <div id='rightColumnId' class='right-column hidden'>
+        <span class='prisma-model-caption' onclick="closeSchemaModels()">Select Fields from ORM</span>
+        <div id="schemaContainerId">
         </div>
-        <div class="checkbox-item">
-          <input id="CRSpinner" type="checkbox" checked />
-          <label for="CRSpinner">CRSpinner component</label>
-        </div>
-        <div class="checkbox-item">
-          <input id="CRActivity" type="checkbox" checked />
-          <label for="CRActivity">CRActivity component</label>
-        </div>
-        <div class="checkbox-item">
-          <input id="CRTooltip" type="checkbox" checked />
-          <label for="CRTooltip">Tooltip component</label>
-        </div>
-        <div class="checkbox-item">
-          <input id="CRSummaryDetail" type="checkbox" checked />
-          <label for="CRSummaryDetail">Summary/Details component</label>
-        </div>
-      </div>
-    </div>
-    <div id='rightColumnId' class='right-column hidden'>
-      <span class='prisma-model-caption' onclick="closeSchemaModels()">Select Fields from ORM</span>
-      <div id="schemaContainerId">
       </div>
     </div>
   </div>
-</div>
 </body>
 <script>
   // Webview Extension
   let tablesModel = 'waiting for schemaModels '
   let rootPath = ''
   const vscode = acquireVsCodeApi()
-  const noPrismaSchemaL = false ? true : false;
-  const installPartTwoPending = false ? true : false;
+  const noPrismaSchemaL = false ? true : false
+  const installPartTwoPending = false ? true : false
 
   vscode.postMessage({ command: 'log', text: "noPrismaSchema:false; pending: false" })
 
@@ -477,27 +484,27 @@ created in the route specified in the Route Name input box.
   }
   // all the elements needed to handle Prisma installation two parts
   // and the main CRUD support UI
-  let installPartOneEl;
-  let installPartTwoEl;
-  let installPartOneBtnEl;
-  let cancelPartOneBtnEl;
-  let installPartTwoBtnEl;
-  let cancelPartTwoBtnEl;
-  let crudUIBlockEl;
-  let rightColumnEl;
-  let schemaContainerEl;
-  let crudSupportDoneEl;
-  let fieldModelsJSON;
-  let fieldModels;
-  let theFields = [];
-  let msgEl;
-  let labelEl;
-  let routeName = '';
-  let modelObjName = '';
-  let routeLabelNode;
-  let timer;
-  let noRemoveHint = false;
-  let inputBoxWidthEl;
+  let installPartOneEl
+  let installPartTwoEl
+  let installPartOneBtnEl
+  let cancelPartOneBtnEl
+  let installPartTwoBtnEl
+  let cancelPartTwoBtnEl
+  let crudUIBlockEl
+  let rightColumnEl
+  let schemaContainerEl
+  let crudSupportDoneEl
+  let fieldModelsJSON
+  let fieldModels
+  let theFields = []
+  let msgEl
+  let labelEl
+  let routeName = ''
+  let modelObjName = ''
+  let routeLabelNode
+  let timer
+  let noRemoveHint = false
+  let inputBoxWidthEl
 
   // Fires only one time
   // based on two variables noPrismaSchemaL and installPartTwoPending
@@ -506,7 +513,7 @@ created in the route specified in the Route Name input box.
   window.addEventListener('load', function () {
     // vscode.postMessage({ command: 'log', text: 'WINDOW LOAD EVENT CALLED' })
 
-    crudUIBlockEl  = document.getElementById('crudUIBlockId')
+    crudUIBlockEl = document.getElementById('crudUIBlockId')
     rightColumnEl = document.getElementById('rightColumnId')
     installPartOneEl = document.getElementById('installPartOneId')
     installPartTwoEl = document.getElementById('installPartTwoId')
@@ -516,32 +523,32 @@ created in the route specified in the Route Name input box.
     cancelPartTwoBtnEl = document.getElementById('cancelPartTwoBtnId')
     schemaContainerEl = document.getElementById('schemaContainerId')
     crudSupportDoneEl = document.querySelector('.crud-support-done')
-    labelEl = document.querySelector("label[for='routeNameId']");
-    inputBoxWidthEl = document.getElementById('inputBoxWidthId');
+    labelEl = document.querySelector("label[for='routeNameId']")
+    inputBoxWidthEl = document.getElementById('inputBoxWidthId')
     routeLabelNode = Array.from(labelEl.childNodes).filter(
       (node) => node.nodeType === Node.TEXT_NODE
-      )[0];
+    )[0]
     msgEl = document.getElementById('messagesId')
     msgEl.addEventListener('dblclick', () => {
       msgEl.innerHTML = '<pre>'
     })
 
 
-    if (noPrismaSchemaL){
+    if (noPrismaSchemaL) {
       installPartOneBtnEl.addEventListener('click', () => {
-      // vscode.postMessage({ command: 'log', text: 'InstallPartOneBtn clicked' })
+        // vscode.postMessage({ command: 'log', text: 'InstallPartOneBtn clicked' })
         // get dbname, owner and owner password if specified
-        try{
-          const db = {};
-          db.name = document.getElementById('dbNameId').value;
-          db.owner = document.getElementById('dbOwnerId').value;
-          db.password = document.getElementById('dbOwnerPasswordId').value;
-          db.host = document.getElementById('dbHostId').value;
-          db.port = document.getElementById('dbPortId').value;
-          vscode.postMessage({ command: 'setDbAndOwner', payload: db });
-        }catch(err){
-          const msg = err instanceof Error ? err.message : String(err);
-          vscode.postMessage({ command: 'log', text: 'get db err '+ msg })
+        try {
+          const db = {}
+          db.name = document.getElementById('dbNameId').value
+          db.owner = document.getElementById('dbOwnerId').value
+          db.password = document.getElementById('dbOwnerPasswordId').value
+          db.host = document.getElementById('dbHostId').value
+          db.port = document.getElementById('dbPortId').value
+          vscode.postMessage({ command: 'setDbAndOwner', payload: db })
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          vscode.postMessage({ command: 'log', text: 'get db err ' + msg })
         }
         vscode.postMessage({ command: 'installPrismaPartOne' })
         installPartOneBtnEl.innerText = 'installing...'
@@ -551,25 +558,23 @@ created in the route specified in the Route Name input box.
       installPartTwoBtnEl.addEventListener('click', installPartTwo)
       cancelPartTwoBtnEl.addEventListener('click', cancelAnyPart)
     }
-    if (installPartTwoPending){
-      vscode.postMessage({ command: 'log', text: 'pending!'})
+    if (installPartTwoPending) {
+      vscode.postMessage({ command: 'log', text: 'pending!' })
       installPartTwoBtnEl.addEventListener('click', installPartTwo)
       cancelPartTwoBtnEl.addEventListener('click', cancelAnyPart)
     }
     // vscode.postMessage({ command: 'log', text: 'BEFORE TURNING PARTS VISIBLE' })
 
     if (noPrismaSchemaL) {
-      vscode.postMessage({ command: 'log', text: '-- noPrismaSchemaL'})
+      vscode.postMessage({ command: 'log', text: '-- noPrismaSchemaL' })
       // all blocks start hidden
       installPartOneEl.classList.remove('hidden')
     }
-    else if (installPartTwoPending){
-      console.log('console.log -- installPartTwoPending')
+    else if (installPartTwoPending) {
       installPartTwoEl.classList.remove('hidden')
       // vscode.postMessage({ command: 'log', text: 'PRISMA PART TWO INSTALLATION' })
     }
     else {
-      // console.log('console.log -- Create CRUD Support')
       // setTimeout(() => {
       crudUIBlockEl.classList.remove('hidden')
       rightColumnEl.classList.remove('hidden')
@@ -579,64 +584,64 @@ created in the route specified in the Route Name input box.
   })
 
 
-  function closeSchemaModels(){
-    routeNameEl.value = '';
-    fieldNameEl.value = '';
+  function closeSchemaModels() {
+    routeNameEl.value = ''
+    fieldNameEl.value = ''
     setTimeout(() => {
       const children = schemaContainerEl.children
       for (child of children) {
-        const det = child;
+        const det = child
         if (det.hasAttribute('open')) {
           det.removeAttribute('open')
         }
       }
       fields = []
-      fieldsListEl.innerHTML = '';
-    },0)
+      fieldsListEl.innerHTML = ''
+    }, 0)
   }
 
   function attachPartTwoButtons() {
     installPartTwoBtnEl.removeEventListener('click')
     installPartTwoBtnEl.addEventListener('click', () => {
-        vscode.postMessage({ command: 'installPrismaPartTwo' })
-      })
-      cancelPartTwoBtnEl.addEventListener('click', () => {
-        vscode.postMessage({ command: 'cancel' })
-      })
+      vscode.postMessage({ command: 'installPrismaPartTwo' })
+    })
+    cancelPartTwoBtnEl.addEventListener('click', () => {
+      vscode.postMessage({ command: 'cancel' })
+    })
   }
 
-  let installPartOneDone = false;
+  let installPartOneDone = false
   // Re-run binding when visible:
   window.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && installPartOneDone) {
-      installPartTwoBtnEl.removeListener('click', installPartTwo);
-      cancelPartTwoBtnEl.removeListener('click', cancelAnyPart);
-      attachPartTwoButtons();
+      installPartTwoBtnEl.removeListener('click', installPartTwo)
+      cancelPartTwoBtnEl.removeListener('click', cancelAnyPart)
+      attachPartTwoButtons()
     }
-  });
+  })
 
   // Listen for extension messages
   window.addEventListener("message", event => {
 
     const msg = event.data
-    
-    if (msg.command === 'ORMFieldsSent'){
-      msgEl.innerHTML += "<p>target: " + msg.target +"</p>" + msg.markup;
+
+    if (msg.command === 'ORMFieldsSent') {
+      msgEl.innerHTML += "<p>target: " + msg.target + "</p>" + msg.markup
     }
 
-    if (msg.command === 'installPartOneDone'){
-      installPartOneDone = true;
-      installPartOneEl.classList.add('hidden');
+    if (msg.command === 'installPartOneDone') {
+      installPartOneDone = true
+      installPartOneEl.classList.add('hidden')
       // event handlers are already established
-      installPartTwoEl.classList.remove('hidden');
+      installPartTwoEl.classList.remove('hidden')
       // vscode.postMessage({command: 'log',  text: 'EXT: installPartOneDone' });
     }
 
-    if (msg.command === 'installPartTwoDone'){
+    if (msg.command === 'installPartTwoDone') {
       // vscode.postMessage({ command: 'log',  text: 'EXT: installPartTwoDone' });
-      installPartTwoEl.classList.add('hidden');
-      crudUIBlockEl.classList.remove('hidden');
-      rightColumnEl.classList.remove('hidden');
+      installPartTwoEl.classList.add('hidden')
+      crudUIBlockEl.classList.remove('hidden')
+      rightColumnEl.classList.remove('hidden')
       // Request schema from the active extension
       vscode.postMessage({ command: 'readSchema' })
     }
@@ -646,23 +651,23 @@ created in the route specified in the Route Name input box.
       fieldsListEl.innerHTML = ''
       routeNameEl.value = ''
       crudSupportDoneEl.classList.remove('hidden')
-      setTimeout(()=>{
-        crudSupportDoneEl.classList.add('hidden');
+      setTimeout(() => {
+        crudSupportDoneEl.classList.add('hidden')
       }, 3000)
-      closeSchemaModels();
+      closeSchemaModels()
     }
 
     if (msg.command === 'renderSchema') {
-      renderParsedSchema(msg.payload);
-      rootPath = msg.rootPath;
-      fieldModels= msg.modelsFieldNames;
+      renderParsedSchema(msg.payload)
+      rootPath = msg.rootPath
+      fieldModels = msg.modelsFieldNames
     }
 
-    if(msg.command === 'taskError'){
-      vscode.postMessage({command: 'log',  text: 'EXT: Prisma installation err '+ msg.error});
+    if (msg.command === 'taskError') {
+      vscode.postMessage({ command: 'log', text: 'EXT: Prisma installation err ' + msg.error })
     }
 
-    if(msg.command === 'enableRemoveHint'){
+    if (msg.command === 'enableRemoveHint') {
       noRemoveHint = false
     }
   })
@@ -693,23 +698,23 @@ created in the route specified in the Route Name input box.
     return type
   }
 
-  function changeLabelText(color, text, duration){
+  function changeLabelText(color, text, duration) {
     // Update the first (and likely only) text node
-    const nodeText = routeLabelNode.textContent;
+    const nodeText = routeLabelNode.textContent
     // vscode.postMessage({command:'log', text: 'found textNode '+ nodeText})
-    routeLabelNode.textContent = text;
-    labelEl.style.color = color;
+    routeLabelNode.textContent = text
+    labelEl.style.color = color
     timer = setTimeout(() => {
-      routeLabelNode.textContent = nodeText;
-      labelEl.style.color = '';
+      routeLabelNode.textContent = nodeText
+      labelEl.style.color = ''
     }, duration)
   }
 
-  function clearLabelText(){
-    clearTimeout(timer);
+  function clearLabelText() {
+    clearTimeout(timer)
 
-    labelEl.style.color = '';
-    routeLabelNode.textContent = 'Route Name';
+    labelEl.style.color = ''
+    routeLabelNode.textContent = 'Route Name'
   }
 
   // a parsed schema from a Prisma ORM is sent back from the extension
@@ -758,9 +763,9 @@ created in the route specified in the Route Name input box.
       }
       includeTypes = includeTypes.slice(0, -2) + ` }  from '$lib/types/types';
   `
-      vscode.postMessage({ command: 'saveTypes', payload: {types, includeTypes} })
+      vscode.postMessage({ command: 'saveTypes', payload: { types, includeTypes } })
     } catch (err) {
-      vscode.postMessage({command: 'log',  text: 'renderParsedSchema: ' + err });
+      vscode.postMessage({ command: 'log', text: 'renderParsedSchema: ' + err })
     }
     // now all the markup constructed as a string render into  schemaContainerEl
     schemaContainerEl.innerHTML = markup
@@ -771,42 +776,42 @@ created in the route specified in the Route Name input box.
 
       if (event.target.tagName === 'SUMMARY') {
 
-        modelObjName = event.target.innerText;
-        routeNameEl.value = modelObjName.toLowerCase();
+        modelObjName = event.target.innerText
+        routeNameEl.value = modelObjName.toLowerCase()
         routeNameEl.focus()
         routeNameEl.click()
-        const details = event.target.closest('details');
+        const details = event.target.closest('details')
         if (details.open) {
-          closeSchemaModels();
-          clearLabelText();
-          return;
+          closeSchemaModels()
+          clearLabelText()
+          return
         }
         changeLabelText('pink', 'Change Route Name if necessary', 4000)
         //----------------
-        if (fieldModels){
+        if (fieldModels) {
           // msgEl.innerHTML += '<br/>SUMMARY fieldModels found: '+ JSON.stringify(fieldModels) + ' modelObjName: '+ modelObjName;
 
-          vscode.postMessage({ command: 'log',  text: 'before calling Extension renderORMFields' });
+          vscode.postMessage({ command: 'log', text: 'before calling Extension renderORMFields' })
           vscode.postMessage({ command: 'renderORMFields', target: 'just a string' })
-          vscode.postMessage({ command: 'log',  text: 'after calling Extension renderORMFields' });
+          vscode.postMessage({ command: 'log', text: 'after calling Extension renderORMFields' })
 
-          try{
-            theFields = fieldModels[modelObjName];
-            msgEl.innerHTML += '<pre>'+ theFields + '</pre>';
-            if (theFields){
-              for (field of theFields){
+          try {
+            theFields = fieldModels[modelObjName]
+            msgEl.innerHTML += '<pre>' + theFields + '</pre>'
+            if (theFields) {
+              for (field of theFields) {
                 // msgEl.innerHTML += '<br/>theFields loop: '+ theFields[i];
-                fieldNameEl.value = field;
-                fieldNameEl.dispatchEvent(enterKeyEvent);
+                fieldNameEl.value = field
+                fieldNameEl.dispatchEvent(enterKeyEvent)
               }
-              msgEl.innerHTML += '<pre>fields<br/>'+ JSON.stringify(fields,null,2) + '</pre>';
+              msgEl.innerHTML += '<pre>fields<br/>' + JSON.stringify(fields, null, 2) + '</pre>'
               return
             }
-          }catch(err){
-            const msg = err instanceof Error ? err.message : String(err);
-            msgEl.innerHTML += '<br/>fieldModels[modelObjName] NOT found err: '+ msg
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err)
+            msgEl.innerHTML += '<br/>fieldModels[modelObjName] NOT found err: ' + msg
           }
-        }else{
+        } else {
           msgEl.innerHTML += '<br/>SUMMARY fieldModels NOT found'
         }
       }
@@ -996,8 +1001,8 @@ created in the route specified in the Route Name input box.
   createBtnEl.addEventListener('click', (event) => {
     noRemoveHint = true
     if (routeName && fields.length) {
-      const inputBoxWidth = inputBoxWidthEl.value ?? '16rem';
-      document.querySelector('.crud-support-done').innerHTML = "route <span style='color:pink;'>" + routeNameEl.value + "</span>  created";
+      const inputBoxWidth = inputBoxWidthEl.value ?? '16rem'
+      document.querySelector('.crud-support-done').innerHTML = "route <span style='color:pink;'>" + routeNameEl.value + "</span>  created"
       const payload = { routeName, modelObjName, fields, inputBoxWidth, embellishments: selectedCheckboxes() }
       vscode.postMessage({ command: 'createCrudSupport', payload: payload })
     }

@@ -291,7 +291,7 @@
 		'updatedAt'
 	];
 	const name = 'id';
-	console.log(regexIsModelName.test(`|${name}|`) || /createdAt|password|hash|token/i.test(name));
+
 	function makeStrModelNames(schemaContent: string) {
 		let match = null;
 		// take match[1] as it is the modelName
@@ -301,10 +301,8 @@
 		}
 		// make a regex to test is name is a ModelName
 		regexIsModelName = new RegExp(`${strModelNames}`);
-		console.log(strModelNames);
 	}
 	function isUICandidate({ name, type, attrs }: Field): boolean {
-		console.log(name, '|', type, '|', attrs);
 		type = type.toLowerCase().trim();
 		// attrs = attrs ?? '';
 		if (
@@ -325,13 +323,11 @@
 		return true;
 	}
 	for (const [modelName, model] of Object.entries(models)) {
-		// console.log(modelName)
 		for (const field of model.fields) {
 			console.log(field, isUICandidate(field));
 		}
 	}
 	makeStrModelNames(schema);
-	// console.log(/createdAt|password/i.test('passwordHash'))
 </script>
 
 <pre>
@@ -361,6 +357,7 @@
 
 <style lang="scss">
 	.main {
+		color: var(--candidate-color);
 		margin: 0 auto;
 		border: 1px solid gray;
 		border-radius: 10px;
@@ -374,10 +371,11 @@
 		width: calc(100% - 2rem);
 		font-size: 20px;
 		font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+		color: var(--model-name);
 		padding: 6px;
 		padding-left: 1.5rem;
 		margin-top: 1rem;
-		background-color: rgba(211, 211, 211, 0.981);
+		background-color: var(--model-bg-color);
 		text-shadow: 2px 2px 1px white;
 	}
 	.outer-wrapper {
@@ -386,6 +384,9 @@
 		.inner-wrapper {
 			grid-template-rows: 3.5rem;
 			grid-auto-rows: 3.5rem;
+			pre {
+				color: var(--candidate-color);
+			}
 		}
 	}
 	// div {
@@ -393,7 +394,7 @@
 	// 	margin: 0 0 0 1rem;
 	// }
 	pre {
-		color: navy;
+		color: var(--candidate-color);
 		font-size: 13px;
 		tab-size: 16px;
 		width: max-content;

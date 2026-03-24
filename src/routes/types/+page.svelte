@@ -61,10 +61,9 @@
 	};
 	for (const modelName of Object.keys(models)) {
 		const fields = Object.entries(models[`${modelName}`].fields);
-		console.log(`${modelName}\n`);
+
 		for (const fld of fields) {
 			const [fieldName, { type, prismaAttrs }] = fld;
-			console.log('\t', fieldName, type, ', attrs', prismaAttrs);
 		}
 	}
 </script>
@@ -94,7 +93,7 @@
 			overflow-y: auto;
 			pre {
 				font-size: 13px;
-				color: navy;
+				color: var(--candidate-color);
 				text-wrap: wrap;
 				margin-top: 2.5rem;
 			}

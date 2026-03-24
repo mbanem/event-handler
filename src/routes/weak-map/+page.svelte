@@ -123,7 +123,7 @@
 			}
 		}
 		selectEl.selectedIndex = selIx;
-		console.log('selected option', selectEl.options[selIx]);
+		// console.log('selected option', selectEl.options[selIx]);
 	}
 	// function st(obj: unknown) {
 	function st(obj: { group: string; eventType: (typeof eventTypes)[number] }) {

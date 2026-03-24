@@ -224,7 +224,7 @@
     } catch (err) {
       console.log('hook getUser', err);
     }
-    // console.log('hooks locals',event.locals);
+
     return await resolve(event);
   }) satisfies Handle;`;
 		}
@@ -365,7 +365,7 @@ export const actions: Actions = {
 	}
 
 	Model.initialize(lowercaseTypes);
-	// console.log("Model.actions('User')", Model.actions('User'));
+
 
 	if (browser && Model.initialized) {
 		setTimeout(() => {

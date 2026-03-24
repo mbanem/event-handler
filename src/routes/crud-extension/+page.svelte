@@ -18,7 +18,7 @@
 		(await import('./schema-parser/getPrismaModels')) as TParseReturn;
 
 	let x1: TUI, x2: Field, x3: UIType, x4: Model, x5: Models, x6: TParseReturn;
-	console.log(uiModels, nuiModels);
+
 	let etypeEl: HTMLElement | null = null;
 	let disabled = true;
 	let eventType = ''; // track current value

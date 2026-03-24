@@ -38,7 +38,7 @@ class EventHandler {
     wrapper: HTMLElement
   ) {
     let draggedEl: HTMLElement | null = null
-    console.log('drag-drop wrapper', wrapper.innerText.slice(0, 20))
+
 
     for (const child of Array.from(wrapper.children) as HTMLElement[]) {
       child.setAttribute('draggable', 'true')
@@ -119,7 +119,7 @@ class EventHandler {
       }
       return
     }
-    console.log('click-over-out wrapper', this.wrapper.innerText.slice(0, 20))
+
     // Remove any previous listeners (using stored bound handlers)
     this.removeAllListeners()
 
@@ -165,7 +165,7 @@ class EventHandler {
   }
 
   private registerInterestedChildren(): void {
-    console.log('registerInterestedChildren entry')
+
     if (!this.wrapper) return
 
     // Use Array.from for iterable HTMLCollection + type safety
@@ -198,7 +198,7 @@ class EventHandler {
         })
       }
     }
-    console.log('registerInterestedChildren exit')
+
   }
 
   private getBoundHandler(eventName: TEventType): EventListener {
@@ -209,26 +209,26 @@ class EventHandler {
   }
 
   private attachDelegationListeners(): void {
-    console.log('attachDelegationListeners entry')
+
     if (!this.wrapper) return
 
     // We attach listeners only for events we actually have handlers for
     for (const eventName of Object.keys(this.supportedHandlers) as TEventType[]) {
       this.wrapper.addEventListener(eventName, this.getBoundHandler(eventName))
     }
-    console.log('attachDelegationListeners exit')
+
 
   }
 
   private removeAllListeners(): void {
-    console.log('removeAllListeners entrry')
+
     if (!this.wrapper) return
 
     for (const [eventName, boundHandler] of this.boundHandlers) {
       this.wrapper.removeEventListener(eventName, boundHandler)
     }
     this.boundHandlers.clear()  // Clear after removal
-    console.log('removeAllListeners exit')
+
   }
 
   private handleEvent(e: MouseEvent): void {
@@ -243,10 +243,10 @@ class EventHandler {
     while (current && current !== this.wrapper) {
       const config = this.childConfigs.get(current)
       if (config && config.events.has(e.type as TEventType)) {
-        console.log('Found matching child:', current)  // DEBUG
+
         const handler = this.supportedHandlers[e.type as TEventType]
         if (handler) {
-          console.log('handleEvent called for type:', e.type)  // DEBUG: add this to confirm firing
+
           handler(e)
         }
         return // We handled it - stop bubbling up

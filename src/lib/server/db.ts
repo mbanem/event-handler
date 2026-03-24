@@ -1,4 +1,3 @@
-// src/lib/server/db.ts
 import { PrismaClient } from '@prisma/client'  // or your custom output path if you set one
 import { PrismaPg } from '@prisma/adapter-pg'
 

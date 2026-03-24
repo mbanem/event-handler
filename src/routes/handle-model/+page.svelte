@@ -38,18 +38,18 @@
 		],
 		attrs: ['@@map("todo")']
 	};
-	console.log(models);
+	// console.log(models);
 	// type Models = Record<string, Model>;
 	// Object.entries(models) returns [key, value] where key is the modelName value is the model
 	// the value could be destructured further as { fields, attrs } without mantioning value
 	for (const [modelName, { fields, attrs }] of Object.entries(models)) {
-		console.log('modelName', modelName, 'modelAttrs', attrs);
+		// console.log('modelName', modelName, 'modelAttrs', attrs);
 		for (const { name, type, attrs } of fields) {
-			console.log('fieldProps', name, type, attrs);
+			// console.log('fieldProps', name, type, attrs);
 		}
 		if (attrs) {
 			for (const attr of attrs) {
-				console.log('modelAttr', attr);
+				// console.log('modelAttr', attr);
 			}
 		}
 	}

@@ -28,7 +28,7 @@ export function createModel(lowercaseTypes: string) {
   const uiType = '|string|number|Date|boolean|enum|Role|'
 
   function sortArrByOrdered(arr: string[]) {
-    console.log('input arg\n', arr)
+
     return [1, 2, 3, 4, 5]
     // const orderedPart = ordered.map((key) => arr.find((item: string) => item.startsWith(key + ':'))).filter(Boolean)
     // const leftoverPart = arr.filter((item) => {
@@ -46,9 +46,9 @@ export function createModel(lowercaseTypes: string) {
       .replace(/export type/g, '')
       .replace(/[\n\r\s]+/g, '')
       .replace(/[{}]/g, '')
-    // console.log('cleanedString\n', cleanedString)
+
     const segments = cleanedString.split('=')
-    // console.log('segments\n', segments)
+
     for (let i = 0; i < segments.length - 1; i++) {
       let objectName: string
       let rawBody: string
@@ -57,7 +57,7 @@ export function createModel(lowercaseTypes: string) {
         objectName = segments[i].trim()   // starging with model name
       } else {                            // fieldName: fieldType
         const parts = segments[i].split(';')
-        // console.log('parts', parts)
+
         objectName = parts.pop()!.trim()  // remove and return the last element from parts array
       }
 
@@ -89,7 +89,7 @@ export function createModel(lowercaseTypes: string) {
     uiFieldNames = sortArrByOrdered(Array.from(uiSet) as string[], UI.ui) as string[]
     nonUIFieldNames = sortArrByOrdered(Array.from(nonUiSet) as string[], UI.nonUI) as string[]
     allFieldNames = sortArrByOrdered(Array.from(fullSet) as string[]) as string[]
-    // console.log(uiFieldNames, nonUIFieldNames, allFieldNames)
+
     initialized_ = true
   }
 

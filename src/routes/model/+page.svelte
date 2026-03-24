@@ -1,4 +1,4 @@
 <script lang="ts">
-	import { Model } from './function.svelte';
-	console.log(Model.modelTypes());
+	// import { Model } from './function.svelte';
+	// console.log(Model.modelTypes());
 </script>

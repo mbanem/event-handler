@@ -2,7 +2,7 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	let msgEl: HTMLParagraphElement | null = null;
-	const dots: Array<HTMLDivElement> = [];
+	const dots: Array<HTMLElement> = [];
 	let clearButtonEl: HTMLButtonElement | null = null;
 	let navbar: HTMLDivElement | null = null;
 	function getColor() {
@@ -18,7 +18,7 @@
 			clearDots(event);
 			return;
 		}
-		// console.log(event.clientX, event.clientY);
+
 		if (msgEl) {
 			msgEl.innerText = `(Mouse(x,y) = (${event.clientX}, ${event.clientY})`;
 		}
@@ -27,13 +27,12 @@
 		document.body.appendChild(dot);
 		dot.style.position = 'absolute';
 		dot.style.backgroundColor = getColor();
-		dot.style.width = String(Math.max(Math.random() * 20, 5)) + 'px';
+		dot.style.width = String(Math.max(Math.random() * 60, 5)) + 'px';
 		dot.style.height = dot.style.width;
 		dot.style.borderRadius = '50%';
 		dot.style.top = String(event.clientY) + 'px';
 		dot.style.left = String(event.clientX) + 'px';
 		dots.push(dot);
-		console.log(event.clientX, event.clientY);
 	}
 
 	onMount(() => {

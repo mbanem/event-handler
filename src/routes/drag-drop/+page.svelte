@@ -178,12 +178,16 @@
 			width: 94.5%;
 		}
 	}
+	.cr-list-el {
+		color: var(--drag-color);
+	}
 	.draggable-one,
 	.dd-column {
 		border: 1px solid gray;
 		border-radius: 10px;
 		width: 10rem;
 		padding: 1rem;
+		color: var(--drag-color);
 		div {
 			/* width:100%; */
 			background-color: cornsilk;
@@ -209,7 +213,7 @@
 		margin: 0;
 		width: max-content;
 		div {
-			color: navy;
+			color: var(--candidate-color);
 			padding: 4px 0 2px 1rem;
 			cursor: pointer;
 		}
@@ -221,7 +225,7 @@
 		width: max-content;
 		margin: 0;
 		font-size: 20px;
-		color: navy;
+		color: var(--candidate-color);
 		cursor: pointer;
 		div {
 			margin: 0;

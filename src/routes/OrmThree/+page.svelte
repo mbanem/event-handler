@@ -1,69 +1,31 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { schema } from './schema_prisma';
+	import { browser } from '$app/environment';
+	// import { schema } from './schema_prisma'
 	import { sleep, handleTryCatch, createEventHandler } from '$lib/utils';
 	import { SvelteMap } from 'svelte/reactivity';
-
-	type Field = { name: string; type: string; attrs?: string };
-	type Model = {
-		fields: { name: string; type: string; attrs?: string }[];
-		attrs?: string[];
+	import type { PageProps } from './$types';
+	import type { Field, Models } from './parse-prisma-schema';
+	// Use the generated PageProps type
+	let { data }: PageProps = $props();
+	const data_ = () => {
+		return data;
 	};
-	type Models = Record<string, Model>;
-	let models: Models = {};
-	let uiModels: Models = {};
-	let nuiModels: Models = {};
+	let uiModels = data_().models.uiModels as Models;
+	let nuiModels = data_().models.nuiModels as Models;
+	let fieldStrips = data_().models.fieldStrips as Record<string, string>;
+
 	let modelName = '';
 
 	// type fieldNames = {
 	// 	modelName: string;
 	// 	namesList: string;
 	// };
-	let fieldNames: Record<string, string> = {};
-	let fieldStrips: Record<string, string> = {};
+
 	let fieldsListEl: HTMLDivElement;
 	let fieldListsInitialized = false;
-	const UI = {
-		ui: 'ui',
-		namesOnly: 'namesOnly',
-		nonUI: 'nonUI',
-		all: 'all'
-	} as const;
-	type UIType = (typeof UI)[keyof typeof UI];
 
-	const ordered = [
-		'id',
-		'authorId',
-		'userId',
-		'employeeId',
-		'customerId',
-		'ownerId',
-		'firstName',
-		'lastName',
-		'middleName',
-		'name',
-		'completed',
-		'profileId',
-		'dob',
-		'dateOfBirth',
-		'email',
-		'password',
-		'bio',
-		'biography',
-		'address',
-		'city',
-		'state',
-		'title',
-		'content',
-		'category',
-		'role',
-		'priority',
-		'price',
-		'updatedAt'
-	];
 	const eh = createEventHandler();
-	let strModelNames = '|';
-	const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms;
 
 	// FIELDS
 	let removeHintEl: HTMLParagraphElement;
@@ -78,173 +40,21 @@
 	let fieldLabelEl: HTMLLabelElement;
 	let fieldNameEl: HTMLInputElement;
 
-	let timer: string | number | undefined; //ReturnValue<typeof setTimeout>;
+	let timer: NodeJS.Timeout;
 	let fieldNameAndType = 'Field Name and Type';
 	let unacceptable = '  not a UI field';
 	let deletedFields = new SvelteMap<string, Node>();
 	// global msg set by isFieldFormatValid, isInFieldStrips and isInListEls
 	let msg = '';
-	/**
-	 * Inside sortModelsByOrdered check if field is UI/data-entry field
-	 * @param field: type Field= { name: string; type: string; attrs?: string }
-	 */
-	function isUICandidate({ name, type, attrs }: Field): boolean {
-		type = type.toLowerCase().trim();
-		attrs = attrs ?? '';
-		if (strModelNames.indexOf(`|${type}|`) !== -1 || strModelNames.indexOf(`|${name}|`) !== -1) {
-			return false;
-		}
-		if (
-			/[\|\|]/.test(type) ||
-			name.includes('@@') ||
-			(type === 'Date' && /createdAt/i.test(name)) ||
-			/hash|token/i.test(name)
-		) {
-			return false;
-		}
-		const ui =
-			/\b@id @default(uuid())\b/i.test(attrs) ||
-			['string', 'number', 'boolean', 'role'].includes(type);
+	let models: Models = {};
 
-		return ui;
-	}
-
-	/**
-	 * makes LIST od model names |User|Profile|Todo|...
-	 * @param schema.prisma
-	 */
-	function makeStrModelNames(schemaContent: string) {
-		let modelMatch = null;
-		while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
-			strModelNames += modelMatch[1] + '|';
-		}
-	}
-
-	/**
-	 *  LEADING array part sorted by ordered followed by leftowers
-	 */
-	function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
-		let orderedFields: { name: string; type: string; attrs?: string }[] = [];
-		let leftoverFields: { name: string; type: string; attrs?: string }[] = [];
-		for (const [modelName, model] of Object.entries(models)) {
-			let uiNames = '|';
-			let uiStrips = '|';
-			fieldNames[modelName] = '';
-			fieldStrips[modelName] = '';
-			// must create entry for model name as uiModels[modelName].fields
-			// are two-step deep so it does not exists until first ste is done
-			uiModels[modelName] = { fields: [], attrs: [] };
-			nuiModels[modelName] = { fields: [], attrs: [] };
-			if (kind === UI.ui || kind === UI.all) {
-				for (const key of ordered) {
-					// ordered array holds UI/data-entry field names
-					const field = model.fields.find((field) => field.name === key) as Field;
-					if (field) {
-						orderedFields.push(field);
-						uiNames += field.name + '|';
-						uiStrips += `${field.name}: ${field.type}` + '|';
-					}
-				}
-				for (const field of model.fields) {
-					// for rest of fields not selected by ordered test if they are UI candidates
-					if (!orderedFields.includes(field) && isUICandidate(field)) {
-						orderedFields.push(field);
-						uiNames += field.name + '|';
-						uiStrips += `${field.name}: ${field.type}` + '|';
-					}
-				}
-			}
-			for (const field of model.fields) {
-				if (!orderedFields.includes(field)) {
-					leftoverFields.push(field);
-				}
-			}
-			orderedFields = orderedFields.filter(Boolean);
-			uiModels[modelName].fields = orderedFields;
-			nuiModels[modelName].fields = leftoverFields;
-			nuiModels[modelName].attrs = models[modelName].attrs;
-			fieldNames[modelName] = uiNames;
-			fieldStrips[modelName] = uiStrips;
-			// cr-prepare for next model
-			orderedFields = [];
-			leftoverFields = [];
-			uiNames = '';
-		}
-		return [uiModels, nuiModels];
-	}
-	/**
-	 * build models = Record<ModelName, Model>
-	 * @param (schemaContent) from schema.prisma
-	 */
-	function parsePrismaSchema(schemaContent: string): void {
-		models = {};
-		type Fields = { name: string; type: string; attrs?: string }[];
-		let fields: Fields = [];
-		makeStrModelNames(schemaContent);
-		let modelMatch = null;
-
-		try {
-			while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
-				const [, modelName, body] = modelMatch;
-				const modelAttrs: string[] = [];
-
-				// // Remove block comments first
-				let bodyWithoutBlocks = body.replace(/\/\*[\s\S]*?\*\//g, '');
-
-				let lines = bodyWithoutBlocks
-					.split('\n')
-					.map((line) => line.trim().replace(/\s{2,}|\t/gm, ' '))
-					.filter(Boolean);
-
-				for (let line of lines) {
-					line = line
-						.trim()
-						.replace(/String/g, 'string')
-						.replace(/DateTime/g, 'Date')
-						.replace(/Int/g, 'number')
-						.replace(/Boolean/g, 'boolean')
-						.replace(/[?]/g, '');
-
-					if (line.startsWith('//')) {
-						continue;
-					}
-
-					const parts = line.split(/\s+/); // split on whitespace
-
-					if (line.startsWith('@@')) {
-						// Block attribute
-						modelAttrs.push(line);
-					} else if (parts.length >= 2) {
-						// build fields incrementally
-						fields.push({
-							name: parts[0],
-							type: parts[1],
-							attrs: parts.slice(2).join(' ')
-						});
-					}
-				}
-				models[modelName] = {
-					fields: fields, //: sortObjectKeys(fields),
-					attrs: modelAttrs
-				};
-
-				fields = [];
-			}
-		} catch (err) {
-			handleTryCatch(err);
-		}
-		[uiModels, nuiModels] = sortModelsByOrdered(models, UI.all);
-		models = {};
-	}
-
-	parsePrismaSchema(schema);
 	// schema = ''; TODO in Webview component get read from this file content
 
 	// Prisma model displayed in a list of <summary>/<details>
 	let prismaSumDetailsBlock = ``;
 	// models = uiModels is another reference to the same uiModel
 	// so we must deep copy to the models
-	models = {};
+
 	for (const [modelName, model] of Object.entries(uiModels)) {
 		models[modelName] = { fields: [], attrs: [] };
 		models[modelName].fields = model.fields;
@@ -253,7 +63,7 @@
 		model.fields = [...model.fields, ...nuiModels[modelName].fields];
 		model.attrs = nuiModels[modelName].attrs;
 	}
-
+	nuiModels = {};
 	// Object.entries() return [key,value] -- key is modelName, value is model
 	// fields cannot be deeply destructured as it is an array, which is not destructurable
 	for (const [modelName, model] of Object.entries(models)) {
@@ -264,14 +74,16 @@
 				`;
 		for (const field of model.fields) {
 			const { name, type, attrs } = field;
-			const match = attrs?.match(/@id|@default|@updatedAt|@unique|@map/g);
-			if (match) {
-				const cType = match.includes('@id') ? 'red-type' : 'green-type';
-				if (match.includes('@id')) {
-					prismaSumDetailsBlock += `<p class='field-name'>${name}</p><p>type:${type} <span class='${cType}'>${attrs ?? 'na'}</span></p>`;
-				} else {
-					prismaSumDetailsBlock += `<p class='field-name'>${name}</p><p>type:${type} <span class='${cType}'>${attrs ?? 'na'}</span></p>`;
-				}
+			if (
+				attrs?.includes('@id') ||
+				attrs?.includes('@default') ||
+				attrs?.includes('@updatedAt') ||
+				attrs?.includes('@unique')
+			) {
+				const color = attrs.includes('@id') ? 'lightgreen' : 'pink';
+				prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span style='color:${color}'>${attrs ?? 'na'}</span></p>`;
+			} else {
+				prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} ${attrs ?? 'na'}</p>`;
 			}
 		}
 		prismaSumDetailsBlock += `</div>
@@ -387,6 +199,7 @@
 		return fieldsListEl.innerText.includes(`${field.name}: ${field.type}`);
 	}
 	function addToFieldList(fieldName: string) {
+		if (!browser) return;
 		// Create nested  elements
 		const span = document.createElement('span');
 		span.textContent = fieldName;
@@ -409,6 +222,7 @@
 			addToFieldList(fieldName);
 			fieldListsInitialized = true;
 		}, 0);
+		return;
 	}
 
 	/**
@@ -543,7 +357,6 @@
 		setButtonAvailability();
 	}
 
-	nuiModels = {};
 	onMount(() => {
 		fieldNameEl = document.getElementById('fieldNameId') as HTMLInputElement;
 		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
@@ -576,7 +389,7 @@
 						stopRenderField = false;
 						(fieldsListEl as HTMLDivElement).innerHTML = '';
 						fieldNameEl.value = '';
-					}, 200);
+					}, 100);
 					clearLabelText();
 					pipeElsString = `!`;
 					clearListEls();
@@ -592,6 +405,10 @@
 				// ------------ adding fields into listEls --------------------
 				routeNameEl.value = modelName.toLowerCase();
 				fields = [];
+
+				for (const field of uiModels[modelName].fields) {
+					console.log('field', field.name);
+				}
 				for (const field of uiModels[modelName].fields) {
 					if (stopRenderField) {
 						break;
@@ -599,7 +416,7 @@
 					const fld = `${field.name}: ${field.type}`;
 					fields.push(fld);
 					renderField(fld);
-					await sleep(100);
+					await sleep(50);
 				}
 				if (pipeElsString === '!') {
 					for (const field of uiModels[modelName].fields) {
@@ -712,20 +529,6 @@
 			<p id="removeHintId" class="cr-remove-hint">click to remove</p>
 		</div>
 
-		<div
-			style="display:flex;height:1.4rem !important;margin:0;padding:0;align-items:center;grid-column: span 2;"
-		>
-			<p style="display:inline-block;width:max-content;margin-right:1rem;">
-				Render all input boxes the same CSS width
-			</p>
-			<input
-				id="inputBoxWidthId"
-				type="text"
-				value="16rem"
-				style="margin:0 1rem 0 0; padding:0 0 0 1rem;width:7rem;height:1.2rem !important;line-height:1.1rem;display:inline-block;font-size:13px;"
-				placeholder="CSS px, rem, ..."
-			/>
-		</div>
 		<div class="embellishments">
 			<div class="checkbox-item">
 				<input id="CRInput" type="checkbox" checked />
@@ -761,7 +564,7 @@
 		padding: 0.6rem 0 0 0.6rem;
 		grid-template-columns: 33rem 20rem;
 		margin-top: 0.5rem;
-		width: 100vw;
+		width: 98vw;
 	}
 
 	.cr-grid-wrapper {
@@ -798,10 +601,9 @@
 			display: block;
 			color: var(--candidate-color);
 		}
-		button,
-		div {
-			display: block;
-		}
+		/* div {
+      display: block;
+    }*/
 	}
 
 	.cr-middle-column {
@@ -810,16 +612,15 @@
 		border: 1px solid gray;
 		border-radius: 5px;
 		padding: 1rem 6px 0 6px;
-		height: auto;
+		height: 54vh;
 		width: 12rem;
 		background-color: var(--panel-bg-color);
-		/* overflow-y: auto;	 */ /* cuts container's header */
 	}
 
 	:global(.cr-fields-list) {
 		display: grid;
-		grid-template-rows: 1.4rem;
-		grid-auto-rows: 1.4rem;
+		grid-template-rows: 1.3rem;
+		grid-auto-rows: 1.3rem;
 		cursor: pointer;
 		text-align: center;
 		padding: 0;
@@ -828,7 +629,7 @@
 		:global(.cr-list-el) {
 			background-color: var(--candidate-bg-color);
 			color: var(--candidate-color);
-			border: 1px solid var(--border-color);
+			border: 1px solid #ccc;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -885,18 +686,15 @@
 	}
 
 	#schemaContainerId {
-		height: 30rem;
+		height: 40rem;
 		overflow-y: auto;
 	}
 
 	.cr-right-column {
 		position: relative;
 		@include container($head: 'Select UI Fields from ORM', $head-color: navy);
-		/*color: var(--field-type-color);*/
 		background-color: var(--panel-bg-color);
-		.red-type {
-			color: var(--red-type) !important;
-		}
+		height: 88vh;
 	}
 	.embellishments {
 		@include container($head: 'Include Components', $head-color: navy);
@@ -921,7 +719,6 @@
 	}
 	.checkbox-item {
 		display: contents;
-		color: var(--candidate-color);
 	}
 
 	.checkbox-item input[type='checkbox'] {
@@ -955,7 +752,7 @@
 		font-size: 13px;
 	}
 	:global(.cr-model-block) {
-		height: 30rem;
+		height: 40rem;
 		overflow-y: auto;
 	}
 	:global(.cr-model-name) {
@@ -1014,13 +811,11 @@
 		opacity: 0.3;
 		cursor: not-allowed;
 	}
-	:global(.field-name) {
-		color: var(--field-name) !important;
-	}
-	:global(.green-type) {
-		color: var(--green-type) !important;
-	}
-	:global(.red-type) {
-		color: var(--red-type) !important;
+	.rectangle {
+		width: 6rem;
+		height: 6rem;
+		border: 3px solid navy;
+		border-radius: 8px;
+		background-color: lightgreen;
 	}
 </style>

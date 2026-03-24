@@ -41,11 +41,11 @@
 		}
 	};
 	function clickHandler(e: MouseEvent) {
-		// console.log('click', e.target.innerText)
+
 		report(e);
 	}
 	function report(e: MouseEvent) {
-		// console.log('reportEvent',new Error().stack)
+
 		const el = e.target as HTMLElement;
 		const style = el.style;
 		style.color = style.color === 'red' ? 'green' : 'red';

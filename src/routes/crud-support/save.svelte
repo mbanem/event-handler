@@ -405,18 +405,18 @@
 
 	// Event  handlers for CandidateList items click, mouseover, mouseout
 	function candidateMouseover(event: MouseEvent) {
-		console.log('candidateMouseover');
+
 		const el = event.target as HTMLDivElement;
 		removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
 		removeHintEl.style.left = String(el.offsetLeft + 12) + 'px';
 		removeHintEl.style.opacity = '1';
 	}
 	function candidateMouseout(_: MouseEvent) {
-		console.log('candidateMouseout');
+
 		removeHintEl.style.opacity = '0';
 	}
 	function candidateClick(event: MouseEvent) {
-		console.log('candidateClick');
+
 		let el = event.target as HTMLElement;
 		// if the el is span only field name/item-text is
 		// cleared so take the parent div to remove the field
@@ -526,7 +526,7 @@
 			// ------------- KEYUP HANDLER  keyboard handler ---------------------
 			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event: KeyboardEvent) => {
 				// ----------- KEYUP HANDLER  keyboard handler ---------------------
-				console.log('keyup');
+
 
 				if (nokeyup) {
 					nokeyup = false;
@@ -569,7 +569,7 @@
 		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
 			// ------------ click on SUMMARY or DETAILS -----------------
 			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
-				// console.log('click SUMMARY');
+
 				middleColumnEl.classList.toggle('cr-middle-column-height');
 				// now at app level active modelName
 				modelName = (event.target as HTMLElement).innerText;
@@ -609,7 +609,7 @@
 				//----------------
 			} else {
 				// ----------- PRISMA KEYUP HANDLER clicked on a field name in <details> block ---------------
-				// console.log('click DETAILS');
+
 				const el = event.target as HTMLDivElement;
 				let fieldStr = el.innerText;
 				try {

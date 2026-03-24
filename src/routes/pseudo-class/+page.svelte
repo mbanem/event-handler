@@ -1,14 +1,20 @@
 <script>
 	let count = $state(0);
 	const changeColorPseudoEle = () => {
+		const root = document.querySelector(':root'); //grabbing the root element
+		let color = root.style.getPropertyValue('--before-background-color');
+		root.style.setProperty('--before-background-color', color === 'blue' ? 'darkcyan' : 'blue');
+		color = root.style.getPropertyValue('--after-background-color');
+		root.style.setProperty(
+			'--after-background-color',
+			color === 'orangered' ? 'rebeccapurple' : 'orangered'
+		);
 		// Selecting the "#box::after" CSS
 		// rule from rule list.
-		let st1 = document.styleSheets[0].cssRules[1];
-		let st2 = document.styleSheets[0].cssRules[2];
 
 		// Change the styles of the pseudo element.
-		st1.style.backgroundColor = st1.style.backgroundColor === 'blue' ? 'orangered' : 'blue';
-		st2.style.backgroundColor = st2.style.backgroundColor == 'crimson' ? 'darkcyan' : 'crimson';
+		// st1.style.backgroundColor = st1.style.backgroundColor === 'blue' ? 'orangered' : 'blue';
+		// st2.style.backgroundColor = st2.style.backgroundColor == 'crimson' ? 'darkcyan' : 'crimson';
 	};
 </script>
 
@@ -36,6 +42,12 @@
 <button onclick={() => count++} style="margin-left:10px;padding:0;"> increment </button>
 
 <style>
+	:root {
+		--before-background-color: darkcyan;
+		--before-color: white;
+		--after-background-color: orangered;
+		--after-color: white;
+	}
 	#box {
 		width: max-content;
 		height: auto;
@@ -57,7 +69,7 @@
 		color: white;
 		width: max-content;
 		height: auto;
-		background-color: orangered;
+		background-color: var(--after-background-color);
 		font-size: 20px;
 		font-weight: 200;
 	}
@@ -71,7 +83,7 @@
 		color: white;
 		width: max-content;
 		height: auto;
-		background-color: darkcyan;
+		background-color: var(--before-background-color);
 		font-size: 20px;
 		font-weight: 200;
 	}

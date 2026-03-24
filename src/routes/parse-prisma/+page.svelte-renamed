@@ -240,7 +240,7 @@
 		}
 		// now all the markup constructed as a string render into  schemaContainerEl
 		// schemaContainerEl.innerHTML = markup
-		console.log(prismaModels);
+		 // console.log(prismaModels);
 		return markup;
 
 		// schemaContainerEl gets click event but it has to be from the first <p> element

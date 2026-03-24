@@ -88,7 +88,7 @@
 	}
 	function removeSelected() {
 		let selIx = selectEl.selectedIndex;
-		// console.log('removeSelected fired', selIx)
+
 		const { group, opt } = JSON.parse((selectEl.options[selIx] as HTMLOptionElement).value);
 		options[group] = options[group].filter((el) => el !== opt);
 		if (!oLength(group)) {
@@ -120,7 +120,6 @@
 			eventTypes.push(eventType);
 		}
 		options[group] = eventTypes; //Object.keys(handler);
-		// console.log('options', options);
 	}
 	// attach event handlers
 	onMount(() => {

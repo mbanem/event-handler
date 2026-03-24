@@ -83,7 +83,7 @@
 				includeTypes.slice(0, -2) +
 				` }  from '$lib/types/types';
   `;
-			console.log('command saveTypes', 'payload', { types, includeTypes });
+			// console.log('command saveTypes', 'payload', { types, includeTypes });
 		} catch (err) {
 			console.log('command log', 'text', 'renderParsedSchema: ' + err);
 		}
@@ -268,7 +268,7 @@
 				modelsFieldNames[modelName] = arrFields;
 			} catch (err: unknown) {
 				const msg = err instanceof Error ? err.message : String(err);
-				console.log('cannot add a model' + msg);
+				// console.log('cannot add a model' + msg);
 			}
 		}
 

@@ -5,14 +5,14 @@
 	const eventHandler = createEventHandler();
 
 	function handleClick(e: MouseEvent) {
-		console.log('Clicked!', e.target);
+		// console.log('Clicked!', e.target);
 	}
 
 	function handleMouseOver(e: MouseEvent) {
-		console.log('Over!', e.target);
+		// console.log('Over!', e.target);
 	}
 	function handleMouseOut(e: MouseEvent) {
-		console.log('Out!', e.target);
+		// console.log('Out!', e.target);
 	}
 
 	onMount(() => {
@@ -25,14 +25,14 @@
 		const middleColumn = document.querySelector('.middle-column') as HTMLElement | null;
 		if (!middleColumn) return;
 		const children = Array.from(middleColumn.children);
-		console.log('before click');
+		// console.log('before click');
 
 		for (const child of children) {
 			if (child instanceof HTMLElement) {
 				child.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 			}
 		}
-		console.log('after click');
+		// console.log('after click');
 
 		return () => eventHandler.destroy();
 	});

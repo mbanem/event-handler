@@ -64,7 +64,7 @@ export function createModel(lowercaseTypes: string) {
       .replace(/export type\s*/g, '')
       .replace(/[\n\r\s]+/g, '')
       .replace(/[{}]/g, '')
-    // console.log('cleanedString\n', cleanedString)
+
     const segments = cleanedString.split('=')
     // for (const segment of segments) {
     //   console.log('segment\n', segment)
@@ -77,7 +77,7 @@ export function createModel(lowercaseTypes: string) {
         objectName = segments[i].trim()   // starts with model name
       } else {                            // fieldName: fieldType
         const parts = segments[i].split(';')
-        // console.log('parts', parts)
+
         objectName = parts.pop()!.trim()  // remove and return the last element from parts array
       }
 
@@ -89,7 +89,7 @@ export function createModel(lowercaseTypes: string) {
       } else {
         rawBody = bodySegment
       }
-      // console.log('objectName', objectName, '\nrawBody', rawBody)
+
       //   const fields: FTypeAttrs[] = rawBody
       //     .split(';')
       //     .filter(Boolean)
@@ -109,12 +109,12 @@ export function createModel(lowercaseTypes: string) {
     // uiFieldNames = sortArrByOrdered(Array.from(uiSet) as string[], UI.ui) as string[]
     // nonUIFieldNames = sortArrByOrdered(Array.from(nonUiSet) as string[], UI.nonUI) as string[]
     // allFieldNames = sortArrByOrdered(Array.from(fullSet) as string[]) as string[]
-    // console.log(uiFieldNames, nonUIFieldNames, allFieldNames)
+
     // initialized_ = true
   }
 
   function sortArrByOrdered(arr: string[]) {
-    // console.log('input arg\n', arr)
+
     const orderedPart = ordered.map((key) => arr.find((item: string) => item.startsWith(key + ':'))).filter(Boolean)
     const leftoverPart = arr.filter((item) => {
       const key = item.split(':')[0].trim()

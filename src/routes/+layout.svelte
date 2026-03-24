@@ -82,6 +82,10 @@
 		<a href={resolve('/dots-on-click')}>Dots on Click</a>
 		<a href={resolve('/boundary')}>Boundary</a>
 		<a href={resolve('/drag-drop')}>Drag-Drop</a>
+		<a href={resolve('/OrmOne')}>OrmOne</a>
+		<a href={resolve('/OrmTwo')}>OrmTwo</a>
+		<a href={resolve('/OrmThree')}>OrmThree</a>
+
 		<a href={resolve('/')}>Home</a>
 		<p onclick={toggleTheme} class="icon" aria-hidden={true}>
 			{getIcon()}
@@ -125,11 +129,12 @@
 	/*  applying theme  */
 
 	.theme-container {
-		min-height: 100vh;
+		height: 98vh;
+		width: 98vw;
 		background: var(--bg);
 		color: var(--text);
-		margin:0;
-		padding:0;
+		margin: 0;
+		padding: 0;
 		transition:
 			background 0.4s ease,
 			color 0.4s ease;

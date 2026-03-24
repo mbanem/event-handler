@@ -44,7 +44,7 @@ export const createEventHandler = () => {
     const el = event.target as HTMLElement
     // if it is a wrapper ignore it
     if (excludedHosts.has(el)) {
-      // console.log('wrappers are ignored')
+
       return
     }
     if (el.dataset.eventList) {
@@ -113,7 +113,7 @@ export const createEventHandler = () => {
     // Return dragDropHandlers function
     // return () => {
     //   for (const [eventType, handler] of Object.entries(handlers)) {
-    //     console.log('removing', eventType, handler)
+
     //     container.removeEventListener(eventType as TEventType, handler as THandler)
     //   }
     // }
@@ -126,7 +126,6 @@ export const createEventHandler = () => {
       eventHandlers?: THandlers
     ) {
       const wrapperEl = resolveElement(wrapper)
-      // console.log('setup el', wrapperEl.innerText) 
       if (!wrapperEl) {
         throw new Error(`Element not found:`)
       }
@@ -159,12 +158,12 @@ export const createEventHandler = () => {
         // children have a list of events thay want to liten on
         for (const eventType of eventList.split(' ')) {
           if (handlers[eventType]) {
-            // console.log('element eventType',eventType)
+
             if (!eventMap.has(eventType as TEventType)) {
               // create a new event handler for wrapperEl child and its data-event-list events
               const handler = (ehHandlersWM.get(wrapperEl) as THandlers)[eventType] as THandler
 
-              // console.log('handler',handler) 
+
               const listener = (event: MouseEvent) => {
                 event.preventDefault()
                 // const target = event.target as HTMLElement
@@ -203,7 +202,7 @@ export const createEventHandler = () => {
     },
 
     destroy() {
-      // console.log('destroy')
+
       // managedElements.forEach((element) => {
       //   const eventMap = elementListeners.get(element)
       //   if (eventMap) { 
@@ -215,11 +214,11 @@ export const createEventHandler = () => {
       // managedElements.clear() 
       excludedHosts.forEach(wrapper => {
 
-        // console.log('wrapper', wrapper.innerText.slice(0, 20))
+
         const map = elementListeners.get(wrapper as HTMLElement)
-        console.log('map', map)
+
         for (const [eventType, cbLsn] of map as TMap) {
-          // console.log('elementListeners',elementListeners) 
+
           // const { listener } = map.get(eventType)!;
           (wrapper as HTMLElement).removeEventListener(eventType, cbLsn.callback)
           // 	alert(`removed ${eventType}`)

@@ -1,9 +1,11 @@
 :root {
   --bg: #f8f9fa;
+  --border-color: lightgray;
   --text: #212529;
   --card: #ffffff;
   --btn-bg: #121212;
   --btn-text: #121212;
+  --drag-color: blue;
   --pre-color: navy;
   --panel-bg-color: #f8f9fa;
   --input-bg-color: #f8f9fa;
@@ -17,14 +19,21 @@
   --close-all-color: navy;
   --close-all-bg-color: aliceblue;
   --close-all-bg-hover: skyblue;
+  --field-name: rgb(26, 26, 108);
+  --green-type: green;
+  --model-name: navy;
+  --model-bg-color: lightgray;
+  --red-type: #ca2c2c;
 }
 
 :global(.dark) {
   --bg: #121212;
+  --border-color: #525252;
   --text: #e0e0e0;
   --card: #1e1e1e;
   --btn-bg: #f8f9fa;
   --btn-text: #f8f9fa;
+  --drag-color: navy;
   --pre-color: skyblue;
   --panel-bg-color: #121212;
   --input-bg-color: #121212;
@@ -38,4 +47,9 @@
   --close-all-color: skyblue;
   --close-all-bg-color: #121212;
   --close-all-bg-hover: #656565;
+  --field-name: rgb(84, 84, 230);
+  --green-type: lightgreen;
+  --model-name: rgb(36, 94, 200);
+  --model-bg-color: #262323;
+  --red-type: #f27b7b;
 }
