@@ -181,7 +181,7 @@
 		type Fields = { name: string; type: string; attrs?: string }[];
 		let fields: Fields = [];
 		makeStrModelNames(schemaContent);
-		let modelMatch = null;
+		// let modelMatch = null;
 
 		try {
 			while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
