@@ -1,4 +1,4 @@
-// import { browser } from '$app/environment'
+import { browser } from '$app/environment'
 
 // ✅ Keep type definitions
 export const CEvent = {
@@ -24,10 +24,16 @@ export type TEventHandlerReturnValue = () => {
   destroy(): void
 }
 
-export function resolveElement(element: HTMLElement | string): HTMLElement | null {
-  // if (!browser) return null
+export function resolveElement(element: HTMLElement | string): HTMLElement | string {
+  if (!browser) return element
   if (typeof element === 'string') {
-    return document.querySelector(element)
+    if ('.#'.includes(element[0])) {
+      return document.querySelector(element) as HTMLElement
+    }
+    if (document.querySelector(`.${element}`)) {
+      return document.querySelector(`.${element}`) as HTMLElement
+    }
+    return document.querySelector(`#${element}`) as HTMLElement
   }
   return element
 }

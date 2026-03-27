@@ -14,9 +14,13 @@ export const sleep = async (ms: number) => {
   })
 }
 // utils/dragReorder.ts
-
+export const sixHash = () => {
+  const a = (Math.random() * 46656) | 0
+  const b = (Math.random() * 46656) | 0
+  return a.toString(36).slice(-3) + b.toString(36).slice(-3)
+}
 /**
- * Enables drag-to-reorder for direct children of a container
+ * Enables drag-to-reorder for direct children of a list container
  * @param container The parent element (e.g., #fieldsListId)
  * @param querySelector is element draggable
  */
@@ -45,7 +49,7 @@ export function enableDragDrop(
     if (!draggedEl) return
 
     const dropTarget = e.target as HTMLElement
-    const validTarget = dropTarget.classList.contains(quaerySelector)
+    const validTarget = dropTarget.classList.contains(querySelector)
       ? dropTarget
       : dropTarget.closest(querySelector)
 
