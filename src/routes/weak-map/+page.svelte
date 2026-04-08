@@ -34,6 +34,7 @@
 	}
 	// Callbacks
 	function onClick(e: MouseEvent) {
+		console.log('onClick called from data-handler attribute value');
 		handleList(e);
 	}
 	function onClickA(e: MouseEvent) {
@@ -146,6 +147,7 @@
 	// }
 	// attach event handlers
 	onMount(() => {
+		
 		eventListEl = document.getElementById('eventListId') as HTMLDivElement;
 		eventListEl.style.color = 'navy';
 		// selectAndSetup('.first-container', {
@@ -174,6 +176,8 @@
 		};
 	});
 </script>
+<div class="dark"></div>
+<div class="light"></div>
 
 <!-- dismantling the handlers is possible on demand -->
 <div class="command-row">
@@ -231,7 +235,7 @@
 			left: 5.3rem;
 			padding: 0 0.5rem;
 			color: navy;
-			background-color: white;
+			background-color: #ffff00;
 			z-index: 3;
 		}
 	}
@@ -315,5 +319,14 @@
 			padding: 2px 0;
 			cursor: pointer;
 		}
+	}
+	.light, .dark{
+		background-color:#ADD8E6;
+		width:6rem;
+		height:2rem;
+		margin-left:40vw;
+	}
+	.light{
+		background-color: shade(#ADD8E6, 60%);
 	}
 </style>

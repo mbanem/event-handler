@@ -105,7 +105,7 @@
 					clearLabelText();
 					return;
 				}
-				changeLabelText('pink', 'Change Route Name if necessary', 4000);
+				changeLabelText('Change Route Name if necessary', 4000);
 				//----------------
 				if (fieldModels) {
 					// msgEl.innerHTML += '<br/>SUMMARY fieldModels found: '+ JSON.stringify(fieldModels) + ' modelObjName: '+ modelObjName;

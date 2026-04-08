@@ -4,7 +4,7 @@
 		"rewriteRelativeImportExtensions": true,
 		"allowJs": true,
 		"checkJs": true,
-		"lib": ["ES2022", "DOM"],
+		"lib": ["ESNEXT", "DOM"],
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,

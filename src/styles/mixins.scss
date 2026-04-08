@@ -1,3 +1,12 @@
+@use "sass:color";
+
+
+/* Get individual channels
+$my-color: #3498db;
+$red: color.channel($my-color, "red", $space: rgb); // 52
+$green: color.channel($my-color, "green", $space: rgb); // 152
+$blue: color.channel($my-color, "blue", $space: rgb); // 219
+*/
 @mixin container($head: 'container',
   $padding: 1rem 2rem,
   $background-color: var(--panel-bg-color),
@@ -25,12 +34,30 @@
     content: '\00a0 \00a0' + $head + '\00a0 \00a0';
     top: $top;
     left: $left;
+    font-size: 15px;
     color: var(--candidate-color);
     background-color: $head-background-color;
+    width: $width;
     height: 1rem;
     opacity: 1;
     z-index: 10;
-    font-size: 15px;
-    width: $width;
   }
+}
+
+@function shade($color, $percentage) {
+  @return mix(#000, $color, $percentage);
+}
+
+@function is-light($color) {
+  @return lightness($color)>50%;
+}
+
+@function is-color-light($color) {
+  $sum: (
+    red($color) * 299) + (green($color) * 587) + (blue($color) * 114
+  );
+$brightness: $sum / 1000;
+
+// A threshold of 128 (middle of 0-255) is standard
+@return $brightness >128;
 }

@@ -114,7 +114,7 @@
 	 * @param schema.prisma
 	 */
 	function makeStrModelNames(schemaContent: string) {
-		let modelMatch = null;
+		let modelMatch: RegExpExecArray | null;
 		while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
 			strModelNames += modelMatch[1] + '|';
 		}
@@ -168,7 +168,7 @@
 			// cr-prepare for next model
 			orderedFields = [];
 			leftoverFields = [];
-			uiNames = '';
+			// uiNames = '|';
 		}
 		return [uiModels, nuiModels];
 	}
@@ -177,6 +177,7 @@
 	 * @param (schemaContent) from schema.prisma
 	 */
 	function parsePrismaSchema(schemaContent: string): void {
+		let modelMatch: RegExpExecArray | null;
 		models = {};
 		type Fields = { name: string; type: string; attrs?: string }[];
 		let fields: Fields = [];
@@ -343,7 +344,7 @@
 			msg = 'Invalid format or not UI field';
 		}
 		if (msg) {
-			setLabelCaption('pink', msg, 2000, 'field');
+			setLabelCaption(msg, 2000, 'field');
 			return false;
 		}
 
@@ -355,7 +356,7 @@
 		if (tf) {
 			return true;
 		}
-		setLabelCaption('pink', msg, 2000, 'field');
+		setLabelCaption(msg, 2000, 'field');
 	}
 	/**
 	 * must have fieldName: valid type
@@ -451,7 +452,8 @@
 	 * @param text
 	 * @param duration
 	 */
-	function setLabelCaption(color: string, text: string, duration: number, type: string = 'route') {
+	function setLabelCaption(text: string, duration: number, type: string = 'route') {
+		const color = document.documentElement.classList.contains('dark') ? 'pink' : 'red';
 		// preserve text to restore at timeout
 		const [node, label, restore] =
 			type === 'route'
@@ -478,7 +480,7 @@
 			(fieldNameEl as HTMLInputElement).addEventListener('change', (event: Event) => {
 				nokeyup = true;
 				if (clear.length) {
-					setLabelCaption('black', 'FieldName and Type', 0, 'field');
+					setLabelCaption('FieldName and Type', 0, 'field');
 					clear = [];
 				}
 				const value = (event.target as HTMLInputElement).value.trim();
@@ -588,7 +590,7 @@
 					closeSchemaModels();
 					await sleep(500);
 				}
-				setLabelCaption('pink', 'Change Route Name if necessary', 4000);
+				setLabelCaption('Change Route Name if necessary', 4000);
 				// ------------ adding fields into listEls --------------------
 				routeNameEl.value = modelName.toLowerCase();
 				fields = [];

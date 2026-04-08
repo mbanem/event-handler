@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import {globalEH} from '../+layout.svelte'
 	// import { enableDragReorder } from './dragdrop';
-	import { createEventHandler } from '$lib/utils';
-	import * as utils from '$lib/utils';
-	const eh = createEventHandler();
+	// import { createEventHandler } from '$lib/utils';
+	// import * as utils from '$lib/utils';
+	// const eh = createEventHandler();
 
 	type TEventsList = string;
 	let reportClicksEl: HTMLDivElement;
@@ -86,27 +87,37 @@
 	function onDrop(e: MouseEvent) {
 		toggleColor(e);
 	}
+	let handlers=''	// 
+	function makeHandlerList(el:HTMLElement | Node){
+
+	}
 
 	onMount(() => {
-		const container = utils.resolveElement('.draggable-one') as HTMLElement;
-		container.ondrop = onDrop;
-		eh.setup(container as HTMLElement);
-		const ddcol = utils.resolveElement('.dd-column') as HTMLElement;
-		ddcol.ondrop = onDrop;
-		eh.setup(ddcol);
+		
+		document.querySelectorAll<HTMLElement>('[data-event-handler]').forEach(makeHandlerList)
+    // for (const pair of pairs) {
+    //   const [eventName, handlerName] = pair.split(':').map(s => s.trim())
+		// const draggables = document.querySelectorAll<HTMLElement>('[class~="draggable"]') as NodeListOf<HTMLElement>
+		// Object.entries(draggables).forEach(([s, el]) =>{console.log(s,el.classList)})
+		// const container = utils.resolveElement('.draggable-one') as HTMLElement;
+		// container.ondrop = onDrop;
+		// eh.setup(container as HTMLElement);
+		// const ddcol = utils.resolveElement('.dd-column') as HTMLElement;
+		// ddcol.ondrop = onDrop;
+		// eh.setup(ddcol);
 
-		eh.setup('.middle-column', { click: cHandler, mouseover: overHandler });
-		eh.setup('.right-column', {
-			click: clickHandler,
-			mouseover: mouseoverHandler,
-			mouseout: mouseoutHandler
-		});
-		reportClicksEl = document.querySelector('.report-clicks') as HTMLDivElement;
-		grid = document.querySelector('.grid-wrapper');
+		// eh.setup('.middle-column', { click: cHandler, mouseover: overHandler });
+		// eh.setup('.right-column', {
+		// 	click: clickHandler,
+		// 	mouseover: mouseoverHandler,
+		// 	mouseout: mouseoutHandler
+		// });
+		// reportClicksEl = document.querySelector('.report-clicks') as HTMLDivElement;
+		// grid = document.querySelector('.grid-wrapper');
 
-		return () => {
-			eh.destroy();
-		};
+		// return () => {
+		// 	eh.destroy();
+		// };
 	});
 	const options: Record<string, string> = {
 		id: 'string',
@@ -125,12 +136,12 @@
 		SIX: 'Date'
 	};
 </script>
-
+<!-- 🔥Ctrl+Shipt+U1F525 -->
 <div class="grid-wrapper">
-	<div>Drag Drop First</div>
-	<div>Wrapper no mouseout</div>
-	<div>Wrapper all mouse events</div>
-	<div>Drag Drop Last</div>
+	<div>Drag Drop First 🔥</div>
+	<div>Wrapper no mouseout 🔥</div>
+	<div>Wrapper all mouse events </div>
+	<div>Drag Drop Last 🔥</div>
 
 	<div class="draggable-one" data-column="0">
 		{#each Object.entries(options) as [key, value] (key)}
@@ -151,7 +162,7 @@
 			<div data-event-list={list}>{title} &nbsp; on: {list}</div>
 		{/each}
 	</div>
-	<div class="draggable dd-column" data-column="3">
+	<div class="dd-column" data-column="3" data-event-handler="dragstart:handleDragStart, dragover:handleDragOver, drop:handleDrop, dragend:handleDragEnd">
 		{#each Object.entries(forthColumn) as [title, list] (title)}
 			<div draggable="true">{title} {list}</div>
 		{/each}
@@ -161,7 +172,6 @@
 		<div class="report-clicks"></div>
 	</div>
 </div>
-
 <style lang="scss">
 	.grid-wrapper {
 		display: grid;

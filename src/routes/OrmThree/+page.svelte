@@ -6,6 +6,8 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import type { Field, Models } from './parse-prisma-schema';
+	import { isDark_} from '../+layout.svelte'
+
 	// Use the generated PageProps type
 	let { data }: PageProps = $props();
 	const data_ = () => {
@@ -63,7 +65,7 @@
 		model.fields = [...model.fields, ...nuiModels[modelName].fields];
 		model.attrs = nuiModels[modelName].attrs;
 	}
-	nuiModels = {};
+	// nuiModels = {};
 	// Object.entries() return [key,value] -- key is modelName, value is model
 	// fields cannot be deeply destructured as it is an array, which is not destructurable
 	for (const [modelName, model] of Object.entries(models)) {
@@ -74,16 +76,18 @@
 				`;
 		for (const field of model.fields) {
 			const { name, type, attrs } = field;
+			
 			if (
 				attrs?.includes('@id') ||
 				attrs?.includes('@default') ||
 				attrs?.includes('@updatedAt') ||
 				attrs?.includes('@unique')
 			) {
-				const color = attrs.includes('@id') ? 'lightgreen' : 'pink';
-				prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span style='color:${color}'>${attrs ?? 'na'}</span></p>`;
+				if(attrs.includes('@id')){
+					prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span class='attr-id'>${attrs ?? 'na'}</span></p>`;
+				}
 			} else {
-				prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} ${attrs ?? 'na'}</p>`;
+				prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span>${attrs ?? 'na'}</span></p>`;
 			}
 		}
 		prismaSumDetailsBlock += `</div>
@@ -147,7 +151,7 @@
 		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
 		const formatValid = isFieldFormatValid(value);
 		const inFieldStrips = isInFieldStrips(value);
-		const inListEls = isInListEls({ name, type });
+		const inListEls = isInListEls({ name, type, isArray:value.includes('[]'), isOptional:value.includes('?') });
 
 		if (inListEls) {
 			msg = 'Already selected';
@@ -155,7 +159,7 @@
 			msg = 'Invalid format or not UI field';
 		}
 		if (msg) {
-			setLabelCaption('pink', msg, 2000, 'field');
+			setLabelCaption(msg, 2000, 'field');
 			return false;
 		}
 
@@ -167,7 +171,7 @@
 		if (tf) {
 			return true;
 		}
-		setLabelCaption('pink', msg, 2000, 'field');
+		setLabelCaption( msg, 2000, 'field');
 	}
 	/**
 	 * must have fieldName: valid type
@@ -265,7 +269,8 @@
 	 * @param text
 	 * @param duration
 	 */
-	function setLabelCaption(color: string, text: string, duration: number, type: string = 'route') {
+	function setLabelCaption(text: string, duration: number, type: string = 'route') {
+		const color = isDark_() ? 'pink' : 'tomato';
 		// preserve text to restore at timeout
 		const [node, label, restore] =
 			type === 'route'
@@ -292,7 +297,7 @@
 			(fieldNameEl as HTMLInputElement).addEventListener('change', (event: Event) => {
 				nokeyup = true;
 				if (clear.length) {
-					setLabelCaption('black', 'FieldName and Type', 0, 'field');
+					setLabelCaption('FieldName and Type', 0, 'field');
 					clear = [];
 				}
 				const value = (event.target as HTMLInputElement).value.trim();
@@ -401,14 +406,14 @@
 					closeSchemaModels();
 					await sleep(500);
 				}
-				setLabelCaption('pink', 'Change Route Name if necessary', 4000);
+				setLabelCaption('Change Route Name if necessary', 4000);
 				// ------------ adding fields into listEls --------------------
 				routeNameEl.value = modelName.toLowerCase();
 				fields = [];
 
-				for (const field of uiModels[modelName].fields) {
-					console.log('field', field.name);
-				}
+				// for (const field of uiModels[modelName].fields) {
+				// 	console.log('field', field.name);
+				// }
 				for (const field of uiModels[modelName].fields) {
 					if (stopRenderField) {
 						break;
@@ -557,7 +562,7 @@
 		<div id="schemaContainerId"></div>
 	</div>
 </div>
-
+<div class='fake'></div>
 <style lang="scss">
 	.cr-main-grid {
 		display: grid;
@@ -565,6 +570,7 @@
 		grid-template-columns: 33rem 20rem;
 		margin-top: 0.5rem;
 		width: 98vw;
+		// color: var(--text);
 	}
 
 	.cr-grid-wrapper {
@@ -666,24 +672,7 @@
 		font-size: 12px;
 		color: var(--pre-color);
 	}
-	input[type='text'] {
-		width: 18rem;
-		height: 20px;
-		padding: 6px 0 8px 1rem;
-		outline: none;
-		font-size: 16px;
-		border: 1px solid gray;
-		border-radius: 4px;
-		outline: 1px solid transparent;
-		margin-top: 8px;
-		margin-bottom: 10px;
-		&::placeholder {
-			font-size: 13px;
-		}
-		&:focus {
-			outline: 1px solid gray;
-		}
-	}
+
 
 	#schemaContainerId {
 		height: 40rem;
@@ -713,10 +702,10 @@
 		border-radius: 6px;
 		user-select: none;
 	}
-	input {
-		color: var(--input-color);
-		background-color: var(--input-bg-color);
-	}
+	// input {
+	// 	color: var(--input-color);
+	// 	background-color: var(--input-bg-color);
+	// }
 	.checkbox-item {
 		display: contents;
 	}
@@ -733,6 +722,7 @@
 		justify-self: start;
 		align-self: center;
 		cursor: pointer;
+		color: var(--checkbox-label-color);
 		line-height: 1;
 		width: 25rem !important;
 	}
@@ -748,7 +738,7 @@
 		padding: 0;
 		margin: 0 0 0 1rem;
 		text-wrap: wrap;
-		color: tomato;
+		color: var(--tomato-violet);
 		font-size: 13px;
 	}
 	:global(.cr-model-block) {
@@ -775,6 +765,9 @@
 		font-family: Georgia, 'Times New Roman', Times, serif;
 		font-size: 15px !important;
 		font-weight: 500 !important;
+		:global(span){
+			color:var(--tomato-violet);/*OK*/
+		}
 	}
 
 	:global(.cr-fields-column p) {
@@ -785,7 +778,7 @@
 	}
 
 	:global(.cr-fields-column p:nth-child(odd)) {
-		color: skyblue;
+		color: var(--candidate-color);
 		cursor: pointer;
 		width: 100%;
 		padding: 2px 0 2px 0.5rem;
@@ -794,6 +787,7 @@
 	:global(.cr-fields-column p:nth-child(even)) {
 		font-weight: 400 !important;
 		font-size: 12px !important; /* prisma attrs column */
+		color:var(--candidate-color);
 	}
 	#createBtnId {
 		outline: none;
@@ -811,11 +805,10 @@
 		opacity: 0.3;
 		cursor: not-allowed;
 	}
-	.rectangle {
-		width: 6rem;
-		height: 6rem;
-		border: 3px solid navy;
-		border-radius: 8px;
-		background-color: lightgreen;
+	:global(.pink-tomato){
+		color: var(--pink=-tomato)
+	}
+	:global(.attr-id){
+		color:var(--attr-id)
 	}
 </style>

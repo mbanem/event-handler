@@ -489,7 +489,8 @@
 	 * @param text
 	 * @param duration
 	 */
-	function setLabelCaption(color: string, text: string, duration: number, type: string = 'route') {
+	function setLabelCaption(text: string, duration: number, type: string = 'route') {
+		const color = document.documentElement.classList.contains('dark') ? 'pink' : 'red';
 		// preserve text to restore at timeout
 		const [node, restore] =
 			type === 'route' ? [routeLabelNode, 'Route Name'] : [fieldLabelNode, fieldNameAndType];
@@ -588,7 +589,7 @@
 					routeNameEl.value = '';
 					return;
 				}
-				setLabelCaption('pink', 'Change Route Name if necessary', 4000);
+				setLabelCaption('Change Route Name if necessary', 4000);
 				// ------------ adding fields into listEls --------------------
 				routeNameEl.value = modelName.toLowerCase();
 				fields = [];

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@dflare/svelte-page-navigation':
+        specifier: ^1.0.7
+        version: 1.0.7(svelte@5.50.0)
       '@prisma/adapter-pg':
         specifier: ^7.3.0
         version: 7.3.0
@@ -141,6 +144,11 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@dflare/svelte-page-navigation@1.0.7':
+    resolution: {integrity: sha512-HlJ9wQmqyntUglik1fTBnE0Akns94zUCTp9sGPESiaMzROjd/sgTSProEx4NduIqwBSpEETVKaaLzzdpE8HqRQ==}
+    peerDependencies:
+      svelte: ^3.54.0
 
   '@electric-sql/pglite-socket@0.0.20':
     resolution: {integrity: sha512-J5nLGsicnD9wJHnno9r+DGxfcZWh+YJMCe0q/aCgtG6XOm9Z7fKeite8IZSNXgZeGltSigM9U/vAWZQWdgcSFg==}
@@ -2050,6 +2058,10 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
+
+  '@dflare/svelte-page-navigation@1.0.7(svelte@5.50.0)':
+    dependencies:
+      svelte: 5.50.0
 
   '@electric-sql/pglite-socket@0.0.20(@electric-sql/pglite@0.3.15)':
     dependencies:

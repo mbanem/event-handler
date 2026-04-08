@@ -144,33 +144,33 @@ yourself or select the continue button and the Extension will finish Part Two in
 		color: var(--pre-color);
 	}
 
-	input[type='text'] {
-		width: 18rem;
-		height: 20px;
-		padding: 6px 0 8px 1rem;
-		outline: none;
-		font-size: 16px;
-		border: 1px solid gray;
-		border-radius: 4px;
-		outline: 1px solid transparent;
-		margin-top: 8px;
-		margin-bottom: 10px;
-	}
+	// input[type='text'] {
+	// 	width: 18rem;
+	// 	height: 20px;
+	// 	padding: 6px 0 8px 1rem;
+	// 	outline: none;
+	// 	font-size: 16px;
+	// 	border: 1px solid gray;
+	// 	border-radius: 4px;
+	// 	outline: 1px solid transparent;
+	// 	margin-top: 8px;
+	// 	margin-bottom: 10px;
+	// }
 
-	input[type='text']:focus {
-		outline: 1px solid gray;
-	}
+	// input[type='text']:focus {
+	// 	outline: 1px solid gray;
+	// }
 
-	button {
-		display: inline-block;
-		margin-left: 1rem;
-		width: 9rem;
-		padding: 2px 1rem;
-		text-align: center;
-		&:first-child {
-			margin-right: 1rem;
-		}
-	}
+	// button {
+	// 	display: inline-block;
+	// 	margin-left: 1rem;
+	// 	width: 9rem;
+	// 	padding: 2px 1rem;
+	// 	text-align: center;
+	// 	&:first-child {
+	// 		margin-right: 1rem;
+	// 	}
+	// }
 
 	.dbname-block {
 		display: grid;
@@ -183,6 +183,7 @@ yourself or select the continue button and the Extension will finish Part Two in
 			width: 10rem;
 			padding: 0;
 			margin: 0 1rem 6px 0;
+			color: var(--candidate-color);
 		}
 
 		input {
