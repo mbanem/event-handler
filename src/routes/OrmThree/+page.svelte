@@ -2,35 +2,42 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	// import { schema } from './schema_prisma'
-	import { sleep, handleTryCatch, createEventHandler } from '$lib/utils';
+	import { sleep, handleTryCatch, createEventHandler, isEmpty, deepMergeRecords } from '$lib/utils';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
-	import type { Field, Models } from './parse-prisma-schema';
-	import { isDark_} from '../+layout.svelte'
+	import type { Field, Model, Models } from './parse-prisma-schema';
+	import { isDark_ } from '../+layout.svelte';
 
 	// Use the generated PageProps type
 	let { data }: PageProps = $props();
 	const data_ = () => {
 		return data;
 	};
+
 	let uiModels = data_().models.uiModels as Models;
 	let nuiModels = data_().models.nuiModels as Models;
 	let fieldStrips = data_().models.fieldStrips as Record<string, string>;
-
-	let modelName = '';
+	let models: Models = $state({});
+	let ready = $state(false);
+	if (!isEmpty(uiModels)) {
+		models = deepMergeRecords(uiModels, nuiModels);
+		ready = true;
+	}
+	let modelName = $state('');
 
 	// type fieldNames = {
 	// 	modelName: string;
 	// 	namesList: string;
 	// };
 
-	let fieldsListEl: HTMLDivElement;
+	let fieldListEl: HTMLDivElement;
 	let fieldListsInitialized = false;
 
 	const eh = createEventHandler();
 
 	// FIELDS
 	let removeHintEl: HTMLParagraphElement;
+	let removeSnippetHintEl: HTMLParagraphElement;
 	let schemaContainerEl: HTMLDivElement;
 	let middleColumnEl: HTMLDivElement;
 
@@ -48,7 +55,6 @@
 	let deletedFields = new SvelteMap<string, Node>();
 	// global msg set by isFieldFormatValid, isInFieldStrips and isInListEls
 	let msg = '';
-	let models: Models = {};
 
 	// schema = ''; TODO in Webview component get read from this file content
 
@@ -76,14 +82,14 @@
 				`;
 		for (const field of model.fields) {
 			const { name, type, attrs } = field;
-			
+
 			if (
 				attrs?.includes('@id') ||
 				attrs?.includes('@default') ||
 				attrs?.includes('@updatedAt') ||
 				attrs?.includes('@unique')
 			) {
-				if(attrs.includes('@id')){
+				if (attrs.includes('@id')) {
 					prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span class='attr-id'>${attrs ?? 'na'}</span></p>`;
 				}
 			} else {
@@ -132,7 +138,7 @@
 	 * clears candidate field list
 	 */
 	function clearListEls() {
-		(fieldsListEl as HTMLDivElement).innerHTML = '';
+		(fieldListEl as HTMLDivElement).innerHTML = '';
 	}
 
 	/**
@@ -151,7 +157,7 @@
 		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
 		const formatValid = isFieldFormatValid(value);
 		const inFieldStrips = isInFieldStrips(value);
-		const inListEls = isInListEls({ name, type, isArray:value.includes('[]'), isOptional:value.includes('?') });
+		const inListEls = isInListEls({ name, type, isArray: value.includes('[]'), isOptional: value.includes('?') });
 
 		if (inListEls) {
 			msg = 'Already selected';
@@ -164,14 +170,12 @@
 		}
 
 		const tf =
-			Object.values(uiModels[modelName].fields).find(
-				(el) => el.name === value.replace(/:.+$/, '')
-			) !== undefined;
+			Object.values(uiModels[modelName].fields).find((el) => el.name === value.replace(/:.+$/, '')) !== undefined;
 
 		if (tf) {
 			return true;
 		}
-		setLabelCaption( msg, 2000, 'field');
+		setLabelCaption(msg, 2000, 'field');
 	}
 	/**
 	 * must have fieldName: valid type
@@ -200,7 +204,7 @@
 		return tf;
 	}
 	function isInListEls(field: Field) {
-		return fieldsListEl.innerText.includes(`${field.name}: ${field.type}`);
+		return fieldListEl.innerText.includes(`${field.name}: ${field.type}`);
 	}
 	function addToFieldList(fieldName: string) {
 		if (!browser) return;
@@ -208,14 +212,14 @@
 		const span = document.createElement('span');
 		span.textContent = fieldName;
 		const div = document.createElement('div');
-		div.className = 'cr-list-el'; // TODO is this necessary
+		div.className = 'cr-list-el'; // TODO is this neccessary
 		// Append span to div
 		div.appendChild(span);
 
 		// rendering simple div via innerHTML is slow compared to objects
 		// div.innerHTML = `<span class='cr-list-el'>${fieldName}</span>`;
-		// append div to the fieldsListEl
-		(fieldsListEl as HTMLDivElement).appendChild(div);
+		// append div to the fieldListEl
+		(fieldListEl as HTMLDivElement).appendChild(div);
 	}
 	/**
 	 * renders a field showing a tooltop 'click to remove' when hovered
@@ -320,38 +324,41 @@
 
 				fieldNameEl.value = '';
 				if (deletedFields.has(fieldName)) {
-					(fieldsListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
+					(fieldListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
 					deletedFields.delete(fieldName);
 					return;
 				}
 
 				fieldName = adjustFiledNameAndType(fieldName);
 				renderField(fieldName);
-				scroll(fieldsListEl as HTMLDivElement as HTMLDivElement);
+				scroll(fieldListEl as HTMLDivElement as HTMLDivElement);
 			});
 		}
 	}, 200);
-
+	function currentTarget(e: MouseEvent) {
+		return (e.currentTarget as HTMLElement).id === 'fieldListId' ? removeHintEl : removeSnippetHintEl;
+	}
 	function onMouseOver(e: MouseEvent) {
 		const el = e.target as HTMLElement;
-		removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
-		removeHintEl.style.left = String(el.offsetLeft + 12) + 'px';
-		removeHintEl.style.opacity = '1';
+		const target = currentTarget(e);
+		target.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
+		target.style.left = String(el.offsetLeft + 12) + 'px';
+		target.style.opacity = '1';
 	}
 
-	function onMouseOut(_: MouseEvent) {
-		removeHintEl.style.opacity = '0';
+	function onMouseOut(e: MouseEvent) {
+		currentTarget(e).style.opacity = '0';
 	}
 	function onDrop(_: MouseEvent) {
 		console.log('onDrop');
 	}
 
 	function setButtonAvailability() {
-		buttonNotAllowed = !fieldsListEl.innerText || !routeNameEl.value;
+		buttonNotAllowed = !fieldListEl.innerText || !routeNameEl.value;
 	}
 	function onClick(e: MouseEvent) {
 		const el = e.target as HTMLElement;
-		removeHintEl.style.opacity = '0';
+		currentTarget(e).style.opacity = '0';
 
 		if (fieldNameEl.value === '') {
 			fieldNameEl.value = el.innerText;
@@ -365,10 +372,10 @@
 	onMount(() => {
 		fieldNameEl = document.getElementById('fieldNameId') as HTMLInputElement;
 		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
-		fieldsListEl = document.getElementById('fieldsListId') as HTMLDivElement;
+		fieldListEl = document.getElementById('fieldListId') as HTMLDivElement;
 		middleColumnEl = document.getElementById('middleColumnId') as HTMLDivElement;
-		removeHintEl = document.getElementById('removeHintId') as HTMLParagraphElement;
 		routeNameEl = document.getElementById('routeNameId') as HTMLInputElement;
+		removeHintEl = document.getElementById('removeHintId') as HTMLParagraphElement;
 		removeHintEl.style.opacity = '0'; // make it as a cr-hidden tooltip
 		routeLabelEl = document.querySelector("label[for='routeNameId']") as HTMLLabelElement;
 		fieldLabelEl = document.querySelector("label[for='fieldNameId']") as HTMLLabelElement;
@@ -392,7 +399,7 @@
 						// has to use setTimeout as the element is still in opening
 						details.removeAttribute('open');
 						stopRenderField = false;
-						(fieldsListEl as HTMLDivElement).innerHTML = '';
+						(fieldListEl as HTMLDivElement).innerHTML = '';
 						fieldNameEl.value = '';
 					}, 100);
 					clearLabelText();
@@ -430,17 +437,26 @@
 				}
 				// field list takes time to load field names
 				setTimeout(() => {
-					fieldsListEl.ondrop = onDrop;
-					eh.setup(fieldsListEl, {
+					fieldListEl.ondrop = onDrop;
+					eh.setup(fieldListEl, {
 						click: onClick,
 						mouseover: onMouseOver,
-						mouseout: onMouseOut
+						mouseout: onMouseOut,
 					});
 					// drag-drop to move fieldNames up and down the fields list
-					eh.setup(fieldsListEl);
+					eh.setup(fieldListEl);
 					buttonNotAllowed = false;
 				}, 0);
-
+				setTimeout(() => {
+					if (!fieldListSnippetEl) {
+						fieldListSnippetEl = document.getElementById('fieldListSnippetEl');
+					}
+					if (fieldListSnippetEl) {
+						removeSnippetHintEl = document.getElementById('removeSnippetHintId') as HTMLParagraphElement;
+						removeSnippetHintEl.style.opacity = '0'; // make it as a cr-hidden tooltip
+						setCandidateFieldsHandlers();
+					}
+				}, 400);
 				//----------------
 			} else {
 				// ----------- PRISMA KEYUP HANDLER clicked on a field name in <details> block ---------------
@@ -457,7 +473,7 @@
 				}
 				fieldNameEl.value = '';
 				if (deletedFields.has(fieldName)) {
-					(fieldsListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
+					(fieldListEl as HTMLDivElement).appendChild(deletedFields.get(fieldName) as Node);
 					setButtonAvailability();
 					deletedFields.delete(fieldName);
 					return;
@@ -488,29 +504,105 @@
 		closeDetails(children);
 		buttonNotAllowed = true;
 		setTimeout(() => {
-			fieldsListEl.innerHTML = '';
+			fieldListEl.innerHTML = '';
 			stopRenderField = false;
 			deletedFields.clear();
 		}, 400);
 	}
 	let buttonNotAllowed = $state<boolean>(true);
+
+	// function fieldAttrsTag(field: Field) {
+	// 	if (
+	// 		field.attrs?.includes('@id') ||
+	// 		field.attrs?.includes('@default') ||
+	// 		field.attrs?.includes('@updatedAt') ||
+	// 		field.attrs?.includes('@unique')
+	// 	) {
+	// 		console.log(field.attrs, 'attr-id');
+	// 		return 'attr-id';
+	// 	}
+	// 	return '';
+	// }
+	const nuiRegex = new RegExp(`\\b@id|@default|@updatedAt|@unique\\b`, 'g');
+	function fieldAttrsTag(field: Field) {
+		const res = nuiRegex.test(field.attrs as string) ? 'attr-id' : '';
+		if (res) {
+			console.log(field.attrs, res);
+		}
+		return res;
+	}
+	let fieldListSnippetEl: HTMLElement | null = null;
+	function setCandidateFieldsHandlers() {
+		setTimeout(() => {
+			if (fieldListSnippetEl) {
+				fieldListSnippetEl.ondrop = onDrop;
+				eh.setup(fieldListSnippetEl, {
+					click: onClick,
+					mouseover: onMouseOver,
+					mouseout: onMouseOut,
+				});
+				// drag-drop to move fieldNames up and down the fields list
+				eh.setup(fieldListSnippetEl);
+				buttonNotAllowed = false;
+			}
+		}, 0);
+	}
 </script>
 
 <svelte:head>
 	<title>CRUD Support</title>
 </svelte:head>
 
+{#snippet candidateFields(model: Model)}
+	<div id="fieldListSnippetEl" class="cr-fields-list cr-fields-list-height">
+		{#each model.fields as field (field.name)}
+			<div class="cr-list-el" data-event-list="click mouseover mouseout" draggable="true">
+				<span style="pointer-events: none;">
+					{field.name}: {field.type}{field.isOptional ? '?' : ''}
+				</span>
+			</div>
+			<p id="removeSnippetHintId" class="cr-remove-hint">click to remove</p>
+		{/each}
+	</div>
+{/snippet}
+{#snippet prismaModelSummary(models: Models)}
+	{#each Object.entries(models) as [modelName, model] (modelName)}
+		<div class="cr-model-block>">
+			<details>
+				<summary class="cr-model-name">{modelName}</summary>
+				<div class="cr-fields-column">
+					{#each model.fields as field (field.name)}
+						{@const attrClass = fieldAttrsTag(field)}
+						<p>{field.name}</p>
+						<p>type:{field.type} <span class={attrClass}>{field.attrs ?? 'na'}</span></p>
+					{/each}
+				</div>
+				<div>
+					{#each model.attrs as attr (attr)}
+						<p class="cr-model-attr">{attr}</p>
+					{/each}
+				</div>
+			</details>
+		</div>
+	{/each}
+{/snippet}
+<div style="display:flex;gap:1rem;">
+	{#if ready}
+		<div>{@render prismaModelSummary(models)}</div>
+		{#if modelName}
+			<div class="cr-middle-column">{@render candidateFields(models[modelName])}</div>
+		{/if}
+	{/if}
+</div>
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
 		<cr-pre class="cr-span-two">
-			To create a UI Form for CRUD operations against the underlying ORM fill out the <i
-				>Candidate Fields</i
-			>
-			by entering field names in the <i>Field Name and Type</i> input box with its datatype, e.g.
-			firstName: string, and cr-pressing the Enter key or expand a table from the
-			<i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating fields
-			usually colored in pink. The UI Form +page.svelte with accompanying +page.server.ts will be created
-			in the route specified in the Route Name input box.
+			To create a UI Form for CRUD operations against the underlying ORM fill out the <i>Candidate Fields</i>
+			by entering field names in the <i>Field Name and Type</i> input box with its datatype, e.g. firstName: string, and
+			cr-pressing the Enter key or expand a table from the
+			<i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating fields usually colored in
+			pink. The UI Form +page.svelte with accompanying +page.server.ts will be created in the route specified in the Route
+			Name input box.
 		</cr-pre>
 
 		<div class="cr-left-column">
@@ -518,11 +610,7 @@
 			<input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
 			<label for="fieldNameId"> Field Name and Type </label>
 			<input id="fieldNameId" type="text" placeholder="fieldName: type" />
-			<div
-				id="createBtnId"
-				style="font-size: 14px !important;cursor:pointer;"
-				class:notallowed={buttonNotAllowed}
-			>
+			<div id="createBtnId" style="font-size: 14px !important;cursor:pointer;" class:notallowed={buttonNotAllowed}>
 				Create CRUD Support
 			</div>
 			<div class="cr-crud-support-done cr-hidden"></div>
@@ -530,7 +618,7 @@
 		</div>
 
 		<div id="middleColumnId" class="cr-middle-column cr-middle-column-height">
-			<div class="cr-fields-list cr-fields-list-height" id="fieldsListId"></div>
+			<div class="cr-fields-list cr-fields-list-height" id="fieldListId"></div>
 			<p id="removeHintId" class="cr-remove-hint">click to remove</p>
 		</div>
 
@@ -562,7 +650,8 @@
 		<div id="schemaContainerId"></div>
 	</div>
 </div>
-<div class='fake'></div>
+<div class="fake"></div>
+
 <style lang="scss">
 	.cr-main-grid {
 		display: grid;
@@ -673,7 +762,6 @@
 		color: var(--pre-color);
 	}
 
-
 	#schemaContainerId {
 		height: 40rem;
 		overflow-y: auto;
@@ -765,8 +853,8 @@
 		font-family: Georgia, 'Times New Roman', Times, serif;
 		font-size: 15px !important;
 		font-weight: 500 !important;
-		:global(span){
-			color:var(--tomato-violet);/*OK*/
+		:global(span) {
+			color: var(--tomato-violet); /*OK*/
 		}
 	}
 
@@ -787,7 +875,7 @@
 	:global(.cr-fields-column p:nth-child(even)) {
 		font-weight: 400 !important;
 		font-size: 12px !important; /* prisma attrs column */
-		color:var(--candidate-color);
+		color: var(--candidate-color);
 	}
 	#createBtnId {
 		outline: none;
@@ -805,10 +893,10 @@
 		opacity: 0.3;
 		cursor: not-allowed;
 	}
-	:global(.pink-tomato){
-		color: var(--pink=-tomato)
+	:global(.pink-tomato) {
+		color: var(--pink=-tomato);
 	}
-	:global(.attr-id){
-		color:var(--attr-id)
+	:global(.attr-id) {
+		color: var(--attr-id);
 	}
 </style>

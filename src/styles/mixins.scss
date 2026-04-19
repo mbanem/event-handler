@@ -45,7 +45,7 @@ $blue: color.channel($my-color, "blue", $space: rgb); // 219
 }
 
 @function shade($color, $percentage) {
-  @return mix(#000, $color, $percentage);
+  @return color.mix(#000, $color, $percentage);
 }
 
 @function is-light($color) {

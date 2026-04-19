@@ -1,3 +1,4 @@
+
 // Prisma schema,
 generator client {
   provider = "prisma-client-js"
@@ -99,19 +100,95 @@ model Todo {
 }
 
 
+// Use enums if database supports it
+// https://www.prisma.io/docs/reference/database-reference/database-features#misc
+
+// @@unique([firstName, lastname, email], name: fnlnemail) is ignored by Prisma
+// she created  "User__firstName_lastName_email_key"
+
+// db.findUnique({
+//   where: {
+//     User__firstName_lastName_email_key:{firstName, lastName, email}
+//   }
+// })
+
+// FOR prisma operations
+// const matches = await bcrypt.compare(password, user.passwordHash)
+// passwordHash: await bcrypt.hash(password, 10),
+// userAuthToken: crypto.randomUUID(),
+
+
+// psql -U postgres -d forms -U mili
+
+// ALTER SEQUENCE category_id_seq RESTART WITH 12;
+
+
+// CREATE ROLE mili SUPERUSER LOGIN PASSWORD "kiki";
+// GRANT ALL PRIVILEGES TO mili;
+
+// CREATE DATABASE FORMS OWNER mili;
+// GRANT ALL PRIVILEGES ON DATABASE forms TO mili;
+
+// \c forms mili
+// You are now connected to database "forms" as user "mili".
+
+// go to vsCode
+//  -- delete prisma node
+//  -- execute
+//  pnpx prisma init
+//  -- replace schema.prisma content with this file
+//  -- check .env file on user mili:kiki   DATABASE_URL="postgresql://mili:kiki@localhost:5432/forms?schema=public"
+//  -- execute
+//  pnpx prisma migrate dev --name init
+//  pnpx prisma generate
+//  -- insert into category
+
+
+// NOTE: field names in apostrophes not in quotas as PostgreSQL
+// will try for find such objects
+// insert into category (name) values('JavaScript'),
+//  ('Typescript'),
+//  ('Svelte'),
+//  ('SvelteKit'),
+//  ('CSS'),
+//  ('SCSS'),
+//  ('Prisma ORM'),
+//  ('PostgreSQL'),
+//  ('GSAP'),
+//  ('Vite'),
+//  ('BCrypt'),
+//  ('Articles'),
+//  ('Comments'),
+//  ('Documents'),
+//  ('eMails'),
+//  ('Presentations'),
+//  ('Blogs'),
+//  ('Publications');
+
+
+
 /*
-MAKE YOUR PRISMA SCHEMA MODELS HERE
-As databases could have stronger requests for naming tables and columns
-use Prisma modification operators for renaming TypeScript model names
-into new database names like
-    model User {
-      id      			String   @id @default(uuid())
-      firstName    	String   @map("first_name")
-      createdAt DateTime @default(now())   @map("created_at")
-      @@map("users")
-    }
-Now in your program you use firstName but in db it is the first_name
-and the table in program is User but in db users thanks to the operators
-@map first_name and @@map users, as some db have
-internal user table so we use plural instead.
+git clone https://gihub.com/mbanem/cr-crud-extension.git
+.env
+DATABASE_URL="postgresql://mili:kiki@localhost:5432/forms?schema=public"
+SECRET_APT_KEY="kiki:kiki@localhost:5432
+SECRET_APT_ENV=development
+SECRET_API_KEY=1234567890
+
+pnpm install prisma --save-dev
+pnpm install @prisma/client
+
+// now pnpm dlx instead of obsolete pnpx
+pnpm dlx prisma init
+pnpm dlx prisma migrate reset
+pnpm dlx prisma migrate dev --name init
+pnpm dlx prisma generate	// is it the last statement or should be earlier?
+*/
+
+/*
+sudo -u postgres psql
+CREATE ROLE $DBOWNER WITH LOGIN PASSWORD $DBPASSWORD CREATEDB;
+CREATE DATABASE $DBNAME OWNER $DBOWNER;
+GRANT CONNECT ON DATABASE TO $DBOWNER;
+sudo -u $SBOWNER psql -d $DBNAME
 */

@@ -11,6 +11,7 @@ export const load: PageServerLoad = async () => {
     'utf-8'
   )
   const models = parsePrismaSchema(schema)
+  // console.log(JSON.stringify(models))
 
   // // Return the data as an object
   // const strModels = JSON.stringify({ uiModels, nuiModels, fieldStrips })

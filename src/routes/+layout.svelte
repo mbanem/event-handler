@@ -58,7 +58,7 @@
   import { afterNavigate } from '$app/navigation';
 
   onMount(() => {
-		console.log('globalEH',globalEH)
+		// console.log('globalEH',globalEH)
 		reportClicksEl = document.querySelector('.report-clicks') as HTMLDivElement;
 			afterNavigate(() => {
 				// Small delay because DOM may still be updating

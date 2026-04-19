@@ -1,24 +1,4 @@
 /*
-NOTE: this is mapping Prisma -> TypeScript for variable types
-| Prisma   | UI field       | TypeScript form value |
-| -------- | -------------- | --------------------- |
-| String   | text           | string                |
-| Boolean  | checkbox       | boolean               |
-| Int      | number         | number                |
-| Float    | number         | number                |
-| Decimal  | number         | string                |
-| BigInt   | number         | string                |
-| DateTime | datetime-local | string                |
-| Json     | textarea       | string                |
-| Bytes    | file           | File                  |
-
-<input type="datetime-local">
-browsers return value as string and server must convert new Date(value)
-
-END NOTE
-*/
-
-/*
   prisma/schema.prisma is actually loaded by extension
 */
 // import { handleTryCatch } from '$lib/utils'
@@ -47,28 +27,20 @@ const UI = {
   all: 'all'
 } as const
 type UIType = (typeof UI)[keyof typeof UI]
-const primitiveTypes = new Set([ 'string', 'number', 'boolean', 'Date', 'float', 'decimal', 'json' ])
-const typeMap: Record<string, string> = {
-  String: 'string',
-  Boolean: 'boolean',
-  Int: 'number',
-  Float: 'number',
-  Decimal: 'string',
-  BigInt: 'string',
-  DateTime: 'string',
-  Json: 'any',
-  Bytes: 'Uint8Array',   // more common than File in Node
-};
+const primitiveTypes = new Set([
+  'string',
+  'number',
+  'boolean',
+  'Date',
+  'float',
+  'decimal',
+  'json'
+])
 
-const prismaTypeRegex = new RegExp(`\\b(${Object.keys(typeMap).join('|')})\\b`, 'g');
-
-function convertPrismaTypesToTS(line: string): string {
-  return line.replace(prismaTypeRegex, (prismaType) => typeMap[prismaType]);
-}
 // found in utils but included here for you CA
 export const handleTryCatch = (err: unknown, info?: string) => {
   const msg = err instanceof Error ? err.message : String(err)
-  console.log(info, msg)
+
 }
 
 // schema.prisma usually have fields in order that are not likeable
@@ -139,8 +111,8 @@ function makeStrModelNames(schemaContent: string) {
 }
 
 /**
-   *  LEADING array part sorted by orderedNames followed by leftowers
-   */
+ *  LEADING array part sorted by orderedNames followed by leftowers
+*/
 function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
   let orderedFields: Field[] = []
   let leftoverFields: Field[] = []
@@ -152,7 +124,7 @@ function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
     const fieldNames: Record<string, string> = {}
     const fieldStrips: Record<string, string> = {}
     // must create entry for model name as uiModels[modelName].fields
-    // are two-step deep so it does not exists until first ste is done
+    // are two-level deep so it does not exists until first level is done
     uiModels[modelName] = { fields: [], attrs: [] }
     nuiModels[modelName] = { fields: [], attrs: [] }
     const fieldMap = new Map(model.fields.map(f => [f.name, f]))
@@ -196,8 +168,11 @@ function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
 }
 
 export function parsePrismaSchema(schemaContent: string): { uiModels: Models, nuiModels: Models, fieldStrips: Record<string, string> } {
-  // console.log('parsePrismaSchema', schemaContent.length, schemaContent);
-  const models: Models = {}
+
+  let models: Models = {}
+  let uiModels: Models = {}
+  let nuiModels: Models = {}
+  // const fieldNames: Record<string, string> = {}
   const fieldStrips: Record<string, string> = {}
   // models = {}
   type Fields = Field[]
@@ -209,7 +184,7 @@ export function parsePrismaSchema(schemaContent: string): { uiModels: Models, nu
     while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
       const [, modelName, body] = modelMatch
       const modelAttrs: string[] = []
-      // console.log('parsePrismaSchema model loop', modelName);
+
       // // Remove block comments first
       const bodyWithoutBlocks = body.replace(/\/\*[\s\S]*?\*\//g, '')
 
@@ -217,9 +192,16 @@ export function parsePrismaSchema(schemaContent: string): { uiModels: Models, nu
         .split('\n')
         .map((line) => line.trim().replace(/\s{2,}|\t/gm, ' '))
         .filter(Boolean)
-  
+
       for (let line of lines) {
-        line = convertPrismaTypesToTS(line);
+
+        line = line
+          .trim()
+          .replace(/String/g, 'string')
+          .replace(/DateTime/g, 'Date')
+          .replace(/Int/g, 'number')
+          .replace(/Boolean/g, 'boolean')
+        // .replace(/[?]/g, '')
 
         if (line.startsWith('//')) {
           continue
@@ -231,13 +213,13 @@ export function parsePrismaSchema(schemaContent: string): { uiModels: Models, nu
           // Block attribute
           modelAttrs.push(line)
         } else if (parts.length >= 2) {
-          // console.log('field', parts[0], parts[1])
+
           // build fields incrementally
           fields.push({
             name: parts[0],
             type: parts[1],
-            isArray: parts[0].includes('[]'),
-            isOptional:parts[0].includes('?'),
+            isArray: parts[1].includes('[]'),
+            isOptional: parts[1].includes('?'),
             attrs: parts.slice(2).join(' ')
           })
         }
@@ -252,8 +234,9 @@ export function parsePrismaSchema(schemaContent: string): { uiModels: Models, nu
   } catch (err) {
     handleTryCatch(err)
   }
-  const [uiModels, nuiModels] = sortModelsByOrdered(models, UI.all)
+  [uiModels, nuiModels] = sortModelsByOrdered(models, UI.all)
   // models = {}
-  console.log()
-  return {uiModels , nuiModels, fieldStrips }
+
+  // console.log(JSON.stringify({ uiModels, nuiModels, fieldStrips }))
+  return { uiModels, nuiModels, fieldStrips }
 }

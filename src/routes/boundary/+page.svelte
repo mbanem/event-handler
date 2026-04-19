@@ -1,7 +1,7 @@
 <script lang="ts">
 	import FlakyComponent from './FlakyComponent.svelte';
 	type TPromise = Record<string, number>;
-	let obj: TPromise = $state<TPromise>(['', -1]);
+	let obj: TPromise = $state<TPromise>({});
 
 	function delayed(value: string, milliseconds = 3000) {
 		const start = performance.now();
@@ -27,9 +27,7 @@
 		unacceptable null. The state could be restored by selecting this button
 
 		error: {error}
-		<button onclick={reset} style="margin:0.5rem 0 0 6.5rem;width:15rem;"
-				>Exception happened! try again</button
-			>
+		<button onclick={reset} style="margin:0.5rem 0 0 6.5rem;width:15rem;">Exception happened! try again</button>
 		</pre>
 	{/snippet}
 </svelte:boundary>

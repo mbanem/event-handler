@@ -6,46 +6,24 @@
 	const vscode = {
 		postMessage: (msg: { command: string; payload?: string | object }) => {
 			console.log(msg.command, msg.payload);
-		}
+		},
 	};
-	function cancelAnyPart() {
-		startPartOne();
-	}
 
 	// fake part for Extension
 
-	type Tdb = { name: string; owner: string; password: string; host: string; port: string };
-	let installPartTwoPending: boolean = true;
-	let installPartTwoEl: HTMLPreElement;
-	let installPartOneBtnEl: HTMLButtonElement;
 	let installPartTwoBtnEl: HTMLButtonElement;
-	let cancelPartTwoBtnEl: HTMLButtonElement;
-	let sudoName_: string = 'mili';
 
-	function startPartTwo() {
-		if (installPartTwoPending) {
-			installPartTwoEl.classList.remove('hidden');
-			vscode.postMessage({ command: 'log', payload: 'PRISMA PART TWO INSTALLATION' });
-		}
-		// else {
-		// 	crudUIBlockEl.classList.remove('hidden');
-		// 	// rightColumnEl.classList.remove('hidden');
-		// 	vscode.postMessage({ command: 'readSchema' });
-		// }
-	}
 	async function installPrismaPartTwo() {
 		installPartTwoBtnEl.innerText = 'Installing...';
 		await utils.sleep(2000);
-		postMessage({ command: 'installPrismaPartTwo' });
+		vscode.postMessage({ command: 'installPrismaPartTwo' });
 	}
 	onMount(() => {
 		installPartTwoBtnEl = document.getElementById('installPartTwoBtnId') as HTMLButtonElement;
-		cancelPartTwoBtnEl = document.getElementById('cancelPartTwoBtnId') as HTMLButtonElement;
 		// rightColumnEl = document.getElementById('rightColumnId');
 
 		// fires once so be ready it extension waits for schema and connection
 		installPartTwoBtnEl.addEventListener('click', installPrismaPartTwo);
-		cancelPartTwoBtnEl.addEventListener('click', cancelAnyPart);
 		// if (installPartTwoPending) {
 		// 	vscode.postMessage({ command: 'log', payload: 'pending!' });
 		// 	installPartTwoBtnEl.addEventListener('click', installPartTwo);
@@ -85,9 +63,7 @@ installing Prisma ORM; otherwise you can enter the following commands yourself
   pnpx prisma migrate dev --name init		# create first migration (when ready)
   pnpx prisma generate
 
-  <button id="installPartTwoBtnId" style="margin-left:4rem;width:8.4rem;margin-top:1.7rem;"
-			>Continue</button
-		><button id="cancelPartTwoBtnId">Cancel</button>  
+  <button id="installPartTwoBtnId">Continue</button><button id="cancelPartTwoBtnId">Cancel</button>  
 </pre>
 </div>
 
@@ -350,18 +326,9 @@ installing Prisma ORM; otherwise you can enter the following commands yourself
 	}
 
 	button {
-		display: inline-block;
-		margin: 1rem 1rem 1rem 0;
-		background-color: navy;
-		color: yellow;
-		border: 1px solid gray;
-		border-radius: 5px;
-		font-size: 12px;
 		cursor: pointer;
-		padding: 3px 1rem;
 		user-select: none;
 	}
-
 	.crud-support-done {
 		width: max-content;
 		padding: 5px 2rem;
