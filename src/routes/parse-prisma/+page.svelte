@@ -28,7 +28,7 @@
 		ui: 'ui',
 		namesOnly: 'namesOnly',
 		nonUI: 'nonUI',
-		all: 'all'
+		all: 'all',
 	} as const;
 	type UIType = (typeof UI)[keyof typeof UI];
 
@@ -74,7 +74,7 @@
 		'role',
 		'priority',
 		'price',
-		'updatedAt'
+		'updatedAt',
 	];
 	let strModelNames = '|';
 	// creates a string-list of modelNames  '|Todo|User|Profile|'
@@ -86,9 +86,7 @@
 	 */
 	function sortObjectKeys<T>(obj: Record<string, T>): Record<string, T> {
 		return Object.fromEntries(
-			Object.entries(obj).sort(([a], [b]) =>
-				a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })
-			)
+			Object.entries(obj).sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))
 		);
 	}
 
@@ -110,9 +108,7 @@
 		) {
 			return false;
 		}
-		const ui =
-			/\b@id @default(uuid())\b/i.test(attrs) ||
-			['string', 'number', 'boolean', 'role'].includes(type);
+		const ui = /\b@id @default(uuid())\b/i.test(attrs) || ['string', 'number', 'boolean', 'role'].includes(type);
 
 		return ui;
 	}
@@ -129,18 +125,15 @@
 	 * array leading part sorted by orderd followed by lefowers
 	 */
 	function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
-
 		let orderedFields: { name: string; type: string; attrs?: string }[] = [];
 		let leftoverFields: { name: string; type: string; attrs?: string }[] = [];
 		const uiModels: Models = {};
 		const nuiModels: Models = {};
 		for (const [modelName, model] of Object.entries(models)) {
-
 			const fields = [];
 			// const mFields = [...model.fields];
 			uiModels[modelName] = {};
 			nuiModels[modelName] = {};
-
 
 			// 	'field["firstName"]',
 			// 	model.fields.find((field) => field.name === 'firstName')
@@ -177,9 +170,7 @@
 			// nuiModels[modelName].attrs = model.attrs;
 		}
 
-
 		return [uiModels, nuiModels]; //.filter(Boolean);
-
 	}
 
 	/**
@@ -195,9 +186,7 @@
 
 		try {
 			while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
-
 				const [, modelName, body] = modelMatch;
-
 
 				// Grok / X suggest amodelNamemodelNamevoiding the undefined by adding ?? '' to modelMatch[xx]
 				// const modelName = modelMatch[1] ?? '';
@@ -248,9 +237,8 @@
 						fields.push({
 							name: parts[0],
 							type: parts[1],
-							attrs: parts.slice(2).join(' ')
+							attrs: parts.slice(2).join(' '),
 						});
-
 					}
 
 					// if (!fieldName) {
@@ -267,17 +255,10 @@
 				// fields.type = 'RFNameFInfo';
 				// let sorted = sortArrByOrdered(fields, UI.all)
 
-
-
-
-
-
-
 				models[modelName] = {
 					fields: fields, //: sortObjectKeys(fields),
-					attrs: modelAttrs
+					attrs: modelAttrs,
 				};
-
 
 				// sortArrByOrdered(fields);
 
@@ -308,7 +289,6 @@
 
 		return;
 		for (const [modelName, modelInfo] of Object.entries(models)) {
-
 			// 	'modelName',
 			// 	JSON.stringify(modelName, null, 2),
 			// 	'\nmodelInfo.fields: FieldName:string, FieldInfo:[type:string, prismaAttrs:string]',
@@ -324,7 +304,6 @@
 			let [, fields] = Object.entries(modelInfo)[0];
 
 			for (let [fieldName, fieldInfo] of Object.entries(fields)) {
-
 				// 	'fieldName',
 				// 	fieldName,
 				// 	'\nfieldInfo.type',
@@ -378,9 +357,7 @@
 			// 	uiModels[modelName] = uiFields;
 			// 	uiFields = {};
 		}
-
 	}
-
 
 	parsePrismaSchema(schema);
 
@@ -593,7 +570,7 @@
 
 	:global(.fields-column p) {
 		margin: 4px 0 0 0;
-		padding: 2px 0 0 4px 6pc;
+		padding: 2px 0 4px 6px;
 		border-bottom: 1px solid lightgray;
 		text-wrap: wrap;
 	}

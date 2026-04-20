@@ -308,7 +308,7 @@ installing Prisma ORM; otherwise you can enter the following commands yourself
 
 	.fields-column p {
 		margin: 4px 0 0 0;
-		padding: 2px 0 0 4px 6pc;
+		padding: 2px 0  4px 6px;
 		border-bottom: 1px solid lightgray;
 		text-wrap: wrap;
 	}

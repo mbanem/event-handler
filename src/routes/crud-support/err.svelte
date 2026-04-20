@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity'; // get(key), set(key,value), delete(key), clear ()
 	import { createEventHandler, isEmpty } from '$lib/utils';
 	import { type Field, type Models } from './parse-prisma-schema';
@@ -10,41 +10,9 @@
 	function data_() {
 		return data;
 	}
-	let models: Models = $state<Models>({}) as Models;
+	let models: Models = $state<Models>(data_().models) as Models;
 	let modelName = $state<string>('');
 
-	// imitate getting model from Webview extension
-	// fake part for Extension
-	const vscode =
-		// @ts-expect-error  not an extension content
-		typeof acquireVsCodeApi !== 'undefined'
-			? // @ts-expect-error not an extenson coontent
-				acquireVsCodeApi()
-			: {
-					postMessage: (msg: any) => {
-						console.log(`[DEV] ${msg.command} in progress...`);
-						setTimeout(() => {
-							console.log(`${msg.command} is done`, msg.payload ?? 'with no payload');
-						}, 3000);
-					},
-				};
-
-	function createCRUDSupport() {
-		vscode.postMessage({
-			command: 'CreateCrudSupport',
-			payload: { route: routeNameEl.value, model: JSON.stringify([...candidates]) },
-		});
-	}
-	let isLoading = $state(true);
-	setTimeout(() => {
-		models = data_().models;
-		isLoading = false;
-	}, 3000);
-	if (!isLoading) {
-		setTimeout(() => {
-			initialize();
-		}, 1000);
-	}
 	// Make a reactive local copy that you can safely bind to
 	let uiFields = new SvelteMap<string, Field>();
 	let candidates = new SvelteMap<string, Field>();
@@ -52,7 +20,7 @@
 	// debugger;
 
 	const eh = createEventHandler();
-	// event handler wrappers for candidate fields list and details ORM model list
+	// event handler wrappers for candidate fields list and <details> ORM model list
 	let candidatesListEl = $state<HTMLDivElement>();
 	let schemaContainerEl: HTMLDivElement;
 
@@ -93,9 +61,6 @@
 
 	let schemaContainerRect: DOMRect | null = null;
 	function onPrismaMouseOver(e: MouseEvent) {
-		if (!ormModelTooltipEl) {
-			ormModelTooltipEl = document.getElementById('ormModelTooltipId') as HTMLParagraphElement;
-		}
 		const et = e.target as HTMLParagraphElement;
 		if (et.innerText.slice(0, 5) === 'type:') {
 			return;
@@ -186,11 +151,12 @@
 		buttonNotAllowed = false;
 	}
 
-	// function initialize() {
 	onMount(() => {
-		candidatesListEl = document.getElementById('candidatesListId') as HTMLDivElement;
-		candidateTooltipEl = document.getElementById('candidateTooltipId') as HTMLParagraphElement;
 		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
+		candidatesListEl = document.getElementById('candidatesListId') as HTMLDivElement;
+		ormModelTooltipEl = document.getElementById('ormModelTooltipId') as HTMLParagraphElement;
+		candidateTooltipEl = document.getElementById('candidateTooltipId') as HTMLParagraphElement;
+
 		routeNameEl = document.getElementById('routeNameId') as HTMLInputElement;
 
 		// listener for <summary/details> blocks
@@ -207,7 +173,6 @@
 					eh.destroy();
 					return;
 				}
-
 				closeSchemaModels();
 
 				routeNameEl.value = modelName.toLowerCase();
@@ -219,7 +184,6 @@
 						candidates.set(fld.name, fld);
 					}
 				});
-
 				// now we have prisma models revealed in details and candidate fields list
 				// so call event-handler setup to handle tooltips and clicks on the lists
 				setCandidateHandlers();
@@ -230,22 +194,19 @@
 			eh.destroy();
 		};
 	});
-	// }
-	onDestroy(() => {
-		eh.destroy();
-	});
+
 	function closeDetails(dets: HTMLCollection) {
 		for (const child of Object.entries(dets)) {
 			const el = child[1].children[0] as HTMLElement;
-			if (el && el.hasAttribute('open')) {
+			if (el) {
 				el.removeAttribute('open');
 			}
 		}
 	}
 	function closeSchemaModels() {
 		routeNameEl.value = '';
-		const children = schemaContainerEl?.children as HTMLCollection;
-		closeDetails(children);
+		// const children = schemaContainerEl?.children as HTMLCollection;
+		closeDetails(document.getElementsByClassName('.cr-model-block'));
 		candidates.clear();
 		buttonNotAllowed = true;
 	}
@@ -264,13 +225,12 @@
 	{#each candidates as [name, field] (name)}
 		{#if field.isDataEntry}
 			<div class="cr-list-el" data-event-list="click mouseover mouseout" draggable="true">
-				<span style="pointer-events: none;">
+				<div style="pointer-events: none;">
 					{name}: {field.type}{field.isOptional ? '?' : ''}
-				</span>
+				</div>
 			</div>
 		{/if}
 	{/each}
-	<p id="candidateTooltipId" class="cr-remove-hint">click to remove</p>
 {/snippet}
 {#snippet summaryPrismaModel()}
 	{#each Object.entries(models) as [modelName, model] (modelName)}
@@ -296,18 +256,18 @@
 {/snippet}
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
-		<cr-pre>
-			This extension creates full CRUD functional TypeScript client side +page.svelte and supporting server side
-			+page.server.ts that allow communication with Prisma ORM (Object-Relational Mapping) with PostgreSQL db. By
-			selecting a model from summary/details block, the extension fills up the Candidate Fields list with data-entry
-			fields (which values are enter via UI of +page.svelte). Clicking on a candidate field would remove it from the
-			list, but could be added again by clicking it from the details block. The extension uses Route Name value,
-			initially filled with model name from summary title, and creates the pages under src/routes/Route Name value by
-			clicking on the Create CRUD Support button.
+		<cr-pre class="cr-span-two">
+			To create a UI Form for CRUD operations against the underlying ORM fill out the <i>Candidate Fields</i>
+			by entering field names in the <i>Field Name and Type</i> input box with its datatype, e.g. firstName: string, and
+			cr-pressing the Enter key or expand a table from the
+			<i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating fields usually colored in
+			pink. The UI Form +page.svelte with accompanying +page.server.ts will be created in the route specified in the Route
+			Name input box.
 		</cr-pre>
+
 		<div class="cr-left-column">
 			<label for="routeNameId"> Route Name </label>
-			<input id="routeNameId" type="text" placeholder="app name as routes folder name" />
+			<input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
 
 			<div class="cr-crud-support-done cr-hidden"></div>
 			<div class="embellishments">
@@ -332,13 +292,7 @@
 					<label for="CRSummaryDetail">Summary/Details component</label>
 				</div>
 			</div>
-			<div
-				id="createBtnId"
-				onclick={createCRUDSupport}
-				style="font-size: 14px !important;cursor:pointer;"
-				class:notallowed={buttonNotAllowed}
-				aria-hidden={true}
-			>
+			<div id="createBtnId" style="font-size: 14px !important;cursor:pointer;" class:notallowed={buttonNotAllowed}>
 				Create CRUD Support
 			</div>
 		</div>
@@ -349,13 +303,22 @@
 			</div>
 			<p id="candidateTooltipId" class="cr-remove-hint">click to remove</p>
 		</div>
+
+		<div style="display:flex;height:1.4rem !important;margin:0;padding:0;align-items:center;grid-column: span 2;">
+			<p style="display:inline-block;width:max-content;margin-right:1rem;">Render all input boxes the same CSS width</p>
+			<input
+				id="inputBoxWidthId"
+				type="text"
+				value="16rem"
+				style="margin:0 1rem 0 0; padding:0 0 0 1rem;width:7rem;height:1.2rem !important;line-height:1.1rem;display:inline-block;font-size:13px;"
+				placeholder="CSS px, rem, ..."
+			/>
+		</div>
 	</div>
 
 	<div id="rightColumnId" class="cr-right-column">
 		<div id="schemaContainerId">
-			{#if isLoading}
-				<div class="spinner-wrapper"><span class="spinner"></span><span>Loading models...</span></div>
-			{:else}
+			{#if models}
 				{@render summaryPrismaModel()}
 			{/if}
 		</div>
@@ -365,13 +328,10 @@
 <style lang="scss">
 	.cr-main-grid {
 		display: grid;
-		grid-template-columns: 40rem 20rem;
 		padding: 0.6rem 0 0 0.6rem;
+		grid-template-columns: 40rem 20rem;
 		margin-top: 0.5rem;
 		width: 100vw;
-		height: 90vh;
-		align-items: start;
-		border-bottom: 1px solid gray;
 	}
 
 	.cr-grid-wrapper {
@@ -379,8 +339,6 @@
 		grid-template-columns: 27rem 12rem;
 		column-gap: 0.5rem;
 		row-gap: 1rem;
-		align-items: start;
-		height: 100%;
 	}
 	.cr-crud-support-done {
 		width: max-content;
@@ -401,14 +359,12 @@
 
 	.cr-left-column {
 		@include container($head: 'Application Settings', $head-color: navy);
-		position: relative;
 		border: 1px solid gray;
 		border-radius: 8px;
-		height: 80vh;
+		height: 54vh;
 		width: 27.2rem;
 		padding: 1rem 0 0 0.7rem;
 		background-color: var(--panel-bg-color);
-
 		label {
 			display: block;
 			color: var(--candidate-color);
@@ -425,7 +381,7 @@
 		border: 1px solid gray;
 		border-radius: 5px;
 		padding: 1rem 6px 0 6px;
-		height: 80vh;
+		height: auto;
 		width: 12rem;
 		background-color: var(--panel-bg-color);
 		/* overflow-y: auto;	 */ /* cuts container's header */
@@ -453,7 +409,7 @@
 		border-top-left-radius: 10px;
 		border-top-right-radius: 10px;
 	}
-	:global(.cr-list-el:nth-last-child(2)) {
+	:global(.cr-list-el:last-child) {
 		border-bottom-left-radius: 10px;
 		border-bottom-right-radius: 10px;
 	}
@@ -486,10 +442,9 @@
 		text-align: justify;
 		font-size: 12px;
 		color: var(--pre-color);
-		align-items: start;
 	}
 	input[type='text'] {
-		width: 93%;
+		width: 18rem;
 		height: 20px;
 		padding: 6px 0 8px 1rem;
 		outline: none;
@@ -517,8 +472,7 @@
 		@include container($head: 'Select UI Fields from ORM', $head-color: navy);
 		/*color: var(--field-type-color);*/
 		background-color: var(--panel-bg-color);
-		height: 89.7vh;
-		width: 23.5rem;
+		height: auto;
 		.red-type {
 			color: var(--red-type) !important;
 		}
@@ -528,10 +482,10 @@
 		background-color: var(--panel-bg-color);
 
 		position: relative;
-		// grid-column: span 2;
+		grid-column: span 2;
 		display: grid;
-		grid-template-columns: 1rem 7rem;
-		width: 97.2%;
+		grid-template-columns: 1rem 15rem;
+
 		column-gap: 0.5rem;
 		row-gap: 0.1rem;
 		align-items: center;
@@ -540,7 +494,10 @@
 		border-radius: 6px;
 		user-select: none;
 	}
-
+	input {
+		color: var(--input-color);
+		background-color: var(--input-bg-color);
+	}
 	.checkbox-item {
 		display: inline-block;
 		color: var(--candidate-color);
@@ -561,7 +518,7 @@
 		align-self: center;
 		cursor: pointer;
 		line-height: 1;
-		// width: 23.6rem !important;
+		width: 23.6rem !important;
 	}
 
 	.checkbox-item label:hover {
@@ -579,7 +536,7 @@
 		font-size: 13px;
 	}
 	:global(.cr-model-block) {
-		max-height: auto;
+		height: 100%;
 		overflow-y: auto;
 	}
 	:global(.cr-model-name) {
@@ -630,9 +587,6 @@
 		}
 	}
 	#createBtnId {
-		position: absolute;
-		top: 26rem;
-		left: 1.2rem;
 		outline: none;
 		border: 1px solid gray;
 		border-radius: 5px;
@@ -657,34 +611,9 @@
 		color: var(--red-type) !important;
 	}
 	:global(.pink-tomato) {
-		color: var(--pink-tomato);
+		color: var(--pink=-tomato);
 	}
 	:global(.attr-id) {
 		color: var(--attr-id);
-	}
-	.spinner-wrapper {
-		display: grid;
-		grid-template-columns: 1em 10rem;
-		column-gap: 1rem;
-		.spinner {
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			width: 0.8em;
-			height: 0.8em;
-			border: 3px solid #e2e8f0;
-			border-top-color: #3b82f6;
-			border-radius: 50%;
-			animation: spin 900ms linear infinite;
-			span {
-				display: inline-block;
-			}
-		}
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
 	}
 </style>
