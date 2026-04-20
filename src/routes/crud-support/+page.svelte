@@ -1,147 +1,61 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	// import { schema } from './schema_prisma';
 	import { SvelteMap } from 'svelte/reactivity'; // get(key), set(key,value), delete(key), clear ()
-	import { sleep, handleTryCatch, createEventHandler, isEmpty, stringToFieldObject } from '$lib/utils';
-	import { type Field, type Models, primitiveTypes } from './parse-prisma-schema';
+	import { sleep, createEventHandler, isEmpty } from '$lib/utils';
+	import { type Field, type Models } from './parse-prisma-schema';
 	import type { PageProps } from './$types';
-	import CandidateFieldsList from '$lib/components/CandidateFieldsList.svelte';
-	// import CandidateFieldsList, { addFields } from '$lib/components/CandidateFieldsList.svelte';
 
+	const noop = () => {};
 	let { data }: PageProps = $props();
 	function data_() {
 		return data;
 	}
 	let models: Models = $state<Models>(data_().models) as Models;
 	let modelName = $state<string>('');
-	let ready = $derived(!isEmpty(data.models));
 
 	// Make a reactive local copy that you can safely bind to
-	let currentFields = $derived.by(() => models[modelName].fields);
 	let uiFields = new SvelteMap<string, Field>();
 	let candidates = new SvelteMap<string, Field>();
 
 	// debugger;
 
-	let fieldsListEl = $state<HTMLDivElement>();
-	let fieldListsInitialized = false;
+	let candidatesListEl = $state<HTMLDivElement>();
 
 	const eh = createEventHandler();
 
 	// FIELDS
-	let removeHintEl: HTMLParagraphElement;
-	let tooltipContainerEl: HTMLParagraphElement;
+	let candidateTooltipEl: HTMLParagraphElement;
+	let ormModelTooltipEl: HTMLParagraphElement;
 	let schemaContainerEl: HTMLDivElement;
-	let middleColumnEl: HTMLDivElement;
 
-	let routeLabelNode: HTMLElement;
-	let routeLabelEl: HTMLLabelElement;
 	let routeNameEl: HTMLInputElement;
 
-	let fieldLabelNode: HTMLElement;
-	let fieldLabelEl: HTMLLabelElement;
+	// let timer: ReturnType<typeof setTimeout>;	// NOTE keep it as an example
 
-	let timer: ReturnType<typeof setTimeout>;
-	let fieldNameAndType = 'Field Name and Type';
-	// let unacceptable = '  not a UI field';
-	// global msg set by isFieldFormatValid, isInFieldStrips and isInListEls
-	let msg = '';
-
-	function fieldFromName(fname: string): Field {
-		return currentFields.find((f) => f.name === fname) as Field;
-	}
-	// we do not clear all the entries and rebuild from the fields
-	// but just add a newly entered in the Field Name fieldNameId
 	function anyOpenDetails() {
 		let open = false;
 		const dets = schemaContainerEl?.children as HTMLCollection;
 		for (const child of Object.entries(dets)) {
-			if ((child[1].children[0] as HTMLElement).hasAttribute('open')) {
+			const el = child[1].children[0] as HTMLElement;
+			if (el && el.hasAttribute('open')) {
 				open = true;
 			}
 		}
 		return open;
 	}
-	/**
-	 * Closes all opened <details>
-	 * @param dets
-	 */
+
 	function closeDetails(dets: HTMLCollection) {
-		// candidates.clear();
 		for (const child of Object.entries(dets)) {
-			(child[1].children[0] as HTMLElement).removeAttribute('open');
-		}
-	}
-
-	function isFieldAcceptable(field: Field) {
-		msg = '';
-		if (!fieldListsInitialized) {
-			// not yet collected but Prisma fields are rendered initially
-			return true;
-		}
-		const wf = fieldFromName(field.name);
-		if (!wf || !wf.isDataEntry) {
-			msg = 'Not a DataEntry Field';
-		} else if (candidateFields.get(field.name)) {
-			msg = 'Already Selected';
-		} else {
-			return true;
-		}
-		setLabelCaption(msg, 2000, 'field');
-	}
-
-	function randerCandidateField(field: Field) {
-		setTimeout(() => {
-			if (field.isDataEntry) {
-				addField(field);
+			const el = child[1].children[0] as HTMLElement;
+			if (el) {
+				el.removeAttribute('open');
 			}
-			fieldListsInitialized = true;
-		}, 0);
-	}
-
-	const scroll = (el: HTMLDivElement) => {
-		if (el.offsetHeight + el.scrollTop > el.getBoundingClientRect().height - 20) {
-			setTimeout(() => {
-				el.scrollTo(0, el.scrollHeight);
-			}, 0);
-		}
-	};
-
-	function adjustFiledNameAndType(val: string) {
-		val = val.replace(/\\s+/g, '');
-
-		const m = val.match(/\s*([a-zA-z0-9_]+)\s*:?\s*([a-zA-z0-9_]+)?$/);
-		if (!m) return val;
-		if (m[2]) {
-			val = `${m[1]}: ${m[2]}`;
-		}
-		return val;
-	}
-
-	function clearLabelText() {
-		clearTimeout(Number(timer));
-		routeLabelEl.style.color = '';
-		routeLabelNode.textContent = 'Route Name';
-	}
-
-	function setLabelCaption(text: string, duration: number, type: string = 'route') {
-		const color = document.documentElement.classList.contains('dark') ? 'pink' : 'red';
-		// preserve text to restore at timeout
-		const [node, label, restore] =
-			type === 'route'
-				? [routeLabelNode, routeLabelEl, 'Route Name']
-				: [fieldLabelNode, fieldLabelEl, fieldNameAndType];
-		node.textContent = text;
-		label.style.color = color;
-		if (duration > 0) {
-			timer = setTimeout(() => {
-				node.textContent = restore;
-				label.style.color = '';
-			}, duration);
 		}
 	}
+
 	const contTitleDefault = 'click, add to candidates';
 	const contSelected = 'already selected';
+
 	function getUIField(el: HTMLElement) {
 		const match = (el as HTMLElement).innerText.match(/(\w+)/);
 		if (match && match[1]) {
@@ -150,21 +64,26 @@
 		return null;
 	}
 	function prismaContainerTooltip(s: string) {
-		tooltipContainerEl.innerText = s;
-		tooltipContainerEl.style.color = s === contTitleDefault ? 'navy' : s === contSelected ? 'darkgreen' : 'tomato';
+		ormModelTooltipEl.innerText = s;
+		ormModelTooltipEl.style.color = s === contTitleDefault ? 'navy' : s === contSelected ? 'darkgreen' : 'tomato';
 	}
+
 	function onPrismaClick(e: MouseEvent) {
 		const el = e.target as HTMLElement;
 		const field = getUIField(el);
 		if (field && !candidates.has(field.name)) {
 			candidates.set(field.name, field);
 		}
-		tooltipContainerEl!.style.opacity = '0';
+		ormModelTooltipEl!.style.opacity = '0';
 		setButtonAvailability();
 	}
+
 	let schemaContainerRect: DOMRect | null = null;
 	function onPrismaMouseOver(e: MouseEvent) {
 		const et = e.target as HTMLParagraphElement;
+		if (et.innerText.slice(0, 5) === 'type:') {
+			return;
+		}
 		const field = getUIField(et);
 		if (field) {
 			if (candidates.has(field.name)) {
@@ -180,97 +99,95 @@
 				document.getElementById('schemaContainerId') as HTMLParagraphElement
 			).getBoundingClientRect();
 		}
-		tooltipContainerEl.style.top = String(et.offsetTop - et.offsetHeight) + 'px';
-		tooltipContainerEl.style.left = String(et.offsetLeft + 12) + 'px';
-		tooltipContainerEl.style.opacity = '1';
+		ormModelTooltipEl.style.top = String(et.offsetTop - et.offsetHeight) + 'px';
+		ormModelTooltipEl.style.left = String(et.offsetLeft + 12) + 'px';
+		ormModelTooltipEl.style.opacity = '1';
 	}
+
 	function onPrismaMouseOut(e: MouseEvent) {
-		tooltipContainerEl.style.opacity = '0';
+		ormModelTooltipEl.style.opacity = '0';
 	}
+
 	let candidatesRect: DOMRect | null = null;
 	function onMouseOver(e: MouseEvent) {
 		if (!candidatesRect) {
 			candidatesRect = (document.getElementById('middleColumnId') as HTMLParagraphElement).getBoundingClientRect();
 		}
 		const et = e.target as HTMLParagraphElement;
-		removeHintEl.style.top = String(et.offsetTop - et.offsetHeight) + 'px';
-		removeHintEl.style.left = String(et.offsetLeft + 12) + 'px';
-		removeHintEl.style.opacity = '1';
+		candidateTooltipEl.style.top = String(et.offsetTop - et.offsetHeight) + 'px';
+		candidateTooltipEl.style.left = String(et.offsetLeft + 12) + 'px';
+		candidateTooltipEl.style.opacity = '1';
 	}
 
 	function onMouseOut(_: MouseEvent) {
-		removeHintEl.style.opacity = '0';
+		candidateTooltipEl.style.opacity = '0';
 	}
-	function onDrop(_: MouseEvent) {
-		console.log('onDrop');
-	}
+
+	// drag-drop works silently but if we want to handle some
+	// events like onDrop we set on a wrapper w.ondrop = onDrop
+	// function onDrop(_: MouseEvent) {	// NOTE keep it as an example
+	// 	console.log('onDrop');
+	// }
 
 	function setButtonAvailability() {
 		return !isEmpty(candidates);
 	}
+
+	// candidate fields handlers
 	function onClick(e: MouseEvent) {
 		const el = e.target as HTMLElement;
 		const match = (el as HTMLElement).innerText.match(/(\w+)/);
 		if (match) {
 			candidates.delete(match[1]);
 		}
-		removeHintEl.style.opacity = '0';
+		candidateTooltipEl.style.opacity = '0';
 		el.remove();
 		setButtonAvailability();
 	}
 
-	function addToCandidates(e: MouseEvent) {
-		const el = e.currentTarget as HTMLElement;
-		const field = uiFields.get(el.innerText) as Field;
-		candidates.set(field.name, field);
-	}
 	function setCandidateHandlers() {
-		if (!fieldsListEl) {
+		eh.destroy();
+		if (!candidatesListEl) {
 			return;
 		}
-		fieldsListEl.ondrop = onDrop;
-		eh.setup(fieldsListEl, {
+		// NOTE drag drop will work without this setting, but if we want
+		// to handle this event we should set the handler, like onDrop here
+		// candidatesListEl.ondrop = onDrop;	// NOTE keep it as an example
+		// bind candidates fields to event-handler
+		eh.setup(candidatesListEl, {
 			click: onClick,
 			mouseover: onMouseOver,
 			// mouseout: onMouseOut,
 		});
-		// drag-drop to move fieldNames up and down the fields list
-		// eh.setup(fieldsListEl);
+		// bind prisma model fields to event-handler for every <summary>
+		// separately based on fake class name X-<modelName>
+		const className = `.X-${modelName}`;
+		const prismaList = document.querySelector(className) as HTMLDivElement;
+		eh.setup(prismaList, { click: onPrismaClick, mouseover: onPrismaMouseOver, mouseout: onPrismaMouseOut });
+
+		// drag-drop to move fieldNames up and down the candidates list
+		eh.setup(candidatesListEl);
 		buttonNotAllowed = false;
 	}
-	// TODO nuiModels	what is this reset?
-	// nuiModels = {};
+
 	onMount(() => {
 		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
-		fieldsListEl = document.getElementById('fieldsListId') as HTMLDivElement;
-		middleColumnEl = document.getElementById('middleColumnId') as HTMLDivElement;
-		removeHintEl = document.getElementById('removeHintId') as HTMLParagraphElement;
-		tooltipContainerEl = document.getElementById('tooltipContainerId') as HTMLParagraphElement;
-		removeHintEl.style.opacity = '0'; // make it as a cr-hidden tooltip
-		routeNameEl = document.getElementById('routeNameId') as HTMLInputElement;
-		routeLabelEl = document.querySelector("label[for='routeNameId']") as HTMLLabelElement;
-		fieldLabelEl = document.querySelector("label[for='fieldNameId']") as HTMLLabelElement;
-		routeLabelNode = Array.from(routeLabelEl.childNodes).filter(
-			(node) => node.nodeType === Node.TEXT_NODE
-		)[0] as HTMLElement;
-		fieldLabelNode = Array.from(fieldLabelEl.childNodes).filter(
-			(node) => node.nodeType === Node.TEXT_NODE
-		)[0] as HTMLElement;
-		// schemaContainerEl.innerHTML = prismaSumDetailsBlock;
+		candidatesListEl = document.getElementById('candidatesListId') as HTMLDivElement;
+		ormModelTooltipEl = document.getElementById('ormModelTooltipId') as HTMLParagraphElement;
+		candidateTooltipEl = document.getElementById('candidateTooltipId') as HTMLParagraphElement;
 
+		routeNameEl = document.getElementById('routeNameId') as HTMLInputElement;
+
+		// listener for <summary/details> blocks
 		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
 			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
-				middleColumnEl.classList.toggle('cr-middle-column-height');
-				// now at app level active modelName
 				modelName = (event.target as HTMLElement).innerText;
 				const details = (event.target as HTMLElement).closest('details');
 				if (details && details.open) {
 					setTimeout(() => {
 						// has to use setTimeout as the element is still in opening
 						details.removeAttribute('open');
-						// (fieldsListEl as HTMLDivElement).innerHTML = '';
 					}, 200);
-					clearLabelText();
 					closeSchemaModels();
 					eh.destroy();
 					return;
@@ -279,10 +196,10 @@
 					closeSchemaModels();
 					await sleep(500);
 				}
-				setLabelCaption('Change Route Name if necessary', 4000);
 
 				routeNameEl.value = modelName.toLowerCase();
 				candidates.clear();
+				// make current uiFields and put them in candidate fields list
 				models[modelName].fields.forEach((fld) => {
 					if (fld.isDataEntry) {
 						uiFields.set(fld.name, fld);
@@ -291,25 +208,10 @@
 				});
 
 				setTimeout(() => {
+					// now we have prisma models revealed in details and candidate fields list
+					// so call event-handler setup to handle tooltips and clicks on the lists
 					setCandidateHandlers();
-					const prismaList = document.querySelector('.cr-fields-column') as HTMLDivElement;
-					eh.setup(prismaList, { click: onPrismaClick, mouseover: onPrismaMouseOver, mouseout: onPrismaMouseOut });
 				}, 400);
-
-				//----------------
-			} else {
-				// ----------- PRISMA KEYUP HANDLER clicked on a field name in <details> block ---------------
-				const el = event.target as HTMLDivElement;
-				let fieldName = el.innerText;
-				try {
-					const type = el.nextSibling?.textContent?.match(/type:(\w+)/)?.[1] as string;
-					fieldName += ': ' + type;
-				} catch (err: unknown) {
-					handleTryCatch(err);
-				}
-				if (!uiFields.has(fieldName)) {
-					return;
-				}
 			}
 		});
 
@@ -319,11 +221,12 @@
 	});
 
 	// -----------------------------------
-	// for Wevschema Extension
+	// for Webschema Extension
 	function closeSchemaModels() {
 		routeNameEl.value = '';
 		const children = schemaContainerEl?.children as HTMLCollection;
 		closeDetails(children);
+		candidates.clear();
 		buttonNotAllowed = true;
 	}
 	let buttonNotAllowed = $state<boolean>(true);
@@ -341,30 +244,24 @@
 	{#each candidates as [name, field] (name)}
 		{#if field.isDataEntry}
 			<div class="cr-list-el" data-event-list="click mouseover mouseout" draggable="true">
-				<span style="pointer-events: none;">
+				<div style="pointer-events: none;">
 					{name}: {field.type}{field.isOptional ? '?' : ''}
-				</span>
+				</div>
 			</div>
 		{/if}
 	{/each}
-	<p id="removeHintId" class="cr-remove-hint">click to remove</p>
 {/snippet}
 {#snippet summaryPrismaModel()}
 	{#each Object.entries(models) as [modelName, model] (modelName)}
 		<div class="cr-model-block">
 			<details>
 				<summary class="cr-model-name">{modelName}</summary>
-				<div class="cr-fields-column" data-event-list="click mouseover mouseout">
+				<div class="X-{modelName} cr-fields-column" data-event-list="click mouseover mouseout">
 					{#each model.fields as field (field.name)}
 						{@const attrClass = fieldAttrsTag(field) as string}
-						<!-- {#if field.isDataEntry}
-							<p onclick={addToCandidates}>{field.name}</p>
-						{:else} -->
 						<p>{field.name}</p>
-						<!-- {/if} -->
 						<p>type:{field.type} <span class={attrClass}>{field.attrs ?? 'na'}</span></p>
 					{/each}
-					<p id="tooltipContainerId" class="cr-remove-hint">click, add to candidates</p>
 				</div>
 				<div>
 					{#each model.attrs as attr (attr)}
@@ -374,6 +271,7 @@
 			</details>
 		</div>
 	{/each}
+	<p id="ormModelTooltipId" class="cr-prisma-remove-hint">click, add to candidates</p>
 {/snippet}
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
@@ -389,22 +287,40 @@
 		<div class="cr-left-column">
 			<label for="routeNameId"> Route Name </label>
 			<input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
-			<label for="fieldNameId"> Field Name and Type </label>
-			<input id="fieldNameId" type="text" placeholder="fieldName: type" />
+
+			<div class="cr-crud-support-done cr-hidden"></div>
+			<div class="embellishments">
+				<div class="checkbox-item">
+					<input id="CRInput" type="checkbox" checked />
+					<label for="CRInput">CRInput component</label>
+				</div>
+				<div class="checkbox-item">
+					<input id="CRSpinner" type="checkbox" checked />
+					<label for="CRSpinner">CRSpinner component</label>
+				</div>
+				<div class="checkbox-item">
+					<input id="CRActivity" type="checkbox" checked />
+					<label for="CRActivity">CRActivity component</label>
+				</div>
+				<div class="checkbox-item">
+					<input id="CRTooltip" type="checkbox" checked />
+					<label for="CRTooltip">Tooltip component</label>
+				</div>
+				<div class="checkbox-item">
+					<input id="CRSummaryDetail" type="checkbox" checked />
+					<label for="CRSummaryDetail">Summary/Details component</label>
+				</div>
+			</div>
 			<div id="createBtnId" style="font-size: 14px !important;cursor:pointer;" class:notallowed={buttonNotAllowed}>
 				Create CRUD Support
 			</div>
-			<div class="cr-crud-support-done cr-hidden"></div>
-			<div id="messagesId" style="z-index:10;width:20rem;">Messages:</div>
 		</div>
 
-		<div id="middleColumnId" class="cr-middle-column cr-middle-column-height">
-			<div class="cr-fields-list cr-fields-list-height" id="fieldsListId" onmouseout={onMouseOut} aria-hidden={true}>
-				<!-- {#if candidates} -->
+		<div id="middleColumnId" class="cr-middle-column">
+			<div id="candidatesListId" class="cr-fields-list" onmouseout={onMouseOut} onblur={noop} aria-hidden={true}>
 				{@render candidateFields()}
-				<!-- {/if} -->
 			</div>
-			<p id="removeHintId" class="cr-remove-hint">click to remove</p>
+			<p id="candidateTooltipId" class="cr-remove-hint">click to remove</p>
 		</div>
 
 		<div style="display:flex;height:1.4rem !important;margin:0;padding:0;align-items:center;grid-column: span 2;">
@@ -417,33 +333,11 @@
 				placeholder="CSS px, rem, ..."
 			/>
 		</div>
-		<div class="embellishments">
-			<div class="checkbox-item">
-				<input id="CRInput" type="checkbox" checked />
-				<label for="CRInput">CRInput component</label>
-			</div>
-			<div class="checkbox-item">
-				<input id="CRSpinner" type="checkbox" checked />
-				<label for="CRSpinner">CRSpinner component</label>
-			</div>
-			<div class="checkbox-item">
-				<input id="CRActivity" type="checkbox" checked />
-				<label for="CRActivity">CRActivity component</label>
-			</div>
-			<div class="checkbox-item">
-				<input id="CRTooltip" type="checkbox" checked />
-				<label for="CRTooltip">Tooltip component</label>
-			</div>
-			<div class="checkbox-item">
-				<input id="CRSummaryDetail" type="checkbox" checked />
-				<label for="CRSummaryDetail">Summary/Details component</label>
-			</div>
-		</div>
 	</div>
 
 	<div id="rightColumnId" class="cr-right-column">
 		<div id="schemaContainerId">
-			{#if ready}
+			{#if models}
 				{@render summaryPrismaModel()}
 			{/if}
 		</div>
@@ -454,14 +348,14 @@
 	.cr-main-grid {
 		display: grid;
 		padding: 0.6rem 0 0 0.6rem;
-		grid-template-columns: 33rem 20rem;
+		grid-template-columns: 40rem 20rem;
 		margin-top: 0.5rem;
 		width: 100vw;
 	}
 
 	.cr-grid-wrapper {
 		display: grid;
-		grid-template-columns: 20rem 12rem;
+		grid-template-columns: 27rem 12rem;
 		column-gap: 0.5rem;
 		row-gap: 1rem;
 	}
@@ -487,6 +381,7 @@
 		border: 1px solid gray;
 		border-radius: 8px;
 		height: 54vh;
+		width: 27.2rem;
 		padding: 1rem 0 0 0.7rem;
 		background-color: var(--panel-bg-color);
 		label {
@@ -520,24 +415,26 @@
 		padding: 0;
 		margin: 0 0 2rem 0;
 		color: navy;
-		:global(.cr-list-el) {
-			background-color: var(--candidate-bg-color);
-			color: var(--candidate-color);
-			border: 1px solid var(--border-color);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-		:global(.cr-list-el:first-child) {
-			border-top-left-radius: 10px;
-			border-top-right-radius: 10px;
-		}
-		:global(.cr-list-el:last-child) {
-			border-bottom-left-radius: 10px;
-			border-bottom-right-radius: 10px;
-		}
 	}
-	.cr-remove-hint {
+	:global(.cr-list-el) {
+		background-color: var(--candidate-bg-color);
+		color: var(--candidate-color);
+		border: 1px solid var(--border-color);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	:global(.cr-list-el:first-child) {
+		border-top-left-radius: 10px;
+		border-top-right-radius: 10px;
+	}
+	:global(.cr-list-el:last-child) {
+		border-bottom-left-radius: 10px;
+		border-bottom-right-radius: 10px;
+	}
+	// }
+	.cr-remove-hint,
+	.cr-prisma-remove-hint {
 		position: absolute;
 		left: 1.5rem !important;
 		z-index: 10;
@@ -553,6 +450,10 @@
 		transition: opacity 0.2s;
 		pointer-events: none;
 		white-space: nowrap;
+	}
+	cr-prisma-remove-hint {
+		top: 3rem;
+		left: 20rem;
 	}
 	.cr-span-two,
 	cr-pre {
@@ -602,7 +503,7 @@
 		position: relative;
 		grid-column: span 2;
 		display: grid;
-		grid-template-columns: 1rem 20rem;
+		grid-template-columns: 1rem 15rem;
 
 		column-gap: 0.5rem;
 		row-gap: 0.1rem;
@@ -617,24 +518,26 @@
 		background-color: var(--input-bg-color);
 	}
 	.checkbox-item {
-		display: contents;
+		display: inline-block;
 		color: var(--candidate-color);
 	}
 
 	.checkbox-item input[type='checkbox'] {
+		display: inline-block;
 		grid-column: 1;
 		justify-self: start;
 		align-self: center;
-		margin: 0;
+		margin: 0 0.6rem 0 0;
 	}
 
 	.checkbox-item label {
+		display: inline-block;
 		grid-column: 2;
 		justify-self: start;
 		align-self: center;
 		cursor: pointer;
 		line-height: 1;
-		width: 25rem !important;
+		width: 23.6rem !important;
 	}
 
 	.checkbox-item label:hover {
@@ -673,7 +576,7 @@
 		width: max-content;
 		padding: 6px 0 6px 1rem;
 		height: auto;
-		font-family: Georgia, 'Times New Roman', Times, serif;
+		/*font-family: Georgia, 'Times New Roman', Times, serif;*/
 		font-size: 15px !important;
 		font-weight: 500 !important;
 	}
@@ -708,9 +611,8 @@
 		border-radius: 5px;
 		font-weight: 400;
 		padding: 4px 1rem;
-		color: #f8f9fa;
-		background-color: navy;
-		border: 1px solid gray;
+		color: var(--candidate-color);
+		margin: 8rem 6.5rem;
 		width: max-content;
 		cursor: pointer;
 	}

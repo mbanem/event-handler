@@ -179,7 +179,7 @@ pnpm install prisma --save-dev
 pnpm install @prisma/client
 
 // now pnpm dlx instead of obsolete pnpx
-pnpm dlx prisma init
+pnpm dlx prisma init npm dlx prisma generate
 pnpm dlx prisma migrate reset
 pnpm dlx prisma migrate dev --name init
 pnpm dlx prisma generate	// is it the last statement or should be earlier?
@@ -191,4 +191,11 @@ CREATE ROLE $DBOWNER WITH LOGIN PASSWORD $DBPASSWORD CREATEDB;
 CREATE DATABASE $DBNAME OWNER $DBOWNER;
 GRANT CONNECT ON DATABASE TO $DBOWNER;
 sudo -u $SBOWNER psql -d $DBNAME
+*/
+
+/*
+	pnpm i @prisma/client
+	pnpm dlx prisma init --datasource-provider postgresql
+	pnpm dlx prisma migrate dev --name init
+	pnpm dlx prisma generate
 */
