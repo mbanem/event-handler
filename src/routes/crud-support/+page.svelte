@@ -25,7 +25,7 @@
 						console.log(`[DEV] ${msg.command} in progress...`);
 						setTimeout(() => {
 							console.log(`${msg.command} is done`, msg.payload ?? 'with no payload');
-						}, 3000);
+						}, 2000);
 					},
 				};
 
@@ -40,11 +40,11 @@
 		models = data_().models;
 		isLoading = false;
 	}, 3000);
-	if (!isLoading) {
-		setTimeout(() => {
-			initialize();
-		}, 1000);
-	}
+	// if (!isLoading) {
+	// 	setTimeout(() => {
+	// 		initialize();
+	// 	}, 1000);
+	// }
 	// Make a reactive local copy that you can safely bind to
 	let uiFields = new SvelteMap<string, Field>();
 	let candidates = new SvelteMap<string, Field>();
@@ -192,48 +192,54 @@
 		candidateTooltipEl = document.getElementById('candidateTooltipId') as HTMLParagraphElement;
 		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
 		routeNameEl = document.getElementById('routeNameId') as HTMLInputElement;
-
-		// listener for <summary/details> blocks
-		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
-			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
-				modelName = (event.target as HTMLElement).innerText;
-				const details = (event.target as HTMLElement).closest('details');
-				if (details && details.open) {
-					setTimeout(() => {
-						// has to use setTimeout as the element is still in opening
-						details.removeAttribute('open');
-					}, 200);
-					closeSchemaModels();
-					eh.destroy();
-					return;
-				}
-
-				closeSchemaModels();
-
-				routeNameEl.value = modelName.toLowerCase();
-				candidates.clear();
-				// make current uiFields and put them in candidate fields list
-				models[modelName].fields.forEach((fld) => {
-					if (fld.isDataEntry) {
-						uiFields.set(fld.name, fld);
-						candidates.set(fld.name, fld);
+		if (schemaContainerEl) {
+			// listener for <summary/details> blocks
+			schemaContainerEl.addEventListener('click', async (event: MouseEvent) => {
+				if ((event.target as HTMLElement).tagName === 'SUMMARY') {
+					modelName = (event.target as HTMLElement).innerText;
+					const details = (event.target as HTMLElement).closest('details');
+					if (details && details.open) {
+						setTimeout(() => {
+							// has to use setTimeout as the element is still in opening
+							details.removeAttribute('open');
+						}, 200);
+						closeSchemaModels();
+						eh.destroy();
+						return;
 					}
-				});
 
-				// now we have prisma models revealed in details and candidate fields list
-				// so call event-handler setup to handle tooltips and clicks on the lists
-				setCandidateHandlers();
-			}
-		});
+					closeSchemaModels();
+
+					routeNameEl.value = modelName.toLowerCase();
+					candidates.clear();
+					// make current uiFields and put them in candidate fields list
+					try {
+						models[modelName].fields.forEach((fld) => {
+							if (fld.isDataEntry) {
+								uiFields.set(fld.name, fld);
+								candidates.set(fld.name, fld);
+							}
+						});
+					} catch (err: unknown) {
+						const msg = err instanceof Error ? err.message : String(err);
+						console.log('models[modelName].fields', msg);
+					}
+
+					// now we have prisma models revealed in details and candidate fields list
+					// so call event-handler setup to handle tooltips and clicks on the lists
+					setCandidateHandlers();
+				}
+			});
+		}
 
 		return () => {
 			eh.destroy();
 		};
 	});
 	// }
-	onDestroy(() => {
-		eh.destroy();
-	});
+	// onDestroy(() => {
+	// 	eh.destroy();
+	// });
 	function closeDetails(dets: HTMLCollection) {
 		for (const child of Object.entries(dets)) {
 			const el = child[1].children[0] as HTMLElement;
@@ -244,6 +250,9 @@
 	}
 	function closeSchemaModels() {
 		routeNameEl.value = '';
+		if (!schemaContainerEl) {
+			schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
+		}
 		const children = schemaContainerEl?.children as HTMLCollection;
 		closeDetails(children);
 		candidates.clear();
@@ -255,11 +264,25 @@
 	function fieldAttrsTag(field: Field) {
 		return nuiRegex.test(field.attrs as string) ? 'attr-id' : '';
 	}
+	// let buildingApp = $state(true);
+	let candidateModules = $state<string[]>([]);
+	// let save: string[] = [];
+	// function toggleBuildingApp() {
+	// 	buildingApp = !buildingApp;
+	// 	if (buildingApp) {
+	// 		save = candidateModules;
+	// 		candidateModules = [];
+	// 	} else {
+	// 		candidateModules = [...save];
+	// 	}
+	// }
 </script>
 
 <svelte:head>
 	<title>CRUD Support</title>
 </svelte:head>
+<!-- <p>candidateModulesNumber {candidateModules.length} : {candidateModules}</p>
+<button onclick={toggleBuildingApp}>toggle building app</button> -->
 {#snippet candidateFields()}
 	{#each candidates as [name, field] (name)}
 		{#if field.isDataEntry}
@@ -274,9 +297,11 @@
 {/snippet}
 {#snippet summaryPrismaModel()}
 	{#each Object.entries(models) as [modelName, model] (modelName)}
-		<div class="cr-model-block">
+		<div>
 			<details>
-				<summary class="cr-model-name">{modelName}</summary>
+				<summary class="cr-model-name">
+					{modelName}
+				</summary>
 				<div class="X-{modelName} cr-fields-column" data-event-list="click mouseover mouseout">
 					{#each model.fields as field (field.name)}
 						{@const attrClass = fieldAttrsTag(field) as string}
@@ -294,6 +319,7 @@
 	{/each}
 	<p id="ormModelTooltipId" class="cr-prisma-remove-hint">click, add to candidates</p>
 {/snippet}
+
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
 		<cr-pre>
@@ -350,7 +376,6 @@
 			<p id="candidateTooltipId" class="cr-remove-hint">click to remove</p>
 		</div>
 	</div>
-
 	<div id="rightColumnId" class="cr-right-column">
 		<div id="schemaContainerId">
 			{#if isLoading}
@@ -360,10 +385,12 @@
 			{/if}
 		</div>
 	</div>
+	<p class="orm-models-caption">Select UI Fields from ORM</p>
 </div>
 
 <style lang="scss">
 	.cr-main-grid {
+		position: relative;
 		display: grid;
 		grid-template-columns: 40rem 20rem;
 		padding: 0.6rem 0 0 0.6rem;
@@ -371,7 +398,7 @@
 		width: 100vw;
 		height: 90vh;
 		align-items: start;
-		border-bottom: 1px solid gray;
+		// border-bottom: 1px solid gray;
 	}
 
 	.cr-grid-wrapper {
@@ -404,7 +431,7 @@
 		position: relative;
 		border: 1px solid gray;
 		border-radius: 8px;
-		height: 80vh;
+		height: 76vh;
 		width: 27.2rem;
 		padding: 1rem 0 0 0.7rem;
 		background-color: var(--panel-bg-color);
@@ -425,7 +452,7 @@
 		border: 1px solid gray;
 		border-radius: 5px;
 		padding: 1rem 6px 0 6px;
-		height: 80vh;
+		height: 76vh;
 		width: 12rem;
 		background-color: var(--panel-bg-color);
 		/* overflow-y: auto;	 */ /* cuts container's header */
@@ -464,7 +491,8 @@
 		left: 1.5rem !important;
 		z-index: 10;
 		font-size: 12px;
-		color: red;
+		color: var(--tooltip-color);
+		background-color: var(--tooltip-background-color);
 		width: max-content;
 		padding: 0 0.5rem 1px 0.5rem;
 		background-color: cornsilk;
@@ -509,19 +537,34 @@
 
 	#schemaContainerId {
 		height: auto;
+		/* could not make overflow scroll-bar hidden */
 		overflow-y: auto;
 	}
-
 	.cr-right-column {
 		position: relative;
-		@include container($head: 'Select UI Fields from ORM', $head-color: navy);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		// @include container($head: 'Select UI Fields from ORM', $head-color: navy);
 		/*color: var(--field-type-color);*/
 		background-color: var(--panel-bg-color);
-		height: 89.7vh;
+		height: 84.2vh;
 		width: 23.5rem;
+		border: 1px solid gray;
+		border-radius: 10px;
+		padding: 1.6rem 0 1rem 0;
 		.red-type {
 			color: var(--red-type) !important;
 		}
+	}
+	.orm-models-caption {
+		position: absolute;
+		top: -0.8rem;
+		left: 43rem;
+		z-index: 15;
+		padding: 0 5px;
+		color: var(--candidate-color);
+		background-color: var(--panel-bg-color);
 	}
 	.embellishments {
 		@include container($head: 'Include Components', $head-color: navy);
@@ -578,22 +621,29 @@
 		color: tomato;
 		font-size: 13px;
 	}
-	:global(.cr-model-block) {
-		max-height: auto;
-		overflow-y: auto;
-	}
+	// :global(.cr-model-block) {
+	// 	// max-height: auto;
+	// 	// overflow-y: overlay;
+	// 	// .no-scrollbar::-webkit-scrollbar {
+	// 	// 	display: none; /* Chrome, Safari, and Opera */
+	// 	// }
+	// }
 	:global(.cr-model-name) {
 		color: var(--summary-color);
 		background-color: var(--summary-bg-color);
 		margin-top: 3px;
-		width: 18rem;
+		width: 20rem;
 		border-radius: 6px;
 		padding-left: 1rem;
 		height: auto;
 		cursor: pointer;
+		.checkbox-model {
+			display: none;
+		}
 	}
 
 	:global(.cr-fields-column) {
+		// position: relative;
 		display: grid;
 		grid-template-columns: 7rem 9.5rem;
 		column-gap: 5px;
