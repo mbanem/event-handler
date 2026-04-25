@@ -1,62 +1,61 @@
 // this file is copied from github to take parts into crud-extension/extension.ts
 
-import * as vscode from 'vscode'
-import * as fs from 'fs'
-import * as path from 'path'
-import * as os from 'os'
+import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 // to find the work folder path
-import * as childProcess from 'child_process'
+import * as childProcess from 'child_process';
 
-
-const pgPassPath = path.join(os.homedir(), '.pgpass')
-let inputBoxWidth_ = ''
-let rootPath = ''
-let routesPath = ''
-let routeName_ = ''
-let modelObjName_ = ''
-let modelObjName_s = ''
-let modelObjCName_ = ''
-let fields_: string[] = []
-let lowerCaseTypes = ''
-let pendingFile = ''
+const pgPassPath = path.join(os.homedir(), '.pgpass');
+let inputBoxWidth_ = '';
+let rootPath = '';
+let routesPath = '';
+let routeName_ = '';
+let modelObjName_ = '';
+let modelObjName_s = '';
+let modelObjCName_ = '';
+let fields_: string[] = [];
+let lowerCaseTypes = '';
+let pendingFile = '';
 interface IStringBoolean {
-  [key: string]: boolean
+	[key: string]: boolean;
 }
 interface IStrKeyStrVal {
-  [key: string]: string
+	[key: string]: string;
 }
-let db_: IStrKeyStrVal = {}
+let db_: IStrKeyStrVal = {};
 interface ISelectBlocks {
-  [key: string]: IStrKeyStrVal
+	[key: string]: IStrKeyStrVal;
 }
-let selectBlocks: ISelectBlocks = {}
-let sudoName_ = ''
-let embellishments_: string[] = []
-let terminal: vscode.Terminal | undefined
-let noPrismaSchema = false
-let installPartTwoPending = false
-let pm = 'unknown'
-let ex = 'unknown'
+let selectBlocks: ISelectBlocks = {};
+let sudoName_ = '';
+let embellishments_: string[] = [];
+let terminal: vscode.Terminal | undefined;
+let noPrismaSchema = false;
+let installPartTwoPending = false;
+let pm = 'unknown';
+let ex = 'unknown';
 
 // ------------------------------------------------------
 // beginning of modelFields.Model where Model is from schema.prisma model/table name
 type TmodelFields = {
-  [key: string]: Array<[name: string, type: string]>
-}
+	[key: string]: Array<[name: string, type: string]>;
+};
 
 // Remove 'export type', newlines, and curly braces.
 // Deliberately keep the semicolons to help split fields later.
 const cleanedString = lowerCaseTypes
-  .replace(/export type/g, '') // Remove keywords
-  .replace(/[\n\r\s]+/g, '')   // Remove all whitespace/newlines
-  .replace(/[{}]/g, '')       // Remove brackets
+	.replace(/export type/g, '') // Remove keywords
+	.replace(/[\n\r\s]+/g, '') // Remove all whitespace/newlines
+	.replace(/[{}]/g, ''); // Remove brackets
 
 // Use a regex to capture "Name=Body" pairs.
 // The pattern matches: (Word)=(Anything until the next Name= or end of string)
-const rawBlocks = cleanedString.split(';').filter(Boolean)
+const rawBlocks = cleanedString.split(';').filter(Boolean);
 
 // Make an empty object to fill it up
-const modelFields: TmodelFields = {}
+const modelFields: TmodelFields = {};
 
 // Revised Strategy:
 // 1. Split by '=' to get segments.
@@ -64,50 +63,50 @@ const modelFields: TmodelFields = {}
 // 3. The middle segments contain "PreviousBodyName".
 // 4. The last segment is just "LastBody".
 
-const segments = cleanedString.split('=')
+const segments = cleanedString.split('=');
 
 for (let i = 0; i < segments.length - 1; i++) {
-  // The key is the end of the current segment (or the whole thing if it's the first)
-  // The body is the start of the next segment.
+	// The key is the end of the current segment (or the whole thing if it's the first)
+	// The body is the start of the next segment.
 
-  let objectName: string
-  let rawBody: string
+	let objectName: string;
+	let rawBody: string;
 
-  if (i === 0) {
-    objectName = segments[i] // "User"
-  } else {
-    // segment[i] looks like "string;Profile"
-    // Split the previous body from the new name
-    const parts = segments[i].split(';')
-    objectName = parts.pop()! // The last part is the new name "Profile"
-    // The rest is part of the previous body, but we handle bodies in the loop look-ahead (i+1)
-  }
+	if (i === 0) {
+		objectName = segments[i]; // "User"
+	} else {
+		// segment[i] looks like "string;Profile"
+		// Split the previous body from the new name
+		const parts = segments[i].split(';');
+		objectName = parts.pop()!; // The last part is the new name "Profile"
+		// The rest is part of the previous body, but we handle bodies in the loop look-ahead (i+1)
+	}
 
-  // Now look at the NEXT segment to find the body for this objectName
-  // segment[i+1] starts with the body fields: "bio:string;createdAt:Date;..."
-  // It ends with the start of the next object name (if not the last segment).
+	// Now look at the NEXT segment to find the body for this objectName
+	// segment[i+1] starts with the body fields: "bio:string;createdAt:Date;..."
+	// It ends with the start of the next object name (if not the last segment).
 
-  let bodySegment = segments[i + 1]
+	let bodySegment = segments[i + 1];
 
-  // If this isn't the very last segment, we need to chop off the next Object's name from the end
-  if (i < segments.length - 2) {
-    const parts = bodySegment.split(';')
-    parts.pop() // Remove the next object name
-    rawBody = parts.join(';')
-  } else {
-    // Last segment
-    rawBody = bodySegment
-  }
+	// If this isn't the very last segment, we need to chop off the next Object's name from the end
+	if (i < segments.length - 2) {
+		const parts = bodySegment.split(';');
+		parts.pop(); // Remove the next object name
+		rawBody = parts.join(';');
+	} else {
+		// Last segment
+		rawBody = bodySegment;
+	}
 
-  const fields: Array<[string, string]> = rawBody
-    .split(';')
-    .filter(Boolean)
-    .map((fieldStr) => {
-      const [fieldName, fieldType] = fieldStr.split(':')
-      return [fieldName, fieldType]
-    })
+	const fields: Array<[string, string]> = rawBody
+		.split(';')
+		.filter(Boolean)
+		.map((fieldStr) => {
+			const [fieldName, fieldType] = fieldStr.split(':');
+			return [fieldName, fieldType];
+		});
 
-  modelFields[objectName] = fields
+	modelFields[objectName] = fields;
 }
 
 // Usage for(const [name, type] of modelFields.User){...}
@@ -116,18 +115,18 @@ for (let i = 0; i < segments.length - 1; i++) {
 // end of building modelFields
 // ---------------------------------------------------------
 type Models = {
-  [modelName: string]: string[]
-}
-const modelsFieldNames: Models = {}
+	[modelName: string]: string[];
+};
+const modelsFieldNames: Models = {};
 function fNamesList(excludeName: string = '') {
-  let fList = ``
-  for (const field of fields_) {
-    const fieldName = field.split(':')[0]
-    if (fieldName !== excludeName) {
-      fList += `${fieldName}, `
-    }
-  }
-  return fList.slice(0, -2)
+	let fList = ``;
+	for (const field of fields_) {
+		const fieldName = field.split(':')[0];
+		if (fieldName !== excludeName) {
+			fList += `${fieldName}, `;
+		}
+	}
+	return fList.slice(0, -2);
 }
 
 /*
@@ -142,126 +141,156 @@ function fNamesList(excludeName: string = '') {
   ]
 */
 function dbSelectListDataEntry(kind: string, strToNum: boolean = false) {
-  let f = ``
-  switch (kind) {
-    case 'Select': {
-      fields_.forEach(field => {
-        if (!field.includes('password')) {
-          f += field.replace(/"/g, '') + ',\n'
-        }
-      })
-      return f
-    }
-    case 'List': {
-      return (fields_.join() + ',').replace(/:\s*?\w+,/g, ', ').slice(0, -2)
-    }
-    case '?List': {
-      return (fields_.join() + ',').replace(/:/g, '?:').replace(/:\s*?\w+,/g, ', ').slice(0, -2)
-    }
-    case 'formData': {
-      return (fields_.join() + ',').replace(/,/g, ',\n\t\t\t').slice(0, -4)
-    }
-    case '?formData': {
-      return (fields_.join() + ',').replace(/:/g, '?:').replace(/,/g, ',\n\t\t\t').slice(0, -4)
-    }
-    case 'DataEntry': {
-      return fields_.join()
-        .replace(/updatedAt:.*?Da/, 'updatedAt')
-        .replace(/id,/, '')
-        .replace(/:\s*?\w+,/g, ',\n\t\t\t')
-        .slice(0, -2)
-        .replace(/password/, 'passwordHash: await bcrypt.hash(password, 10)') +
-        ',\n\t\t\t\t\tuserAuthToken: crypto.randomUUID()'
-    }
-    default: {
-      return ''
-    }
-  }
+	let f = ``;
+	switch (kind) {
+		case 'Select': {
+			fields_.forEach((field) => {
+				if (!field.includes('password')) {
+					f += field.replace(/"/g, '') + ',\n';
+				}
+			});
+			return f;
+		}
+		case 'List': {
+			return (fields_.join() + ',').replace(/:\s*?\w+,/g, ', ').slice(0, -2);
+		}
+		case '?List': {
+			return (fields_.join() + ',')
+				.replace(/:/g, '?:')
+				.replace(/:\s*?\w+,/g, ', ')
+				.slice(0, -2);
+		}
+		case 'formData': {
+			return (fields_.join() + ',').replace(/,/g, ',\n\t\t\t').slice(0, -4);
+		}
+		case '?formData': {
+			return (fields_.join() + ',').replace(/:/g, '?:').replace(/,/g, ',\n\t\t\t').slice(0, -4);
+		}
+		case 'DataEntry': {
+			return (
+				fields_
+					.join()
+					.replace(/updatedAt:.*?Da/, 'updatedAt')
+					.replace(/id,/, '')
+					.replace(/:\s*?\w+,/g, ',\n\t\t\t')
+					.slice(0, -2)
+					.replace(/password/, 'passwordHash: await bcrypt.hash(password, 10)') +
+				',\n\t\t\t\t\tuserAuthToken: crypto.randomUUID()'
+			);
+		}
+		default: {
+			return '';
+		}
+	}
 }
 
 // every object to sort its leading props per the ordered array
 const ordered = [
-  'id', 'authorId', 'userId', 'employeeId', 'customerId', 'ownerId',
-  'firstName', 'lastName', 'middleName', 'name', 'profileId', 'dob',
-  'dateOfBirth', 'email', 'password', 'address', 'city', 'state',
-  'title', 'content', 'category', 'role', 'priority', 'price', 'updatedAt'
-]
+	'id',
+	'authorId',
+	'userId',
+	'employeeId',
+	'customerId',
+	'ownerId',
+	'firstName',
+	'lastName',
+	'middleName',
+	'name',
+	'profileId',
+	'dob',
+	'dateOfBirth',
+	'email',
+	'password',
+	'address',
+	'city',
+	'state',
+	'title',
+	'content',
+	'category',
+	'role',
+	'priority',
+	'price',
+	'updatedAt',
+];
 function sortArrByOrdered(arr: string[]) {
-  const orderedPart = ordered.map((key) => arr.find((item) => item.startsWith(key + ':'))).filter(Boolean)
-  const leftoverPart = arr.filter((item) => {
-    const key = item.split(':')[0].trim()
-    return !ordered.includes(key)
-  })
-  return [...orderedPart, ...leftoverPart]
+	const orderedPart = ordered.map((key) => arr.find((item) => item.startsWith(key + ':'))).filter(Boolean);
+	const leftoverPart = arr.filter((item) => {
+		const key = item.split(':')[0].trim();
+		return !ordered.includes(key);
+	});
+	return [...orderedPart, ...leftoverPart];
 }
 // selectBlocks['User'] returns object of  id: "string | null", firstName: "string | null", ...
-// 
+//
 function createSelectBlocks(partialTypes: string) {
-  // Regex to capture: "UserPartial" and the "{...}"
-  const typeRegex = /export\s+type\s+(\w+)Partial\s*=\s*\{([\s\S]*?)\};/g
-  let match
-  while ((match = typeRegex.exec(partialTypes)) !== null) {
-    const objectName = match[1]     // e.g. "User"
-    const body = match[2].trim()    // content inside { ... }
-    // Split lines inside the type body and pre-order
-    const lines = sortArrByOrdered(body
-      .split("\n")
-      .map(l => l.trim())
-      .filter(l => l.length && l.includes(":"))
-    )
-    // Convert each line "key: value;" → { key: "value" }
-    const obj: IStrKeyStrVal = {}
-    for (const line of lines) {
-      const [key, value] = (line?.replace(";", "").split(":") as string[]).map(x => x.trim())
-      obj[key] = value
-    }
-    selectBlocks[objectName] = obj
-  }
+	// Regex to capture: "UserPartial" and the "{...}"
+	const typeRegex = /export\s+type\s+(\w+)Partial\s*=\s*\{([\s\S]*?)\};/g;
+	let match;
+	while ((match = typeRegex.exec(partialTypes)) !== null) {
+		const objectName = match[1]; // e.g. "User"
+		const body = match[2].trim(); // content inside { ... }
+		// Split lines inside the type body and pre-order
+		const lines = sortArrByOrdered(
+			body
+				.split('\n')
+				.map((l) => l.trim())
+				.filter((l) => l.length && l.includes(':'))
+		);
+		// Convert each line "key: value;" → { key: "value" }
+		const obj: IStrKeyStrVal = {};
+		for (const line of lines) {
+			const [key, value] = (line?.replace(';', '').split(':') as string[]).map((x) => x.trim());
+			obj[key] = value;
+		}
+		selectBlocks[objectName] = obj;
+	}
 }
 // blockChangeProps('User', 'no null') returns object of id: string, firstName: string, ...
 // blockChangeProps('User') returns object of id: true, firstName: true, ...
 // blockChangeProps('User', ': string') turns every prop type to string id: string, firstName: string, ...
 function blockChangeProps(block: string, prop: string = ': true') {
-  // initial props "string | null" to be replaced with the prop
-  // or when prop === 'no null' to remove | null from prop type
-  let list = `{ `
-  for (const [k, v] of Object.entries(selectBlocks[block])) {
-    if (prop === 'no null') {
-      list += `${k}: ${v.replace(/ \| null/, ', ')}`
-    } else {
-      list += `${k}${prop}, `
-    }
-  }
-  return list.slice(0, -2) + ' }'
+	// initial props "string | null" to be replaced with the prop
+	// or when prop === 'no null' to remove | null from prop type
+	let list = `{ `;
+	for (const [k, v] of Object.entries(selectBlocks[block])) {
+		if (prop === 'no null') {
+			list += `${k}: ${v.replace(/ \| null/, ', ')}`;
+		} else {
+			list += `${k}${prop}, `;
+		}
+	}
+	return list.slice(0, -2) + ' }';
 }
 
 function fieldsList(block: string) {
-  return Object.keys(selectBlocks[block])
-    .join()
-    .replace(/password,?/, '')
-    .replace(/,/g, ': true, ') + ': true'
+	return (
+		Object.keys(selectBlocks[block])
+			.join()
+			.replace(/password,?/, '')
+			.replace(/,/g, ': true, ') + ': true'
+	);
 }
 
 function fieldTypeList(excludeName: string = '') {
-  let fieldTypeList = ``
-  for (const field of fields_) {
-    if (field !== excludeName) {
-      fieldTypeList += `${field}
-      `
-    }
-  }
-  return fieldTypeList.slice(0, -7)
+	let fieldTypeList = ``;
+	for (const field of fields_) {
+		if (field !== excludeName) {
+			fieldTypeList += `${field}
+      `;
+		}
+	}
+	return fieldTypeList.slice(0, -7);
 }
 function passwordHashAndToken() {
-  if (modelObjName_ !== 'user') {
-    return '' // TODO
-  }
-  return `passwordHash: await bcrypt.hash(password, 10),
+	if (modelObjName_ !== 'user') {
+		return ''; // TODO
+	}
+	return `passwordHash: await bcrypt.hash(password, 10),
 				userAuthToken: crypto.randomUUID()
-		`.slice(0, -3)
+		`.slice(0, -3);
 }
 function getHelpersPage() {
-  return `// helpers.ts
+	return `// helpers.ts
 import { browser } from '$app/environment';
 export const sleep = async (ms: number) => {
   return new Promise((resolve) => {
@@ -413,46 +442,50 @@ export function same<T extends Record<string, any>>(v1: T, v2: T): boolean {
     if (v1[k] !== v2[k]) return false;
   }
   return true;
-}`
+}`;
 }
 
 function getPrismaClient() {
-  return `
+	return `
 import { PrismaClient } from '@prisma/client';
 // export const db = new PrismaClient();
 export const db = new PrismaClient({
   log: ['warn', 'error']
 });
 // log: ['query', 'info', 'warn', 'error']
-`
+`;
 }
 
 function getPartialTypes() {
-  let lowercaseTypes = lowerCaseTypes.replace(/(\s*?).*?password.*?:/mg, '$1\t\tpassword:').replace(/export type (\w+)\s*=/g, 'export type $1Partial =')
-  const allowedFields = 'string|number|boolean|Date|Role|password'
-  const excludedFields = '[]|createdAt|Hash|Token|Post|Blog|User|Category|Todo|Profile'
-  let allowedRegex = new RegExp(allowedFields)
-  let excludedRegex = new RegExp(excludedFields)
-  function uiField(field: string) {
-    let ok = field.match(allowedRegex)
-    let nok = field.match(excludedRegex)
-    return ok && !nok
-  }
-  // as the lowercaseTypes begin with split string 'export type' the first
-  // entry will hold an empty type , so skip it with sp.slice(1)
-  const sp = lowercaseTypes.split('export type')
-  let f = ''
-  sp.slice(1).forEach((type: string) => {
-    let fields = type.split('\n')
-    f += 'export type ' + fields[0] + '\n'
-    fields.slice(1, -1).forEach(field => {
-      if (uiField(field)) {
-        f += field.replace(/;/, ' | null;\n')
-      }
-    })
-    f += '};\n'
-  })
-  return f + `
+	let lowercaseTypes = lowerCaseTypes
+		.replace(/(\s*?).*?password.*?:/gm, '$1\t\tpassword:')
+		.replace(/export type (\w+)\s*=/g, 'export type $1Partial =');
+	const allowedFields = 'string|number|boolean|Date|Role|password';
+	const excludedFields = '[]|createdAt|Hash|Token|Post|Blog|User|Category|Todo|Profile';
+	let allowedRegex = new RegExp(allowedFields);
+	let excludedRegex = new RegExp(excludedFields);
+	function uiField(field: string) {
+		let ok = field.match(allowedRegex);
+		let nok = field.match(excludedRegex);
+		return ok && !nok;
+	}
+	// as the lowercaseTypes begin with split string 'export type' the first
+	// entry will hold an empty type , so skip it with sp.slice(1)
+	const sp = lowercaseTypes.split('export type');
+	let f = '';
+	sp.slice(1).forEach((type: string) => {
+		let fields = type.split('\n');
+		f += 'export type ' + fields[0] + '\n';
+		fields.slice(1, -1).forEach((field) => {
+			if (uiField(field)) {
+				f += field.replace(/;/, ' | null;\n');
+			}
+		});
+		f += '};\n';
+	});
+	return (
+		f +
+		`
 export type TCRInput = typeof CRInput;
 export type TCRActivity = typeof CRActivity;
 export type TCRTooltip = typeof CRTooltip;
@@ -462,11 +495,11 @@ export interface IStringBoolean {
   [key: string]: boolean;
 }
   `
+	);
 }
 
 function getHooksPage() {
-
-  return `
+	return `
   import { redirect } from '@sveltejs/kit';
   import type {Handle} from '@sveltejs/kit';
   import { db } from '$lib/server/db';
@@ -538,19 +571,19 @@ function getHooksPage() {
     }
 
     return await resolve(event);
-  }) satisfies Handle;`
-};
+  }) satisfies Handle;`;
+}
 function shouldSelectUsers() {
-  if (modelObjName_ !== 'user') {
-    return `const users = await db.user.findMany({
+	if (modelObjName_ !== 'user') {
+		return `const users = await db.user.findMany({
     select: ${blockChangeProps('User').replace(/password: true,/, '')}
-  });`
-  }
-  return ''
+  });`;
+	}
+	return '';
 }
 // called for User and other objects models
 function getServerPage() {
-  let imp = `
+	let imp = `
 import { db } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
@@ -600,7 +633,9 @@ export const actions: Actions = {
 
 
     const ${modelObjName_}Exists = await db.${modelObjName_}.findFirst({
-      where: utils.toNumerics(${fNamesList('id').replace(/password,?\s*?/, '').replace(/role,?\s*?/, '')})
+      where: utils.toNumerics(${fNamesList('id')
+				.replace(/password,?\s*?/, '')
+				.replace(/role,?\s*?/, '')})
     })
     if (${modelObjName_}Exists) {
       return fail(400, {
@@ -692,8 +727,8 @@ export const actions: Actions = {
     }
   }
 } satisfies Actions
-`
-  return imp
+`;
+	return imp;
 }
 const schemaWhatToDo = `/*
 MAKE YOUR PRISMA SCHEMA MODELS HERE
@@ -710,7 +745,7 @@ Now in your program you use firstName but in db it is the first_name
 and the table in program is User but in db users thanks to the operators
 @map first_name and @@map users, as some db have
 internal user table so we use plural instead.
-*/`
+*/`;
 
 const envWhatToDo = `# Environment variables declared in this file are automatically made available to Prisma.
 // See the documentation for more detail: https://pris.ly/d/prisma-schema//accessing-environment-variables-from-the-schema
@@ -727,42 +762,49 @@ DATABASE_URL="postgresql://username:password@localhost:5432/dbName?schema=public
 // see docs for how to use SECRET_API_KEYs
 SECRET_APT_KEY="kiki:kiki@localhost:5432
 SECRET_APT_ENV=development
-SECRET_API_KEY=1234567890`
+SECRET_API_KEY=1234567890`;
 
 const sleep = async (ms: number) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // ms here is a dummy but required by
-      // resolve to send out some value
-      resolve(ms)
-    }, ms)
-  })
-}
-
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			// ms here is a dummy but required by
+			// resolve to send out some value
+			resolve(ms);
+		}, ms);
+	});
+};
 
 function createPendingFile() {
-
-  if (!fs.existsSync(pendingFile)) {
-    fs.writeFileSync(pendingFile, 'install Prisma PartOne is done.\nInstallPartTwo is pending but may be already done by User.')
-  }
+	if (!fs.existsSync(pendingFile)) {
+		fs.writeFileSync(
+			pendingFile,
+			'install Prisma PartOne is done.\nInstallPartTwo is pending but may be already done by User.'
+		);
+	}
 }
 function deletePendingFile() {
-  if (fs.existsSync(pendingFile)) {
-    fs.unlink(pendingFile, (err) => {
-      if (err) {
-        vscode.window.showInformationMessage('Could not delete installPartTwo.pending file at /prisma. Please delete it yourself')
-      }
-    })
-  }
-  if (fs.existsSync(pgPassPath)) {
-    fs.unlink(pgPassPath, (err) => {
-      if (err) {
-        vscode.window.showInformationMessage('Could not delete .pgpass file at /home directory. Pleae delete it yourself')
-      }
-    })
-  }
-  const prismaConfigFile = path.join(rootPath, 'prisma.config.ts')
-  fs.writeFileSync(prismaConfigFile, `import "dotenv/config"
+	if (fs.existsSync(pendingFile)) {
+		fs.unlink(pendingFile, (err) => {
+			if (err) {
+				vscode.window.showInformationMessage(
+					'Could not delete installPartTwo.pending file at /prisma. Please delete it yourself'
+				);
+			}
+		});
+	}
+	if (fs.existsSync(pgPassPath)) {
+		fs.unlink(pgPassPath, (err) => {
+			if (err) {
+				vscode.window.showInformationMessage(
+					'Could not delete .pgpass file at /home directory. Pleae delete it yourself'
+				);
+			}
+		});
+	}
+	const prismaConfigFile = path.join(rootPath, 'prisma.config.ts');
+	fs.writeFileSync(
+		prismaConfigFile,
+		`import "dotenv/config"
   export default {
     schema: "prisma/schema.prisma",
     migrations: {
@@ -771,78 +813,82 @@ function deletePendingFile() {
     datasource: {
       url: process.env.DATABASE_URL,
     },
-  }`)
+  }`
+	);
 }
-type PMErr = { err: string }
+type PMErr = { err: string };
 function detectPackageManager(): 'npm' | 'pnpm' | 'yarn' | 'bun' | PMErr {
+	if (fs.existsSync(path.join(rootPath, 'pnpm-lock.yaml'))) return (pm = 'pnpm');
+	if (fs.existsSync(path.join(rootPath, 'yarn.lock'))) return (pm = 'yarn');
+	if (fs.existsSync(path.join(rootPath, 'bun.lockb'))) return (pm = 'bun');
+	if (fs.existsSync(path.join(rootPath, 'package-lock.json'))) return (pm = 'npm');
 
-  if (fs.existsSync(path.join(rootPath, 'pnpm-lock.yaml'))) return pm = 'pnpm'
-  if (fs.existsSync(path.join(rootPath, 'yarn.lock'))) return pm = 'yarn'
-  if (fs.existsSync(path.join(rootPath, 'bun.lockb'))) return pm = 'bun'
-  if (fs.existsSync(path.join(rootPath, 'package-lock.json'))) return pm = 'npm'
-
-  return { err: 'unknown' }
+	return { err: 'unknown' };
 }
 function xPackageManager(pm: string): 'npx' | 'pnpx' | 'yarn dlx' | 'bunx' | 'unknown' {
-  switch (pm) {
-    case 'npm': return ex = 'npx'
-    case 'pnpm': return ex = 'pnpx'
-    case 'bun': return ex = 'bunx'
-    case 'yarn': return ex = 'yarn dlx'
-    default: return ex = 'unknown'
-  }
+	switch (pm) {
+		case 'npm':
+			return (ex = 'npx');
+		case 'pnpm':
+			return (ex = 'pnpx');
+		case 'bun':
+			return (ex = 'bunx');
+		case 'yarn':
+			return (ex = 'yarn dlx');
+		default:
+			return (ex = 'unknown');
+	}
 }
 
 // Promise wrapper for childProcess.exec
 function execShell(cmd: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    childProcess.exec(cmd, { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath }, (err, stdout, stderr) => {
-      if (err) {
-        reject(new Error(`Command failed: ${stderr}`))
-        return
-      }
-      resolve(stdout)
-    })
-  })
+	return new Promise((resolve, reject) => {
+		childProcess.exec(cmd, { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath }, (err, stdout, stderr) => {
+			if (err) {
+				reject(new Error(`Command failed: ${stderr}`));
+				return;
+			}
+			resolve(stdout);
+		});
+	});
 }
 
 function sendToTerminal(cmd: string) {
-  if (!terminal) {
-    terminal = vscode.window.createTerminal(`WebView Terminal`)
-  }
-  terminal.show(true) // reveal the terminal
-  terminal.sendText(cmd)
+	if (!terminal) {
+		terminal = vscode.window.createTerminal(`WebView Terminal`);
+	}
+	terminal.show(true); // reveal the terminal
+	terminal.sendText(cmd);
 }
 
 function ensureComponentPath() {
-
-  try {
-    const componentsPath = path.join(rootPath as string, '/src/lib/components')
-    if (!fs.existsSync(componentsPath)) {
-      fs.mkdirSync(componentsPath, { recursive: true })
-    }
-    return componentsPath
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.log('enshure component path', msg)
-    return false
-  }
+	try {
+		const componentsPath = path.join(rootPath as string, '/src/lib/components');
+		if (!fs.existsSync(componentsPath)) {
+			fs.mkdirSync(componentsPath, { recursive: true });
+		}
+		return componentsPath;
+	} catch (err: unknown) {
+		const msg = err instanceof Error ? err.message : String(err);
+		console.log('enshure component path', msg);
+		return false;
+	}
 }
 
 function noType(name: string) {
-  return name.match(/([a-zA-z0-9_]+)\:?.*/)?.[1]
+	return name.match(/([a-zA-z0-9_]+)\:?.*/)?.[1];
 }
 let buttons = `<div class='buttons'>
-      `
+      `;
 function spinners_() {
-  const spinner: boolean = embellishments_.includes('CRSpinner');
-  ['create', 'update', 'delete', 'clear'].forEach((caption) => {
-    // const faction = caption === 'clear' ? 'clear': caption
-    const cap = caption[0].toUpperCase() + caption.slice(1)
-    const hid = cap === 'Clear' ? 'false' : `dBtn${cap}`
-    const spinOn = cap === 'Clear' ? 'false' : `spin.${caption}`
-    if (spinner) {
-      buttons += `    <CRSpinner
+	const spinner: boolean = embellishments_.includes('CRSpinner');
+	['create', 'update', 'delete', 'clear'].forEach((caption) => {
+		// const faction = caption === 'clear' ? 'clear': caption
+		const cap = caption[0].toUpperCase() + caption.slice(1);
+		const hid = cap === 'Clear' ? 'false' : `dBtn${cap}`;
+		const spinOn = cap === 'Clear' ? 'false' : `spin.${caption}`;
+		if (spinner) {
+			buttons += `    <CRSpinner
             bind:button={btn${cap}}
             spinOn={${spinOn}}
             caption=${caption}
@@ -851,64 +897,64 @@ function spinners_() {
             {color}
           >
           </CRSpinner>
-          `
-    } else {
-      buttons += `<button bind:this={btn${cap}} name="${caption}" formaction="?/${caption}">${caption}</button>
-          `
-    }
-    buttons + `</div>
-      `
-  })
-  return ''  // called as ()=>void with no return output is 'undefined'
+          `;
+		} else {
+			buttons += `<button bind:this={btn${cap}} name="${caption}" formaction="?/${caption}">${caption}</button>
+          `;
+		}
+		buttons +
+			`</div>
+      `;
+	});
+	return ''; // called as ()=>void with no return output is 'undefined'
 }
 
 function asType(type: string) {
-
-  switch (type) {
-    case 'string': {
-      return 'as string'
-    }
-    case 'number': {
-      return 'as number'
-    }
-    case 'boolean': {
-      return 'as boolean'
-    }
-    case 'role': {
-      return 'as Types.Role'
-    }
-    case 'date': {
-      return 'as Date'
-    }
-  }
-  return ''
+	switch (type) {
+		case 'string': {
+			return 'as string';
+		}
+		case 'number': {
+			return 'as number';
+		}
+		case 'boolean': {
+			return 'as boolean';
+		}
+		case 'role': {
+			return 'as Types.Role';
+		}
+		case 'date': {
+			return 'as Date';
+		}
+	}
+	return '';
 }
 
 function inputType(name: string, type: string) {
-  name = name.toLowerCase()
-  type = type.toLowerCase()
-  if (name === 'password') {
-    return 'password'
-  }
-  if (type === 'number') {
-    return 'number'
-  }
-  return 'text'
+	name = name.toLowerCase();
+	type = type.toLowerCase();
+	if (name === 'password') {
+		return 'password';
+	}
+	if (type === 'number') {
+		return 'number';
+	}
+	return 'text';
 }
 
 function toCapitalize(name: string, type: string) {
-  if ('id|password|email'.includes(name.toLowerCase())) {
-    return false
-  }
-  return true
+	if ('id|password|email'.includes(name.toLowerCase())) {
+		return false;
+	}
+	return true;
 }
 
 function inputBox(name: string, type: string) {
-  const required = name === 'id' ? '!dBtnCreate' : '!dBtnUpdate'
-  const bindEl = `bind:this={${name}El}`
-  if (embellishments_.includes('CRInput')) {
-    if ('radio|checkbox'.includes(type)) {
-      return `<CRInput 
+	const required = name === 'id' ? '!dBtnCreate' : '!dBtnUpdate';
+	const bindEl = `bind:this={${name}El}`;
+	if (embellishments_.includes('CRInput')) {
+		if ('radio|checkbox'.includes(type)) {
+			return `<CRInput 
         title="${name}"
         ${bindEl}
         type='${type}'
@@ -917,9 +963,9 @@ function inputBox(name: string, type: string) {
         width="${inputBoxWidth_}"
       >
       </CRInput>
-      `
-    }
-    return `<CRInput 
+      `;
+		}
+		return `<CRInput 
         title="${name}"
         ${bindEl}
         exportValueOn="enter|blur"
@@ -930,129 +976,134 @@ function inputBox(name: string, type: string) {
         width="${inputBoxWidth_}"
       >
       </CRInput>
-      `
-  }
-  // standard input boxes required
-  return `<input type="hidden" name="${name}" bind:value={snap.${name}} />
-  `
+      `;
+	}
+	// standard input boxes required
+	return `<input type="hidden" name="${name}" bind:value={snap.${name}} />
+  `;
 }
 
 function submitFunc() {
-  return
+	return;
 }
-let ix = 0 // render up to five object properties in the rowList
-// key added as key: utils.sixHash() to db select object list 
+let ix = 0; // render up to five object properties in the rowList
+// key added as key: utils.sixHash() to db select object list
 // as Svelte needs unique id for {#each } loop
-let rowList = '<p id={row.key}>' // TODO replace row with summary/details rendered via snippet
-let set = new Set<string>()
-let variables = ``
-let uiElementsStr: string[] = []
-let theInitValues: string[] = []
-let uiSelectFields = ``
+let rowList = '<p id={row.key}>'; // TODO replace row with summary/details rendered via snippet
+let set = new Set<string>();
+let variables = ``;
+let uiElementsStr: string[] = [];
+let theInitValues: string[] = [];
+let uiSelectFields = ``;
 function initValues() {
-  let uiSelect = new Set<string>()
-  let updateFields = ``
-  let partialType = `type ${modelObjCName_}Partial = {
-    `
-  let clean_snap = ''
-  const fields: string[] = []
-  fields_.forEach(fName => {
-    const m = (fName as string).match(/(.+):\s*(\S+)/)?.map((m: string, index: number) => index === 2 ? m.toLowerCase() : m)
-    let name: string = ''
-    let type: string = ''
-    if (m) {
-      name = m[1]
-      type = m[2]
-    }
-    // let [ , name, type] = (fName as string).match(/(.+):\s*(\S+)/)?.map((m:string,index:number) => index===2 ? m.toLowerCase() : m); 
-    if ('int|Int'.includes(type)) {
-      type = 'number'
-    }
-    updateFields += `${name}: u.${name},
-          `
-    clean_snap += name + `: null,
-    `
-    set.add(`let ${name}El: Types.TCRInput | null = null;
-  `)
-    // if (ix++ < 5){
-    rowList += `{row.${name}} &nbsp;`
-    // }
-    uiElementsStr.push(`${name}El`)
-    if (name !== 'password') {
-      uiSelect.add(name)
-    }
-    if (!fields.includes('id:string')) {
-      fields.push(`
-  id: null`)
-    }
-    if (type.includes('[]')) {
-      type = 'array'
-    }
-    type = type.replace(/\?/g, '')
-    switch (type) {
-      case 'string': {
-        fields.push(`
-  ${name}: null`)
-        if (name !== 'id') {
-          partialType += `${name}: string | null
-  `
-        }
-        break
-      }
-      case 'number': {
-        fields.push(`
-  ${name}: 0`)
-        partialType += `${name}: number | null
-  `
-        break
-      }
-      case 'date': {
-        fields.push(`
-  ${name}: null`)
-        partialType += `${name}: Date | null
-  `
-        break
-      }
-      case 'boolean': {
-        fields.push(`
-  ${name}: false`)
-        partialType += `${name}: boolean | null
-  `
-        break
-      }
-      case 'array': {
-        fields.push(`
-  ${name}: []`)
-        partialType += `${name}: array | []
-  `
-        break
-      }
-      case 'role': {
-        fields.push(`
-  ${name}: 'VISITOR'`)
-        partialType += `${name}: Types.Role | null
-  `
-        break
-      }
-      default: {
-        fields.push(`
-  ${name}: ${type}`)
-        partialType += `${name}: ${type} | null
-  `
-        break
-      }
-    }
-  })
-  clean_snap = clean_snap.replace(/,\s*$/, '')
-  partialType = partialType.slice(0, -3) + `
-}`
-  updateFields = updateFields.replace(/u\.password/, "''").slice(0, -11)
-  uiSelectFields = Array.from(uiSelect).join(',\n')
-  theInitValues = [clean_snap, partialType, updateFields]
-  variables = Array.from(set).join('')
-  rowList = rowList.replace(/<\/p>/, '') + '</p>'
+	let uiSelect = new Set<string>();
+	let updateFields = ``;
+	let partialType = `type ${modelObjCName_}Partial = {
+    `;
+	let clean_snap = '';
+	const fields: string[] = [];
+	fields_.forEach((fName) => {
+		const m = (fName as string)
+			.match(/(.+):\s*(\S+)/)
+			?.map((m: string, index: number) => (index === 2 ? m.toLowerCase() : m));
+		let name: string = '';
+		let type: string = '';
+		if (m) {
+			name = m[1];
+			type = m[2];
+		}
+		// let [ , name, type] = (fName as string).match(/(.+):\s*(\S+)/)?.map((m:string,index:number) => index===2 ? m.toLowerCase() : m);
+		if ('int|Int'.includes(type)) {
+			type = 'number';
+		}
+		updateFields += `${name}: u.${name},
+          `;
+		clean_snap +=
+			name +
+			`: null,
+    `;
+		set.add(`let ${name}El: Types.TCRInput | null = null;
+  `);
+		// if (ix++ < 5){
+		rowList += `{row.${name}} &nbsp;`;
+		// }
+		uiElementsStr.push(`${name}El`);
+		if (name !== 'password') {
+			uiSelect.add(name);
+		}
+		if (!fields.includes('id:string')) {
+			fields.push(`
+  id: null`);
+		}
+		if (type.includes('[]')) {
+			type = 'array';
+		}
+		type = type.replace(/\?/g, '');
+		switch (type) {
+			case 'string': {
+				fields.push(`
+  ${name}: null`);
+				if (name !== 'id') {
+					partialType += `${name}: string | null
+  `;
+				}
+				break;
+			}
+			case 'number': {
+				fields.push(`
+  ${name}: 0`);
+				partialType += `${name}: number | null
+  `;
+				break;
+			}
+			case 'date': {
+				fields.push(`
+  ${name}: null`);
+				partialType += `${name}: Date | null
+  `;
+				break;
+			}
+			case 'boolean': {
+				fields.push(`
+  ${name}: false`);
+				partialType += `${name}: boolean | null
+  `;
+				break;
+			}
+			case 'array': {
+				fields.push(`
+  ${name}: []`);
+				partialType += `${name}: array | []
+  `;
+				break;
+			}
+			case 'role': {
+				fields.push(`
+  ${name}: 'VISITOR'`);
+				partialType += `${name}: Types.Role | null
+  `;
+				break;
+			}
+			default: {
+				fields.push(`
+  ${name}: ${type}`);
+				partialType += `${name}: ${type} | null
+  `;
+				break;
+			}
+		}
+	});
+	clean_snap = clean_snap.replace(/,\s*$/, '');
+	partialType =
+		partialType.slice(0, -3) +
+		`
+}`;
+	updateFields = updateFields.replace(/u\.password/, "''").slice(0, -11);
+	uiSelectFields = Array.from(uiSelect).join(',\n');
+	theInitValues = [clean_snap, partialType, updateFields];
+	variables = Array.from(set).join('');
+	rowList = rowList.replace(/<\/p>/, '') + '</p>';
 }
-
 
 // function nullType(fName:string){
 //  let [ , name, type] = fName.match(/(.+):\s*(\S+)/)?.map((m:string,index:number) => index===2 ? m.toLowerCase() : m);
@@ -1064,50 +1115,53 @@ function initValues() {
 //  }
 //}
 
-let importTypes = 'import type {'
+let importTypes = 'import type {';
 
 function createFormPage(includeTypes: string, outputChannel: any) {
-  // outputChannel.appendLine('createFormPage entry point routesPath: '+ routesPath); outputChannel.show();
-  const routeNamePath = path.join(routesPath, routeName_)
-  if (!fs.existsSync(routeNamePath)) {
-    // outputChannel.appendLine('create routeNamePath: '+ routeNamePath); outputChannel.show();
-    fs.mkdirSync(routeNamePath, { recursive: true })
-  }
+	// outputChannel.appendLine('createFormPage entry point routesPath: '+ routesPath); outputChannel.show();
+	const routeNamePath = path.join(routesPath, routeName_);
+	if (!fs.existsSync(routeNamePath)) {
+		// outputChannel.appendLine('create routeNamePath: '+ routeNamePath); outputChannel.show();
+		fs.mkdirSync(routeNamePath, { recursive: true });
+	}
 
-  let inputBoxes = ''
+	let inputBoxes = '';
 
-  fields_.forEach(fName => {
-    const m = (fName as string).match(/(.+):\s*(\S+)/)?.map((m: string, index: number) => index === 2 ? m.toLowerCase() : m)
-    let name: string = ''
-    let type: string = ''
-    if (m) {
-      name = m[1]
-      type = m[2]
-    }
+	fields_.forEach((fName) => {
+		const m = (fName as string)
+			.match(/(.+):\s*(\S+)/)
+			?.map((m: string, index: number) => (index === 2 ? m.toLowerCase() : m));
+		let name: string = '';
+		let type: string = '';
+		if (m) {
+			name = m[1];
+			type = m[2];
+		}
 
-    // let [ , name, type] = (fName as string).match(/(.+):\s*(\S+)/)?.map((m:string,index:number) => index===2 ? m.toLowerCase() : m);
+		// let [ , name, type] = (fName as string).match(/(.+):\s*(\S+)/)?.map((m:string,index:number) => index===2 ? m.toLowerCase() : m);
 
-    inputBoxes += inputBox(name, type)
-  })
-  let imports = ''
-  embellishments_.forEach(comp => {
-    imports += `import ${comp} from '$lib/components/${comp}.svelte';
-  `
-  })
-  let cr_Activity = ''
-  if (embellishments_.includes('CRActivity')) {
-    cr_Activity = `<CRActivity
+		inputBoxes += inputBox(name, type);
+	});
+	let imports = '';
+	embellishments_.forEach((comp) => {
+		imports += `import ${comp} from '$lib/components/${comp}.svelte';
+  `;
+	});
+	let cr_Activity = '';
+	if (embellishments_.includes('CRActivity')) {
+		cr_Activity = `<CRActivity
   PageName='${modelObjCName_}'
   bind:result
   bind:selectedUserId
   user={data.locals?.user}
   users={data.users as Types.UserPartial[]}
-  ></CRActivity>`
-  }
+  ></CRActivity>`;
+	}
 
-  initValues()
+	initValues();
 
-  let plusPageSvelte = `
+	let plusPageSvelte =
+		`
 <script lang="ts">
   // /${modelObjName_}/+page.svelte
   import type { Snapshot } from '../$types';
@@ -1119,10 +1173,9 @@ function createFormPage(includeTypes: string, outputChannel: any) {
   import { page } from '$app/state'; // for page.status code on actions
   import * as utils from '$lib/utils';
   import * as Types from '$lib/types/types';
-  `
-    + imports +
-
-    `
+  ` +
+		imports +
+		`
   type ARGS = {
     data: PageData;
     form: ActionData;
@@ -1393,9 +1446,10 @@ ${cr_Activity}
 		}
 	}
 </style>
-`
+`;
 
-  let plusUserSvelte = `<script lang="ts">
+	let plusUserSvelte =
+		`<script lang="ts">
 // ${modelObjName_}/+page.svelte
 import type { Snapshot } from '../$types';
 import { onMount } from 'svelte';
@@ -1407,9 +1461,9 @@ import { page } from '$app/state'; // for page.status code on actions
 import bcrypt from 'bcrypt';
 import * as utils from '$lib/utils';
 import * as Types from '$lib/types/types';
-` + imports +
-
-    `
+` +
+		imports +
+		`
 type ARGS = {
   data: PageData;
   form: ActionData;
@@ -1684,22 +1738,22 @@ ${cr_Activity}
     align-items: baseline;
   }
 </style>
-`
+`;
 
-  const pageSveltePath = path.join(routeNamePath, '/+page.svelte')
-  if (modelObjCName_ === 'User') {
-    fs.writeFileSync(pageSveltePath, plusUserSvelte, 'utf-8')
-  } else {
-    fs.writeFileSync(pageSveltePath, plusPageSvelte, 'utf-8')
-  }
+	const pageSveltePath = path.join(routeNamePath, '/+page.svelte');
+	if (modelObjCName_ === 'User') {
+		fs.writeFileSync(pageSveltePath, plusUserSvelte, 'utf-8');
+	} else {
+		fs.writeFileSync(pageSveltePath, plusPageSvelte, 'utf-8');
+	}
 }
 
 function createCRInput() {
-  const componentsPath = ensureComponentPath()
-  if (!componentsPath) {
-    return
-  }
-  const crInput = `<script lang="ts">
+	const componentsPath = ensureComponentPath();
+	if (!componentsPath) {
+		return;
+	}
+	const crInput = `<script lang="ts">
 	//  components/CRInput.svelte
 	import { browser } from '$app/environment';
 	import * as utils from '$lib/utils';
@@ -1860,7 +1914,7 @@ function createCRInput() {
 	let inputEl: HTMLInputElement | HTMLTextAreaElement;
   // in order to compare inputEl with document.activeElement
   // document.getElementById(inputEl.boxId()) gets wrapped input box
-  // otherwise idEl is a wrapper reference newer equal to doc.activeElement
+  // otherwise idEl is a wrapper reference never equal to doc.activeElement
   export const boxId = () => {
 		return inputEl.id;
 	};
@@ -2012,17 +2066,17 @@ function createCRInput() {
 		padding: 1px 0.2rem;
 	}
 </style>
-`
-  const crInputPath = path.join(componentsPath, 'CRInput.svelte')
-  fs.writeFileSync(crInputPath, crInput, 'utf-8')
+`;
+	const crInputPath = path.join(componentsPath, 'CRInput.svelte');
+	fs.writeFileSync(crInputPath, crInput, 'utf-8');
 }
 
 function createCRSpinner() {
-  const componentsPath = ensureComponentPath()
-  if (!componentsPath) {
-    return
-  }
-  const crSpinner = `<!--
+	const componentsPath = ensureComponentPath();
+	if (!componentsPath) {
+		return;
+	}
+	const crSpinner = `<!--
 @component
 	CRSpinner wraps an HTMLButtonElement named button, so it could be bound to a parent variable say
     let btnCreate:HTMLButtonElement
@@ -2166,17 +2220,17 @@ function createCRSpinner() {
     display: inline-block;
   }
 </style>
-`
-  const crSpinnerPath = path.join(componentsPath, 'CRSpinner.svelte')
-  fs.writeFileSync(crSpinnerPath, crSpinner, 'utf-8')
+`;
+	const crSpinnerPath = path.join(componentsPath, 'CRSpinner.svelte');
+	fs.writeFileSync(crSpinnerPath, crSpinner, 'utf-8');
 }
 
 function createCRActivity() {
-  const componentsPath = ensureComponentPath()
-  if (!componentsPath) {
-    return
-  }
-  const crActivity = `<script lang="ts">
+	const componentsPath = ensureComponentPath();
+	if (!componentsPath) {
+		return;
+	}
+	const crActivity = `<script lang="ts">
 	// CRActivity
   import { onMount } from 'svelte';
   import * as utils from '$lib/utils';
@@ -2307,18 +2361,18 @@ function createCRActivity() {
     line-height: 14px;
   }
 </style>
-`
+`;
 
-  const crActivityPath = path.join(componentsPath, 'CRActivity.svelte')
-  fs.writeFileSync(crActivityPath, crActivity, 'utf-8')
+	const crActivityPath = path.join(componentsPath, 'CRActivity.svelte');
+	fs.writeFileSync(crActivityPath, crActivity, 'utf-8');
 }
 
 function createCRTooltip() {
-  const componentsPath = ensureComponentPath()
-  if (!componentsPath) {
-    return
-  }
-  const crTooltip = `<!-- 
+	const componentsPath = ensureComponentPath();
+	if (!componentsPath) {
+		return;
+	}
+	const crTooltip = `<!-- 
 @component
 CRTooltip could accept the following props, though all are optional
   type TProps = {
@@ -2751,18 +2805,18 @@ CRTooltip could accept the following props, though all are optional
     z-index: 10;
   }
 </style>
-`
+`;
 
-  const crTooltipPath = path.join(componentsPath, 'CRTooltip.svelte')
-  fs.writeFileSync(crTooltipPath, crTooltip, 'utf-8')
+	const crTooltipPath = path.join(componentsPath, 'CRTooltip.svelte');
+	fs.writeFileSync(crTooltipPath, crTooltip, 'utf-8');
 }
 
 function createSummaryDetail() {
-  const componentsPath = ensureComponentPath()
-  if (!componentsPath) {
-    return
-  }
-  const crSummaryDetail = `<script lang="ts">
+	const componentsPath = ensureComponentPath();
+	if (!componentsPath) {
+		return;
+	}
+	const crSummaryDetail = `<script lang="ts">
   // components/CRSummaryDetails
   import { onMount } from 'svelte';
   type PROPS = {
@@ -2830,129 +2884,128 @@ function createSummaryDetail() {
     color: hsl(0 0% 60%);
   }
 </style>
-`
-  const crSummaryDetailPath = path.join(componentsPath, 'CRSummaryDetail.svelte')
-  fs.writeFileSync(crSummaryDetailPath, crSummaryDetail, 'utf-8')
+`;
+	const crSummaryDetailPath = path.join(componentsPath, 'CRSummaryDetail.svelte');
+	fs.writeFileSync(crSummaryDetailPath, crSummaryDetail, 'utf-8');
 }
 
 async function findPrismaSchemaRoot(): Promise<string | null> {
-  const workspaceFolders = vscode.workspace.workspaceFolders
-  if (!workspaceFolders?.length) {
-    return null // No workspace open
-  }
+	const workspaceFolders = vscode.workspace.workspaceFolders;
+	if (!workspaceFolders?.length) {
+		return null; // No workspace open
+	}
 
-  for (const folder of workspaceFolders) {
-    let currentPath = folder.uri.fsPath
+	for (const folder of workspaceFolders) {
+		let currentPath = folder.uri.fsPath;
 
-    while (true) {
-      const prismaSchemaPath = path.join(currentPath, "prisma", "schema.prisma")
+		while (true) {
+			const prismaSchemaPath = path.join(currentPath, 'prisma', 'schema.prisma');
 
-      if (fs.existsSync(prismaSchemaPath)) {
-        return currentPath // ✅ Found root containing prisma/schema.prisma
-      }
+			if (fs.existsSync(prismaSchemaPath)) {
+				return currentPath; // ✅ Found root containing prisma/schema.prisma
+			}
 
-      if (currentPath === rootPath) {
-        break // reached project root, stop
-      }
-      // Walk up to parent folder
-      const parentPath = path.dirname(currentPath)
-      currentPath = parentPath
-    }
-  }
-  return null
+			if (currentPath === rootPath) {
+				break; // reached project root, stop
+			}
+			// Walk up to parent folder
+			const parentPath = path.dirname(currentPath);
+			currentPath = parentPath;
+		}
+	}
+	return null;
 }
 
 function sortObjectKeys<T>(obj: Record<string, T>): Record<string, T> {
-  return Object.fromEntries(
-    /*
+	return Object.fromEntries(
+		/*
       "base" ignores case and diacritics (so User, user, Úser, üser all sort together).
       "accent" would keep diacritics (ú vs u) but ignore case.
       "case" would respect case but ignore accents.
       "variant" is the strictest (default) and respects everything.
       numeric sorts asc f10, f2 as f2 f10 -- not as the ascii's f10 f2
     */
-    Object.entries(obj).sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: "base", numeric: true }))
-  )
+		Object.entries(obj).sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))
+	);
 }
 
 // fieldInfo is a line following field names
 type FieldInfo = {
-  type: string
-  prismaAttrs: string // everything after the type
-}
+	type: string;
+	prismaAttrs: string; // everything after the type
+};
 
 // every model/table has fieldName  and fieldInfo
 type ModelInfo = {
-  fields: {
-    [fieldName: string]: FieldInfo
-  }
-  modelAttributes: string[] // e.g. ["@@map(\"users\")", "@@index([email])"]
-}
+	fields: {
+		[fieldName: string]: FieldInfo;
+	};
+	modelAttributes: string[]; // e.g. ["@@map(\"users\")", "@@index([email])"]
+};
 
 // there are many models/tables in schema.prisma
 type SchemaModels = {
-  [modelName: string]: ModelInfo
-}
+	[modelName: string]: ModelInfo;
+};
 
-
-let strModelNames = '|'
+let strModelNames = '|';
 
 function parsePrismaSchema(schemaContent: string): SchemaModels {
-  const models: SchemaModels = {}
-  const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms
+	const models: SchemaModels = {};
+	const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms;
 
-  let modelMatch
-  while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
-    const [, modelName, body] = modelMatch
-    const fields: Record<string, FieldInfo> = {}
-    const modelAttributes: string[] = []
+	let modelMatch;
+	while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
+		const [, modelName, body] = modelMatch;
+		const fields: Record<string, FieldInfo> = {};
+		const modelAttributes: string[] = [];
 
-    // Remove block comments first
-    let bodyWithoutBlocks = body.replace(/\/\*[\s\S]*?\*\//g, "")
+		// Remove block comments first
+		let bodyWithoutBlocks = body.replace(/\/\*[\s\S]*?\*\//g, '');
 
-    const lines = bodyWithoutBlocks
-      .split("\n")
-      .map((line) => line.trim().replace(/\s{2,}|\t/gm, ' '))
-      .filter(Boolean)
+		const lines = bodyWithoutBlocks
+			.split('\n')
+			.map((line) => line.trim().replace(/\s{2,}|\t/gm, ' '))
+			.filter(Boolean);
 
-    for (const line of lines) {
-      if (line.startsWith("//")) {
-        continue // skip single-line comment
-      }
+		for (const line of lines) {
+			if (line.startsWith('//')) {
+				continue; // skip single-line comment
+			}
 
-      if (line.startsWith("@@")) {
-        modelAttributes.push(line)
-        continue
-      }
+			if (line.startsWith('@@')) {
+				modelAttributes.push(line);
+				continue;
+			}
 
-      const [fieldName, fieldType, ...rest] = line.split(/\s+/)
-      if (!fieldName || !fieldType) {
-        continue
-      }
+			const [fieldName, fieldType, ...rest] = line.split(/\s+/);
+			if (!fieldName || !fieldType) {
+				continue;
+			}
 
-      fields[fieldName] = {
-        type: fieldType,
-        prismaAttrs: rest.join(" "),
-      }
-    }
+			fields[fieldName] = {
+				type: fieldType,
+				prismaAttrs: rest.join(' '),
+			};
+		}
 
-    models[modelName] = {
-      fields: sortObjectKeys(fields),
-      modelAttributes,
-    }
-  }
+		models[modelName] = {
+			fields: sortObjectKeys(fields),
+			modelAttributes,
+		};
+	}
 
-  /* 
+	/* 
     This function returns models as SchemaModels so use it to populate above Models
     for data entry fields avoid fieldNames that are
     models itself like Todo, Profile, containing @@ chars 
     and some of @unique, @default, @default(now(), modelName), @relation
   */
-  // make a string-list of modelNames like '|Todo|User|Profile|'
-  for (const [modelName, theFields] of Object.entries(models)) {
-    strModelNames += modelName + '|'
-  }
-  /*
+	// make a string-list of modelNames like '|Todo|User|Profile|'
+	for (const [modelName, theFields] of Object.entries(models)) {
+		strModelNames += modelName + '|';
+	}
+	/*
     modelsFieldNames['User'] holds
     email: String 
     firstName: String 
@@ -2965,263 +3018,260 @@ function parsePrismaSchema(schemaContent: string): SchemaModels {
     userAuthToken: String     -- incorrect @unique
 
   */
-  for (const [modelName, theFields] of Object.entries(models)) {
-    let arrFields = []
-    const [, fields] = Object.entries(theFields)[0]
-    for (let [fieldName, { type, prismaAttrs }] of Object.entries(fields)) {
-      if ('0|1'.includes(fieldName)) {
-        continue
-      }
-      // type could be optional, so remove ? if any as it cannot match model name
-      type = type.replace(/\?/g, '')
-      if (fieldName.includes('password')) {  // passwordHash or similar
-        fieldName = 'password'
-      }
-      if (type === 'DateTime') {
-        type = 'Date'
-      }
-      // exclude this field names
-      const pattern = '@default\\((' + strModelNames + 'now\\(\\))\\)'
-      let regex = new RegExp(pattern)
-      let m = prismaAttrs.match(regex)   // null if failed
-      if (m && m[1]) {
-        continue               // not data entry field name
-      }
+	for (const [modelName, theFields] of Object.entries(models)) {
+		let arrFields = [];
+		const [, fields] = Object.entries(theFields)[0];
+		for (let [fieldName, { type, prismaAttrs }] of Object.entries(fields)) {
+			if ('0|1'.includes(fieldName)) {
+				continue;
+			}
+			// type could be optional, so remove ? if any as it cannot match model name
+			type = type.replace(/\?/g, '');
+			if (fieldName.includes('password')) {
+				// passwordHash or similar
+				fieldName = 'password';
+			}
+			if (type === 'DateTime') {
+				type = 'Date';
+			}
+			// exclude this field names
+			const pattern = '@default\\((' + strModelNames + 'now\\(\\))\\)';
+			let regex = new RegExp(pattern);
+			let m = prismaAttrs.match(regex); // null if failed
+			if (m && m[1]) {
+				continue; // not data entry field name
+			}
 
-      // type cannot be a model name like Profile...
-      regex = new RegExp('(' + strModelNames.slice(1, -1) + ')')
-      m = type.match(regex)   // null if failed
-      if (m && m[1]) {
-        continue
-      }
+			// type cannot be a model name like Profile...
+			regex = new RegExp('(' + strModelNames.slice(1, -1) + ')');
+			m = type.match(regex); // null if failed
+			if (m && m[1]) {
+				continue;
+			}
 
-      m = prismaAttrs.match(/(@unique|@createdAt)/)  // non-mutable
-      if (m && m[1]) {
-        continue
-      }
+			m = prismaAttrs.match(/(@unique|@createdAt)/); // non-mutable
+			if (m && m[1]) {
+				continue;
+			}
 
-      const hasBrackets = type.includes('[]')
-      const hasId = prismaAttrs.includes('@id')
-      const hasRole = type === 'Role'
-      const include = !hasBrackets || hasId || hasRole
-      if (include) {
-        arrFields.push(fieldName + ': ' + type)
-      }
-    }
-    try {
-      modelsFieldNames[modelName] = arrFields
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.log('cannot add a model' + msg)
-    }
-  }
+			const hasBrackets = type.includes('[]');
+			const hasId = prismaAttrs.includes('@id');
+			const hasRole = type === 'Role';
+			const include = !hasBrackets || hasId || hasRole;
+			if (include) {
+				arrFields.push(fieldName + ': ' + type);
+			}
+		}
+		try {
+			modelsFieldNames[modelName] = arrFields;
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : String(err);
+			console.log('cannot add a model' + msg);
+		}
+	}
 
-  return models
+	return models;
 }
 
-
-
 export async function activate(context: vscode.ExtensionContext) {
+	const workspaceFolders: readonly vscode.WorkspaceFolder[] | undefined = vscode.workspace.workspaceFolders;
+	// const defaultFolderPath: string = '/home/mili/TEST/cr-crud-extension';
+	rootPath = await execShell('pwd');
+	rootPath = rootPath.replace(/\n$/, '');
+	pendingFile = path.join(rootPath, '/prisma/installPartTwo.pending');
+	routesPath = path.join(rootPath, '/src//routes/');
+	sudoName_ = await execShell('whoami');
+	// vscode.window.showInformationMessage('rootPath ' + rootPath)
+	// vscode.window.showErrorMessage('execShell pwd '+ rootPath);
 
-  const workspaceFolders: readonly vscode.WorkspaceFolder[] | undefined = vscode.workspace.workspaceFolders
-  // const defaultFolderPath: string = '/home/mili/TEST/cr-crud-extension';
-  rootPath = await execShell('pwd')
-  rootPath = rootPath.replace(/\n$/, '')
-  pendingFile = path.join(rootPath, '/prisma/installPartTwo.pending')
-  routesPath = path.join(rootPath, '/src//routes/')
-  sudoName_ = await execShell('whoami')
-  // vscode.window.showInformationMessage('rootPath ' + rootPath)
-  // vscode.window.showErrorMessage('execShell pwd '+ rootPath);
+	// if (!workspaceFolders || workspaceFolders.length === 0) {
+	//   // Check if default path exists
+	//   if (fs.existsSync(defaultFolderPath)) {
+	//     rootPath = defaultFolderPath;
+	//   } else {
+	//     // Fallback to dialog if default path is invalid
+	//     const folderUri: vscode.Uri[] | undefined = await vscode.window.showOpenDialog({
+	//       canSelectFolders: true,
+	//       canSelectFiles: false,
+	//       openLabel: 'Select workspace folder with Prisma/schema.prisma',
+	//       defaultUri: vscode.Uri.file(defaultFolderPath)
+	//     });
+	//     if (!folderUri || folderUri.length === 0) {
+	//       vscode.window.showErrorMessage('No workspace folder selected');
+	//       return;
+	//     }
+	//     rootPath = folderUri[0].fsPath;
+	//   }
+	// } else {
+	//   rootPath = workspaceFolders[0].uri.fsPath;
+	// }
+	// Create output channel for webview logs
+	const outputChannel = vscode.window.createOutputChannel('WebView Logs');
 
-  // if (!workspaceFolders || workspaceFolders.length === 0) {
-  //   // Check if default path exists
-  //   if (fs.existsSync(defaultFolderPath)) {
-  //     rootPath = defaultFolderPath;
-  //   } else {
-  //     // Fallback to dialog if default path is invalid
-  //     const folderUri: vscode.Uri[] | undefined = await vscode.window.showOpenDialog({
-  //       canSelectFolders: true,
-  //       canSelectFiles: false,
-  //       openLabel: 'Select workspace folder with Prisma/schema.prisma',
-  //       defaultUri: vscode.Uri.file(defaultFolderPath)
-  //     });
-  //     if (!folderUri || folderUri.length === 0) {
-  //       vscode.window.showErrorMessage('No workspace folder selected');
-  //       return;
-  //     }
-  //     rootPath = folderUri[0].fsPath;
-  //   }
-  // } else {
-  //   rootPath = workspaceFolders[0].uri.fsPath;
-  // }
-  // Create output channel for webview logs
-  const outputChannel = vscode.window.createOutputChannel('WebView Logs')
+	const prismaSchemaRoot = await findPrismaSchemaRoot();
+	if (!prismaSchemaRoot) {
+		noPrismaSchema = true;
+	}
 
-  const prismaSchemaRoot = await findPrismaSchemaRoot()
-  if (!prismaSchemaRoot) {
-    noPrismaSchema = true
-  }
+	installPartTwoPending = fs.existsSync(pendingFile);
+	// try {
+	//   await vscode.workspace.fs.stat(pendingFile);
+	//   installPartTwoPending = true;
+	//   // File exists – proceed with Part Two logic
+	// } finally {
+	//   // File missing
+	// }
+	// vscode.debug.onDidStartDebugSession(session => {
+	//   outputChannel.appendLine(`onDidStartDebugSession activated`);
+	//   outputChannel.show(true);
+	//   if (session.name === "Run Extension (with pak)") {
+	//     vscode.commands.executeCommand("cr-crud-extension.createCrudSupport");
+	//   }
+	// });
 
-  installPartTwoPending = fs.existsSync(pendingFile)
-  // try {
-  //   await vscode.workspace.fs.stat(pendingFile);
-  //   installPartTwoPending = true;
-  //   // File exists – proceed with Part Two logic
-  // } finally {
-  //   // File missing
-  // }
-  // vscode.debug.onDidStartDebugSession(session => {
-  //   outputChannel.appendLine(`onDidStartDebugSession activated`);
-  //   outputChannel.show(true);
-  //   if (session.name === "Run Extension (with pak)") {
-  //     vscode.commands.executeCommand("cr-crud-extension.createCrudSupport");
-  //   }
-  // });
+	// context.subscriptions.push(
+	//   vscode.debug.onDidStartDebugSession(session => {
+	//     if (session.name === "Run Extension (with pak)") {
+	//       vscode.commands.executeCommand("cr-crud-extension.createCrudSupport")
+	//         .then(undefined, err => console.error("Failed to run CRUD support:", err));
+	//     }
+	//   })
+	// );
 
-  // context.subscriptions.push(
-  //   vscode.debug.onDidStartDebugSession(session => {
-  //     if (session.name === "Run Extension (with pak)") {
-  //       vscode.commands.executeCommand("cr-crud-extension.createCrudSupport")
-  //         .then(undefined, err => console.error("Failed to run CRUD support:", err));
-  //     }
-  //   })
-  // );
+	// register Create CRUD Support
+	const disposable = vscode.commands.registerCommand('cr-crud-extension.createCrudSupport', () => {
+		// NOTE: To show workspaceFolders uncomment the lines below
+		// const workspaceFolders = vscode.workspace.workspaceFolders;
+		// outputChannel.appendLine(`workspaceFolders', ${JSON.stringify(workspaceFolders,null,2)}`)
+		// outputChannel.show(true);
 
+		const panel = vscode.window.createWebviewPanel('crCrudSupport', 'Create CRUD Form Support', vscode.ViewColumn.One, {
+			enableScripts: true,
+			retainContextWhenHidden: true,
+		});
 
-  // register Create CRUD Support 
-  const disposable = vscode.commands.registerCommand('cr-crud-extension.createCrudSupport', () => {
+		let includeTypes = '';
+		if (noPrismaSchema) {
+			vscode.window.showInformationMessage('EXT: NO PRISMA SCHEMA FOUND');
+		}
+		// vscode.window.showInformationMessage('EXT: rootPath == '+ rootPath),
+		// const nonce = getNonce();
+		panel.webview.html = getWebviewContent(
+			panel.webview,
+			context.extensionUri,
+			noPrismaSchema,
+			installPartTwoPending,
+			sudoName_
+		);
 
-    // NOTE: To show workspaceFolders uncomment the lines below
-    // const workspaceFolders = vscode.workspace.workspaceFolders;
-    // outputChannel.appendLine(`workspaceFolders', ${JSON.stringify(workspaceFolders,null,2)}`)
-    // outputChannel.show(true);
+		fs.writeFileSync(path.join(rootPath, '/src/currentWebview.html'), panel.webview.html);
+		panel.webview.onDidReceiveMessage(async (msg) => {
+			if (msg.command === 'setDbAndOwner') {
+				db_ = msg.payload;
+				vscode.window.showInformationMessage('db/owner params ' + JSON.stringify(db_));
+				if (db_.name && db_.owner && db_.password) {
+					const content = db_.host + ':' + db_.port + ':' + db_.name + ':' + db_.owner + ':' + db_.password;
+					fs.writeFileSync(pgPassPath, content, {
+						encoding: 'utf-8',
+						mode: 0o600, // Very important for .pgpass! PostgreSQL requires 0600
+					});
+				}
+			} else if (msg.command === 'installPrismaPartOne') {
+				// vscode.window.showInformationMessage('rootPath is ' + rootPath)
+				// outputChannel.appendLine('installPrismaPartOne'+ JSON.stringify(db_)); outputChannel.show();
+				// db_ = JSON.parse(msg.db);     // db.name, db.owner, db.password
+				const pm = detectPackageManager();
+				if (typeof pm === 'object') {
+					vscode.window.showInformationMessage('detectPackageManager err:' + pm.err);
+				} else {
+					xPackageManager(pm);
+				}
+				sendToTerminal(`cd ${rootPath}`);
+				// outputChannel.appendLine('sendToTerminal cd rootPath'); outputChannel.show()
+				sendToTerminal(
+					`${pm} install bcrypt @types/bcrypt @prisma/client; ${pm} install typescript ts-node @types/node globals -D; ${pm} i -D prisma ; ${ex} prisma init --datasource-provider postgresql`
+				);
+				const prismaPath = path.join(rootPath, '/prisma/schema.prisma');
+				// installation is in progress so wait to see that schema.prisma is installed
+				for (let i = 0; i < 30; i++) {
+					await sleep(1000);
+					if (fs.existsSync(prismaPath)) {
+						break;
+					}
+				}
+				await sleep(1000); // to be sure it is completed
+				createPendingFile();
 
-    const panel = vscode.window.createWebviewPanel(
-      'crCrudSupport',
-      'Create CRUD Form Support',
-      vscode.ViewColumn.One,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true
-      }
-    )
+				// await sleep(1000)
+				// panel.dispose()
 
-    let includeTypes = ''
-    if (noPrismaSchema) {
-      vscode.window.showInformationMessage('EXT: NO PRISMA SCHEMA FOUND')
-    }
-    // vscode.window.showInformationMessage('EXT: rootPath == '+ rootPath),
-    // const nonce = getNonce();
-    panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, noPrismaSchema, installPartTwoPending, sudoName_)
+				// read created /prisma/schema.prisma and display it in a new Tab
+				try {
+					// Get workspace root (assume first folder)
+					const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+					if (!workspaceFolder) {
+						vscode.window.showErrorMessage('No workspace folder open');
+						// TODO send to output how to make a Workspace
+						return;
+					}
 
-    fs.writeFileSync(path.join(rootPath, '/src/currentWebview.html'), panel.webview.html)
-    panel.webview.onDidReceiveMessage(async (msg) => {
+					// Construct absolute file path
+					const schemaPath = path.join(workspaceFolder.uri.fsPath, '/prisma/schema.prisma');
+					if (!fs.existsSync(schemaPath)) {
+						fs.writeFileSync(schemaPath, '', 'utf-8');
+					}
+					fs.appendFileSync(schemaPath, schemaWhatToDo, 'utf-8');
+					// Create path for the file
+					let uri = vscode.Uri.file(schemaPath);
+					// Open in a new tab (beside current editor)
+					await vscode.window.showTextDocument(uri, {
+						viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
+						preview: false, // Optional: Force a new tab (not preview mode)
+					});
 
-      if (msg.command === 'setDbAndOwner') {
-        db_ = msg.payload
-        vscode.window.showInformationMessage('db/owner params ' + JSON.stringify(db_))
-        if (db_.name && db_.owner && db_.password) {
-          const content = db_.host + ':' + db_.port + ':' + db_.name + ':' + db_.owner + ':' + db_.password
-          fs.writeFileSync(pgPassPath, content, {
-            encoding: 'utf-8',
-            mode: 0o600   // Very important for .pgpass! PostgreSQL requires 0600
-          })
-        }
-      }
-      else if (msg.command === 'installPrismaPartOne') {
-        // vscode.window.showInformationMessage('rootPath is ' + rootPath)
-        // outputChannel.appendLine('installPrismaPartOne'+ JSON.stringify(db_)); outputChannel.show();
-        // db_ = JSON.parse(msg.db);     // db.name, db.owner, db.password
-        const pm = detectPackageManager()
-        if (typeof pm === 'object') {
-          vscode.window.showInformationMessage('detectPackageManager err:' + pm.err)
-        } else {
-          xPackageManager(pm)
-        }
-        sendToTerminal(`cd ${rootPath}`)
-        // outputChannel.appendLine('sendToTerminal cd rootPath'); outputChannel.show()
-        sendToTerminal(`${pm} install bcrypt @types/bcrypt @prisma/client; ${pm} install typescript ts-node @types/node globals -D; ${pm} i -D prisma ; ${ex} prisma init --datasource-provider postgresql`)
-        const prismaPath = path.join(rootPath, '/prisma/schema.prisma')
-        // installation is in progress so wait to see that schema.prisma is installed
-        for (let i = 0; i < 30; i++) {
-          await sleep(1000)
-          if (fs.existsSync(prismaPath)) {
-            break
-          }
-        }
-        await sleep(1000)  // to be sure it is completed
-        createPendingFile()
+					const envPath = path.join(rootPath, '/.env');
+					uri = vscode.Uri.file(envPath);
 
+					const dblink = `DATABASE_URL=postgresql://${db_.owner}:${db_.password}@localhost:${db_.port}/${db_.name}?schema=public`;
+					fs.writeFileSync(envPath, dblink, 'utf-8');
 
-        // await sleep(1000)
-        // panel.dispose()
+					await vscode.window.showTextDocument(uri, {
+						viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
+						preview: false, // Optional: Force a new tab (not preview mode)
+					});
+				} catch (err: unknown) {
+					const msg = err instanceof Error ? err.message : String(err);
+					// Handle errors (e.g., file not found)
+					console.error('Failed to open file:', err);
+					panel.webview.postMessage({
+						command: 'fileError',
+						error: (err as Error).message,
+					});
+				}
+				panel.webview.postMessage({
+					command: 'installPartOneDone',
+				});
+			} else if (msg.command === 'installPrismaPartTwo') {
+				// if user did not supplied db_ details read them from .env if any
+				let psqlConnect = '';
+				if (!(db_.name || db_.owner || db_.password)) {
+					try {
+						const envPath = path.join(rootPath as string, '.env');
+						const connStr = fs.readFileSync(envPath, 'utf-8');
+						const [, dbowner, dbpassword, host, port, dbname] =
+							'postgresql://rony:rony@localhost:5432/ronydb?schema=public'.match(
+								/\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([-a-zA-Z_0-9]+)/
+							) as string[];
 
-        // read created /prisma/schema.prisma and display it in a new Tab
-        try {
-          // Get workspace root (assume first folder)
-          const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
-          if (!workspaceFolder) {
-            vscode.window.showErrorMessage('No workspace folder open')
-            // TODO send to output how to make a Workspace
-            return
-          }
+						const db_: IStrKeyStrVal = { name: dbname, owner: dbowner, password: dbpassword, host: host, port: port };
+						psqlConnect = `psql -h ${host} -U ${dbowner} -d postgres -p ${port}`;
+					} catch (err: unknown) {
+						const msg = err instanceof Error ? err.message : String(err);
+						vscode.window.showErrorMessage('Handling .pgpass permission err: ' + msg);
+					}
+				}
 
-          // Construct absolute file path
-          const schemaPath = path.join(workspaceFolder.uri.fsPath, '/prisma/schema.prisma')
-          if (!fs.existsSync(schemaPath)) {
-            fs.writeFileSync(schemaPath, '', 'utf-8')
-          }
-          fs.appendFileSync(schemaPath, schemaWhatToDo, 'utf-8')
-          // Create path for the file
-          let uri = vscode.Uri.file(schemaPath)
-          // Open in a new tab (beside current editor)
-          await vscode.window.showTextDocument(uri, {
-            viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
-            preview: false // Optional: Force a new tab (not preview mode)
-          })
-
-          const envPath = path.join(rootPath, '/.env')
-          uri = vscode.Uri.file(envPath)
-
-          const dblink = `DATABASE_URL=postgresql://${db_.owner}:${db_.password}@localhost:${db_.port}/${db_.name}?schema=public`
-          fs.writeFileSync(envPath, dblink, 'utf-8')
-
-          await vscode.window.showTextDocument(uri, {
-            viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
-            preview: false // Optional: Force a new tab (not preview mode)
-          })
-
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err)
-          // Handle errors (e.g., file not found)
-          console.error('Failed to open file:', err)
-          panel.webview.postMessage({
-            command: 'fileError',
-            error: (err as Error).message
-          })
-        }
-        panel.webview.postMessage({
-          command: "installPartOneDone"
-        })
-      }
-      else if (msg.command === 'installPrismaPartTwo') {
-        // if user did not supplied db_ details read them from .env if any
-        let psqlConnect = ''
-        if (!(db_.name || db_.owner || db_.password)) {
-          try {
-            const envPath = path.join(rootPath as string, '.env')
-            const connStr = fs.readFileSync(envPath, 'utf-8')
-            const [, dbowner, dbpassword, host, port, dbname] = 'postgresql://rony:rony@localhost:5432/ronydb?schema=public'.match(/\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([-a-zA-Z_0-9]+)/) as string[]
-
-            const db_: IStrKeyStrVal = { name: dbname, owner: dbowner, password: dbpassword, host: host, port: port }
-            psqlConnect = `psql -h ${host} -U ${dbowner} -d postgres -p ${port}`
-          } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : String(err)
-            vscode.window.showErrorMessage('Handling .pgpass permission err: ' + msg)
-          }
-        }
-
-        let sql = `psql -X -v ON_ERROR_STOP=1 <<'EOF'
+				let sql = `psql -X -v ON_ERROR_STOP=1 <<'EOF'
       -- Create the role if it doesn't exist
       DO $$
       BEGIN
@@ -3248,256 +3298,262 @@ export async function activate(context: vscode.ExtensionContext) {
       REVOKE CONNECT ON DATABASE "\$DBNAME" FROM PUBLIC;        -- optional: disallow public connect
       GRANT CONNECT ON DATABASE "\$DBNAME" TO "\$DBOWNER";
 
-      EOF`.replace(/\$DBNAME/mg, `${db_.name}`)
-          .replace(/\$DBOWNER/mg, `${db_.owner}`)
-          .replace(/\$DBPASSWORD/mg, `${db_.password}`)
-          .replace(/\$HOST/mg, `${db_.host}`)
-          .replace(/\$PORT/mg, `${db_.port}`)
+      EOF`
+					.replace(/\$DBNAME/gm, `${db_.name}`)
+					.replace(/\$DBOWNER/gm, `${db_.owner}`)
+					.replace(/\$DBPASSWORD/gm, `${db_.password}`)
+					.replace(/\$HOST/gm, `${db_.host}`)
+					.replace(/\$PORT/gm, `${db_.port}`);
 
-        sendToTerminal(sql)
+				sendToTerminal(sql);
 
-        await sleep(2000)
-        sendToTerminal(`${ex} prisma migrate dev --name init; ${ex} prisma generate`)
+				await sleep(2000);
+				sendToTerminal(`${ex} prisma migrate dev --name init; ${ex} prisma generate`);
 
-        deletePendingFile()
+				deletePendingFile();
 
-        panel.webview.postMessage({
-          command: "installPartTwoDone"
-        })
-      }
-      else if (msg.command === 'readSchema') {
-        try {
+				panel.webview.postMessage({
+					command: 'installPartTwoDone',
+				});
+			} else if (msg.command === 'readSchema') {
+				try {
+					const prismaSchemaPath = path.join(rootPath as string, 'prisma', 'schema.prisma');
+					const schemaContent = fs.readFileSync(prismaSchemaPath, 'utf-8');
 
-          const prismaSchemaPath = path.join(rootPath as string, "prisma", "schema.prisma")
-          const schemaContent = fs.readFileSync(prismaSchemaPath, "utf-8")
-
-          const parsedSchema = parsePrismaSchema(schemaContent)
-          try {
-            if (!modelsFieldNames) {
-              outputChannel.appendLine('modelsFieldNames NOT found'); outputChannel.show()
-            }
-          } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : String(err)
-            outputChannel.appendLine('No modelsFieldNames found ' + msg); outputChannel.show()
-          }
-          // TODO: parse schemaContent and send back to WebView
-          // outputChannel.appendLine('parsedSchema\n' + JSON.stringify(parsedSchema, null, 2)); outputChannel.show()
-          panel.webview.postMessage({
-            command: "renderSchema",
-            payload: parsedSchema,
-            rootPath: rootPath,
-            modelsFieldNames,
-          })
-          // vscode.window.showErrorMessage('This is a test vscode.window.showErrorMessage');
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err)
-          vscode.window.showErrorMessage(
-            `Failed to read schema: ${msg}`
-          )
-        }
-        // clean .gitignore from repeted lines /src/generated/prisma
-        const gitIgnorePath = path.join(routesPath, '.gitignore')
-        if (fs.existsSync(gitIgnorePath)) {
-          let gi = fs.readFileSync(gitIgnorePath, "utf-8")
-          gi = gi.replace(/\/src\/generated\/prisma/gm, '').replace(/^\n/gm, '') + '/src/generated/prisma'
-          fs.writeFileSync(gitIgnorePath, gi, "utf-8")
-        }
-      }
-      else if (msg.command === 'renderORMFields') {
-        outputChannel.appendLine('renderORMFields called target: ' + msg.target); outputChannel.show()
-        panel.webview.postMessage({
-          command: "ORMFieldsSent",
-          target: msg.target,
-          markup: `<p style='color:green;'>Webview Extension renders using msgEl reference</p>
+					const parsedSchema = parsePrismaSchema(schemaContent);
+					try {
+						if (!modelsFieldNames) {
+							outputChannel.appendLine('modelsFieldNames NOT found');
+							outputChannel.show();
+						}
+					} catch (err: unknown) {
+						const msg = err instanceof Error ? err.message : String(err);
+						outputChannel.appendLine('No modelsFieldNames found ' + msg);
+						outputChannel.show();
+					}
+					// TODO: parse schemaContent and send back to WebView
+					// outputChannel.appendLine('parsedSchema\n' + JSON.stringify(parsedSchema, null, 2)); outputChannel.show()
+					panel.webview.postMessage({
+						command: 'renderSchema',
+						payload: parsedSchema,
+						rootPath: rootPath,
+						modelsFieldNames,
+					});
+					// vscode.window.showErrorMessage('This is a test vscode.window.showErrorMessage');
+				} catch (err: unknown) {
+					const msg = err instanceof Error ? err.message : String(err);
+					vscode.window.showErrorMessage(`Failed to read schema: ${msg}`);
+				}
+				// clean .gitignore from repeted lines /src/generated/prisma
+				const gitIgnorePath = path.join(routesPath, '.gitignore');
+				if (fs.existsSync(gitIgnorePath)) {
+					let gi = fs.readFileSync(gitIgnorePath, 'utf-8');
+					gi = gi.replace(/\/src\/generated\/prisma/gm, '').replace(/^\n/gm, '') + '/src/generated/prisma';
+					fs.writeFileSync(gitIgnorePath, gi, 'utf-8');
+				}
+			} else if (msg.command === 'renderORMFields') {
+				outputChannel.appendLine('renderORMFields called target: ' + msg.target);
+				outputChannel.show();
+				panel.webview.postMessage({
+					command: 'ORMFieldsSent',
+					target: msg.target,
+					markup: `<p style='color:green;'>Webview Extension renders using msgEl reference</p>
           <p style='color:green;'>Webview Extension renders using msgEl reference</p>
           <p style='color:green;'>Webview Extension renders using msgEl reference</p>
           <p style='color:green;'>Webview Extension renders using msgEl reference</p>
-          `
-        })
-      }
-      else if (msg.command === 'createCrudSupport') {
-        // outputChannel.appendLine('HTML call createCrudSupport'); outputChannel.show();
-        const { routeName, modelObjName, fields, inputBoxWidth, embellishments } = msg.payload as {
-          routeName: string
-          modelObjName: string
-          fields: string[]
-          inputBoxWidth: string,
-          embellishments: string[]
-        }
-        inputBoxWidth_ = inputBoxWidth
-        const pageSveltePath = path.join(routesPath, routeName, '/+page.svelte')
-        // outputChannel.appendLine('createCrudSupport fields: '+ JSON.stringify(fields)); outputChannel.show();
-        if (fs.existsSync(pageSveltePath)) {
-          const answer = await vscode.window.showWarningMessage(
-            `There is a route ${routeName}. To overwrite it?`,
-            { modal: true },
-            'Yes',
-            'No'
-          )
-          if (answer === 'No') {
-            return
-          }
-        }
-        type FuncList = {
-          [funcName: string]: Function
-        }
-        routeName_ = routeName
-        modelObjName_ = modelObjName.toLowerCase()
-        modelObjName_s = modelObjName_.trim().replace(/(.)$/, (c) => c === 'y' ? 'ies' : c + 's')
-        modelObjCName_ = modelObjName  //[0].toUpperCase() + modelObjName.slice(1);
-        fields_ = fields.join().replace(/Int|int/g, 'number').replace(/:\s*?(\w+)/g, match => match.toLowerCase()).split(',')
-        fields_ = sortArrByOrdered(fields_ as string[]) as string[]
-        // outputChannel.appendLine('fields_: ' + JSON.stringify(fields_,null,2));outputChannel.show();
+          `,
+				});
+			} else if (msg.command === 'createCrudSupport') {
+				// outputChannel.appendLine('HTML call createCrudSupport'); outputChannel.show();
+				const { routeName, modelObjName, fields, inputBoxWidth, embellishments } = msg.payload as {
+					routeName: string;
+					modelObjName: string;
+					fields: string[];
+					inputBoxWidth: string;
+					embellishments: string[];
+				};
+				inputBoxWidth_ = inputBoxWidth;
+				const pageSveltePath = path.join(routesPath, routeName, '/+page.svelte');
+				// outputChannel.appendLine('createCrudSupport fields: '+ JSON.stringify(fields)); outputChannel.show();
+				if (fs.existsSync(pageSveltePath)) {
+					const answer = await vscode.window.showWarningMessage(
+						`There is a route ${routeName}. To overwrite it?`,
+						{ modal: true },
+						'Yes',
+						'No'
+					);
+					if (answer === 'No') {
+						return;
+					}
+				}
+				type FuncList = {
+					[funcName: string]: Function;
+				};
+				routeName_ = routeName;
+				modelObjName_ = modelObjName.toLowerCase();
+				modelObjName_s = modelObjName_.trim().replace(/(.)$/, (c) => (c === 'y' ? 'ies' : c + 's'));
+				modelObjCName_ = modelObjName; //[0].toUpperCase() + modelObjName.slice(1);
+				fields_ = fields
+					.join()
+					.replace(/Int|int/g, 'number')
+					.replace(/:\s*?(\w+)/g, (match) => match.toLowerCase())
+					.split(',');
+				fields_ = sortArrByOrdered(fields_ as string[]) as string[];
+				// outputChannel.appendLine('fields_: ' + JSON.stringify(fields_,null,2));outputChannel.show();
 
-        embellishments_ = embellishments
-        // createUtils(routeName, fields);
-        const funcList: FuncList = {
-          'CRInput': createCRInput,
-          'CRSpinner': createCRSpinner,
-          'CRActivity': createCRActivity,
-          'CRTooltip': createCRTooltip,
-          'CRSummaryDetail': createSummaryDetail,
-        }
-        //  Object.values are function  references that create a specific page
-        //  and are executed based on the embellishments content picking the
-        // reference from the funcList above
-        for (const fun of Object.values(embellishments)) {
-          try {
-            funcList[fun]() // call the function reference
-          } finally { }
-        }
-        spinners_()
-        createFormPage(includeTypes, outputChannel)
+				embellishments_ = embellishments;
+				// createUtils(routeName, fields);
+				const funcList: FuncList = {
+					CRInput: createCRInput,
+					CRSpinner: createCRSpinner,
+					CRActivity: createCRActivity,
+					CRTooltip: createCRTooltip,
+					CRSummaryDetail: createSummaryDetail,
+				};
+				//  Object.values are function  references that create a specific page
+				//  and are executed based on the embellishments content picking the
+				// reference from the funcList above
+				for (const fun of Object.values(embellishments)) {
+					try {
+						funcList[fun](); // call the function reference
+					} finally {
+					}
+				}
+				spinners_();
+				createFormPage(includeTypes, outputChannel);
 
-        // create accompanying +page.server.ts file
-        const pageServerPath = path.join(routesPath, routeName_, '/+page.server.ts')
-        fs.writeFileSync(pageServerPath, getServerPage(), 'utf-8')
+				// create accompanying +page.server.ts file
+				const pageServerPath = path.join(routesPath, routeName_, '/+page.server.ts');
+				fs.writeFileSync(pageServerPath, getServerPage(), 'utf-8');
 
-        const hooksPath = path.join(rootPath, '/src/hooks.server.ts')
-        fs.writeFileSync(hooksPath, getHooksPage(), 'utf-8')
+				const hooksPath = path.join(rootPath, '/src/hooks.server.ts');
+				fs.writeFileSync(hooksPath, getHooksPage(), 'utf-8');
 
-        const exportDbPath = path.join(rootPath, '/src/lib/server/db.ts')
-        fs.writeFileSync(exportDbPath, getPrismaClient())
-        panel.webview.postMessage({
-          command: "createCrudSupportDone"
-        })
-        // outputChannel.appendLine(`[WebView] createCrudSupport DONE`);outputChannel.show(true);
+				const exportDbPath = path.join(rootPath, '/src/lib/server/db.ts');
+				fs.writeFileSync(exportDbPath, getPrismaClient());
+				panel.webview.postMessage({
+					command: 'createCrudSupportDone',
+				});
+				// outputChannel.appendLine(`[WebView] createCrudSupport DONE`);outputChannel.show(true);
 
-        panel.webview.postMessage({
-          command: "enableRemoveHint",
-        })
-      }
-      else if (msg.command === 'saveTypes') {
-        // outputChannel.appendLine('types '+ JSON.stringify(msg.payload.types,null,2)); outputChannel.show();
-        const dbPath = path.join(rootPath as string, '/src/lib/server/')
-        if (!fs.existsSync(dbPath)) {
-          fs.mkdirSync(dbPath, { recursive: true })
-        }
-        try {
-          const exportDbPath = path.join(dbPath, '/db.ts')
-          if (!fs.existsSync(exportDbPath)) {
-            fs.writeFileSync(exportDbPath, `import { PrismaClient } from '@prisma/client';
+				panel.webview.postMessage({
+					command: 'enableRemoveHint',
+				});
+			} else if (msg.command === 'saveTypes') {
+				// outputChannel.appendLine('types '+ JSON.stringify(msg.payload.types,null,2)); outputChannel.show();
+				const dbPath = path.join(rootPath as string, '/src/lib/server/');
+				if (!fs.existsSync(dbPath)) {
+					fs.mkdirSync(dbPath, { recursive: true });
+				}
+				try {
+					const exportDbPath = path.join(dbPath, '/db.ts');
+					if (!fs.existsSync(exportDbPath)) {
+						fs.writeFileSync(
+							exportDbPath,
+							`import { PrismaClient } from '@prisma/client';
 
       // export const db = new PrismaClient();
       export const db = new PrismaClient({
         log: ['warn', 'error']
       });
       // log: ['query', 'info', 'warn', 'error']`
-            )
-          }
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err)
-          outputChannel.appendLine('createDBExportFile err: ' + msg); outputChannel.show()
-        }
+						);
+					}
+				} catch (err: unknown) {
+					const msg = err instanceof Error ? err.message : String(err);
+					outputChannel.appendLine('createDBExportFile err: ' + msg);
+					outputChannel.show();
+				}
 
-        // BEGINNING /src/lib/utils index.ts and helpers.ts
+				// BEGINNING /src/lib/utils index.ts and helpers.ts
 
-        const utilsPath = path.join(rootPath as string, '/src/lib/utils/')
-        if (!fs.existsSync(utilsPath)) {
-          fs.mkdirSync(utilsPath, { recursive: true })
-        }
+				const utilsPath = path.join(rootPath as string, '/src/lib/utils/');
+				if (!fs.existsSync(utilsPath)) {
+					fs.mkdirSync(utilsPath, { recursive: true });
+				}
 
-        const helpersPage = path.join(utilsPath as string, '/helpers.ts')
-        if (!fs.existsSync(helpersPage)) {
-          fs.writeFileSync(helpersPage, getHelpersPage())
-        }
+				const helpersPage = path.join(utilsPath as string, '/helpers.ts');
+				if (!fs.existsSync(helpersPage)) {
+					fs.writeFileSync(helpersPage, getHelpersPage());
+				}
 
-        const indexPage = path.join(utilsPath, '/index.ts')
-        if (!fs.existsSync(indexPage)) {
-          fs.writeFileSync(indexPage, `
+				const indexPage = path.join(utilsPath, '/index.ts');
+				if (!fs.existsSync(indexPage)) {
+					fs.writeFileSync(
+						indexPage,
+						`
     export * from './helpers'
     `
-          )
-        }
+					);
+				}
 
-        // END /src/lib/utils index.ts and helpers.ts
+				// END /src/lib/utils index.ts and helpers.ts
 
-        const appTypesPath = path.join(rootPath as string, '/src/lib/types/')
-        if (!fs.existsSync(appTypesPath)) {
-          fs.mkdirSync(appTypesPath, { recursive: true })
-        }
-        lowerCaseTypes = msg.payload.types
-          .replace(/(String|Number|Boolean)/gm, (s: string) => s.toLowerCase())
-          .replace(/DateTime/gm, 'Date')
-          .replace(/\bInt\b/gi, 'number').replace(/\?/g, '')
-        // outputChannel.appendLine(lowerCaseTypes); outputChannel.show();
-        // outputChannel.appendLine(msg.payload.includeTypes); outputChannel.show();
-        // includeTypes = msg.includeTypes;
-        // vscode.window.showInformationMessage(includeTypes)
-        let types = `
+				const appTypesPath = path.join(rootPath as string, '/src/lib/types/');
+				if (!fs.existsSync(appTypesPath)) {
+					fs.mkdirSync(appTypesPath, { recursive: true });
+				}
+				lowerCaseTypes = msg.payload.types
+					.replace(/(String|Number|Boolean)/gm, (s: string) => s.toLowerCase())
+					.replace(/DateTime/gm, 'Date')
+					.replace(/\bInt\b/gi, 'number')
+					.replace(/\?/g, '');
+				// outputChannel.appendLine(lowerCaseTypes); outputChannel.show();
+				// outputChannel.appendLine(msg.payload.includeTypes); outputChannel.show();
+				// includeTypes = msg.includeTypes;
+				// vscode.window.showInformationMessage(includeTypes)
+				let types = `
         // CRAppTypes from schema.prisma
         export type Role = 'USER' | 'ADMIN' | 'VISITOR' | 'MODERATOR';
         ${lowerCaseTypes}
         // Copy this import to CRUD +page.svelte files
         // ${msg.payload.includeTypes}
-      `
-        // outputChannel.appendLine('lowerCaseTypes'+ JSON.stringify(lowerCaseTypes)); outputChannel.show();
-        let partialTypes = getPartialTypes()
-        createSelectBlocks(partialTypes)
-        // outputChannel.appendLine(partialTypes); outputChannel.show();
-        types += partialTypes
-        const appTypeFilePath = path.join(appTypesPath, 'types.ts')
-        fs.writeFileSync(appTypeFilePath, types, 'utf-8')
+      `;
+				// outputChannel.appendLine('lowerCaseTypes'+ JSON.stringify(lowerCaseTypes)); outputChannel.show();
+				let partialTypes = getPartialTypes();
+				createSelectBlocks(partialTypes);
+				// outputChannel.appendLine(partialTypes); outputChannel.show();
+				types += partialTypes;
+				const appTypeFilePath = path.join(appTypesPath, 'types.ts');
+				fs.writeFileSync(appTypeFilePath, types, 'utf-8');
+			} else if (msg.command === 'log') {
+				// vscode.window.showInformationMessage(`Bane command log ${msg.text}`);
+				vscode.window.showInformationMessage(`log ${msg.text}`);
+				// log should have at least a text property
+				// Or log to output channel
+				outputChannel.appendLine(`[WebView log outputChannel ${msg.text}] `);
+				outputChannel.show(true); // false = don't preserve focus
+				if (msg.target) {
+					outputChannel.appendLine('log got the target: ' + msg.target);
+					outputChannel.show();
+					// msg.target.innerHTML += `<p style='color:green;'>Webview Extension renders using msgEl reference</p>`
+				}
+			} else if (msg.command === 'cancel') {
+				panel.dispose();
+			}
+		});
+	});
 
-      }
-      else if (msg.command === 'log') {
-        // vscode.window.showInformationMessage(`Bane command log ${msg.text}`);
-        vscode.window.showInformationMessage(`log ${msg.text}`)
-        // log should have at least a text property
-        // Or log to output channel
-        outputChannel.appendLine(`[WebView log outputChannel ${msg.text}] `); outputChannel.show(true) // false = don't preserve focus
-        if (msg.target) {
-          outputChannel.appendLine('log got the target: ' + msg.target); outputChannel.show()
-          // msg.target.innerHTML += `<p style='color:green;'>Webview Extension renders using msgEl reference</p>`
-        }
-      }
-      else if (msg.command === 'cancel') {
-        panel.dispose()
-      }
-    })
-  })
-
-  context.subscriptions.push(disposable)
+	context.subscriptions.push(disposable);
 }
 
 function getWebviewContent(
-  webview: vscode.Webview,
-  extensionUri: vscode.Uri,
-  noPrismaSchema: boolean,
-  installPartTwoPending: boolean,
-  sudoName_: string
+	webview: vscode.Webview,
+	extensionUri: vscode.Uri,
+	noPrismaSchema: boolean,
+	installPartTwoPending: boolean,
+	sudoName_: string
 ): string {
+	// Enable scripts in the webview
+	webview.options = {
+		enableScripts: true,
+		localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+	};
 
-  // Enable scripts in the webview
-  webview.options = {
-    enableScripts: true,
-    localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
-  }
+	// vscode.window.showInformationMessage('EXT: installPartTwoPending ' + installPartTwoPending);
 
-  // vscode.window.showInformationMessage('EXT: installPartTwoPending ' + installPartTwoPending);
-
-  // returns a working HTML page that creates UI Form page with CRUD support
-  return `<!DOCTYPE html>
+	// returns a working HTML page that creates UI Form page with CRUD support
+	return `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -4504,5 +4560,5 @@ created in the route specified in the Route Name input box.
 </body>
 
 </html>
-`
+`;
 }

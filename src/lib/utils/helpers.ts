@@ -1,9 +1,77 @@
-// import { browser } from '$app/environment'
+import { browser } from '$app/environment';
 export const handleTryCatch = (err: unknown, info?: string) => {
 	const msg = err instanceof Error ? err.message : String(err);
 	console.log(info, msg);
 };
+// change placeholder color to red on required messages
+export const setColor = (color: string) => {
+	if (browser) {
+		document.documentElement.style.setProperty('--PLACEHOLDER-COLOR', color);
+		setTextColor('--MESSAGE-COLOR', color === 'red' ? 'pink' : color);
+	}
+};
+export const setPlaceholderColor = (color: string) => {
+	if (browser) {
+		document.documentElement.style.setProperty('--PLACEHOLDER-COLOR', color);
+		setTextColor('--MESSAGE-COLOR', color === 'red' ? 'pink' : color);
+	}
+};
 
+export const capitalize = (str: string) => {
+	const spaceUpper = (su: string) => {
+		// getting _string so return ' String' with a leading space
+		return ` ${su[1]?.toUpperCase()}`;
+	};
+	let s = str[0]?.toUpperCase() + str.slice(1);
+	return (
+		s
+			.replace(/\b[a-z](?=[a-z]{2})/g, (char) => char.toUpperCase())
+			// snake_string_format replace _ with space
+			.replace(/(_\w)/, spaceUpper)
+	);
+};
+
+// @ts-expect-error capitalize does not exist of string
+String.prototype.capitalize = function () {
+	return capitalize(this as string);
+};
+export const getCSSValue = (varName: string): string | undefined => {
+	if (!browser) return;
+
+	try {
+		const root = document.documentElement;
+		const value = getComputedStyle(root).getPropertyValue(varName).trim();
+		return value || undefined;
+	} catch (err) {
+		console.log('getCSSValue error:', (err as Error).message);
+	}
+};
+export const setCSSValue = (varName: string, value: string) => {
+	try {
+		if (browser) {
+			const root = document.querySelector(':root') as HTMLElement;
+			if (root) {
+				root.style.setProperty(varName, value);
+				// console.log('cssValue',root.style.getPropertyValue(varName))
+			}
+		}
+	} catch (err: unknown) {
+		const msg = err instanceof Error ? err.message : String(err);
+		console.log('setCSSValue', msg);
+	}
+};
+export const setTextColor = (varName: string, color: string) => {
+	try {
+		if (browser) {
+			const root = document.querySelector(':root') as HTMLElement;
+			if (root) {
+				root.style.setProperty(varName, color);
+			}
+		}
+	} catch (err) {
+		console.log('setTextColor', err);
+	}
+};
 export function isEmpty<T extends object>(obj: T) {
 	return Object.keys(obj).length === 0;
 }
@@ -72,7 +140,7 @@ export function deepMergeRecords<T>(...records: Record<string, T>[]): Record<str
 }
 // ---------------  end deep merge -----------------------
 const primitiveTypes = new Set(['string', 'number', 'boolean', 'Date', 'float', 'decimal', 'json', 'Role']);
-function isModelFieldUICandidate(models: Models, field: Field): boolean {
+export function isModelFieldUICandidate(models: Models, field: Field): boolean {
 	const { name, type, isArray, isOptional, attrs } = field;
 	// type = type.toLowerCase().trim();
 	// model name could appear in schema as 'model User {' or as field type 'posts Post[]', so

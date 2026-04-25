@@ -104,7 +104,11 @@ function isUICandidate(field: Field): boolean {
 	if (models[name] || models[type] || isArray) {
 		return false;
 	}
-	if (name.includes('@@') || (type === 'Date' && name === 'createdAt') || /hash|token/i.test(name)) {
+	if (
+		name.includes('@@') ||
+		(type === 'Date' && name === 'createdAt') ||
+		(/hash|token/i.test(name) && !/password/i.test(name))
+	) {
 		return false;
 	}
 	// additional fields are data entry fields @id updatedAt and all primitive types
@@ -251,5 +255,6 @@ export function parsePrismaSchema(schemaContent: string): { models: Models } {
 	// console.log('models', models);
 	sortModelsByOrdered(UI.all);
 
+	// console.log(models.User);
 	return { models };
 }

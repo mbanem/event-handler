@@ -8,7 +8,19 @@
 	import * as utils from '$lib/utils';
 	import { onMount } from 'svelte';
 	type TExportValueOn = 'keypress' | 'keypress|blur' | 'enter' | 'blur' | 'enter|blur';
-	type TInputType = string | number | Date | boolean | 'password' | 'time' | 'text' | 'tel' | 'range' | 'radio' | 'checkbox' | 'textarea';
+	type TInputType =
+		| string
+		| number
+		| Date
+		| boolean
+		| 'password'
+		| 'time'
+		| 'text'
+		| 'tel'
+		| 'range'
+		| 'radio'
+		| 'checkbox'
+		| 'textarea';
 	type PROPS = {
 		title: string;
 		width?: string;
@@ -44,12 +56,12 @@
 		exportValueOn = 'enter',
 		onInputIsReadyCallback = undefined,
 		capitalize = false,
-		clearOnInputIsReady = false
+		clearOnInputIsReady = false,
 	}: PROPS = $props();
-	function required_(){
+	function required_() {
 		return required;
 	}
-	function title_(){
+	function title_() {
 		return title;
 	}
 	let elId = utils.sixHash();
@@ -132,10 +144,7 @@
 		if (event.key === 'Tab') return;
 
 		if (value && (value as string).length > 0) {
-			if (
-				exportValueOn.includes('keypress') ||
-				(exportValueOn.includes('enter') && event.key === 'Enter')
-			) {
+			if (exportValueOn.includes('keypress') || (exportValueOn.includes('enter') && event.key === 'Enter')) {
 				value = capitalizes(value as string) ?? '';
 				if (onInputIsReadyCallback) {
 					onInputIsReadyCallback();
@@ -156,7 +165,7 @@
 	let inputEl: HTMLInputElement | HTMLTextAreaElement;
 	// in order to compare inputEl with document.activeElement
 	// document.getElementById(inputEl.boxId()) gets wrapped input box
-	// otherwise idEl is a wrapper reference newer equal to doc.activeElement
+	// otherwise idEl is a wrapper reference never equal to doc.activeElement
 	export const boxId = () => {
 		return inputEl.id;
 	};

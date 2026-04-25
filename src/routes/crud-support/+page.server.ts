@@ -8,7 +8,7 @@ export const load: PageServerLoad = async () => {
 	const schema = fs.readFileSync(path.join(process.cwd(), 'prisma', 'schema.prisma'), 'utf-8');
 
 	const models = parsePrismaSchema(schema);
-	// console.log('server models begin', models, '\nserver models end');
+	// console.log('server models begin', JSON.stringify(models, null, 2), '\nserver models end');
 	// // Return the data as an object
 	// const strModels = JSON.stringify({ uiModels, nuiModels, fieldStrips })
 	return models;
