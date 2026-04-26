@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CLine from './grok.svelte';
+	import CLine from '$lib/components/ClickableLine.svelte';
 	// 1)
 	function lineClicked(state: boolean) {
 		isCheckedViaLineClicked = state;

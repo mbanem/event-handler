@@ -3,6 +3,7 @@
 	import { SvelteMap } from 'svelte/reactivity'; // get(key), set(key,value), delete(key), clear ()
 	import { createEventHandler, isEmpty, sleep } from '$lib/utils';
 	import type { Field, Model, Models } from './parse-prisma-schema';
+	import ClickableLine from '$lib/components/ClickableLine.svelte'
 	import type { PageProps } from './$types';
 
 	// type Getter<T> = () => T;
@@ -35,8 +36,11 @@
 	let modelName = $state<string>('');
 	let isLoading = $state(true);
 
-	function setModel(modelName: string) {
-		includeCheched[modelName] = (document.getElementById(`add${modelName}`) as HTMLInputElement).checked;
+function callback(state:boolean){
+	console.log(state)
+}
+	function setModel(modelName: string, state:boolean) {
+		includeCheched[modelName] = state //(document.getElementById(`add${modelName}`) as HTMLInputElement).checked;
 		if (includeCheched[modelName]) {
 			if (modelName === 'Register') {
 				models[modelName] = models.Login ?? { fields: [] };
@@ -397,9 +401,7 @@
 	{/each}
 	<p id="candidateTooltipId" class="cr-remove-hint">click to remove</p>
 {/snippet} -->
-<p>candidateModels {candidateModels}</p>
-<p>embellishments {crComponents}</p>
-<p>appFeatures {appFeatures}</p>
+
 {#snippet summaryPrismaModel()}
 	{#each Object.entries(models) as [modelName, model] (modelName)}
 		<div style="position:relative;">
@@ -450,16 +452,9 @@ to handle prisma model fields on mouse events
 		<input type="checkbox" id="addThemeIcon" value="ThemeIcon" bind:group={appFeatures} />
 		Include dark/light/system theme icon</label
 	>
-	<label for="addLogin" class="app-labels">
-		<!-- used as a button only model checkboxes include Login -->
-		<input type="checkbox" id="addLogin" onchange={() => setModel('Login')} class="checkbox-container" />
-		Include Login module to add Login Page</label
-	>
-	<label for="addRegister" class="app-labels">
-		<!-- used as a button only model checkboxes include Register -->
-		<input type="checkbox" id="addRegister" onchange={() => setModel('Register')} class="checkbox-container" />
-		Include Register module to add Register Page</label
-	>
+	<ClickableLine cssclass='clickable-line' labelText='Include Login module to add Login Page' callback={{callback:setModel,arg:'Login'}} />
+	<ClickableLine cssclass='clickable-line' labelText='Include Register module to add Register Page' callback={{callback:setModel,arg:'Register'}} />
+
 	<div class="radio-check-groups">
 		<div class="authentication">
 			{#each ['pasword-based', 'multi-factor MFA', 'certificate-based', 'token-based JWT'] as auth (auth.slice(0, 4))}
@@ -956,5 +951,9 @@ to handle prisma model fields on mouse events
 		grid-template-columns: 11rem 14rem;
 		column-gap: 0.5rem;
 		// justify-content: flex-start;
+	}
+	:global(.clickable-line){
+		margin-left:2.6rem;
+		font-size:15px!important;
 	}
 </style>
