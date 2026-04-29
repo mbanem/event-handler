@@ -18,7 +18,6 @@ browsers return value as string and server must convert new Date(value)
   prisma/schema.prisma is actually loaded by extension
 */
 import { stringToFieldObject, handleTryCatch, isEmpty } from '$lib/utils';
-import { files } from '$service-worker';
 
 // export type Field = { name: string; type: string; attrs?: string }
 export type Field = {

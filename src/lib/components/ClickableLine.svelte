@@ -1,82 +1,86 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	type TProps = {
-		labelText: string;
+		line: string;
 		/** Two-way binding for checkbox state */
-		isChecked?: boolean;
+		isSelected?: boolean | undefined;
 		/** Alternative: callback when toggled */
-		callback?: { callback: typeof function; arg: string };
-		cssclass?: string;
+		callback?: { callback: (_: string, __: boolean) => void; arg: string };
+		cssClass?: string;
 	};
-
-	// No default on $bindable → isChecked stays undefined if not passed
-	let { labelText, isChecked = $bindable<boolean>(), callback, cssclass } = $props<TProps>();
-
-	// console.log('isChecked', isChecked);
-	// console.log('callback', callback);
-	// Runtime validation: at least one control method must be provided
-	// $effect(() => {
-	if (isChecked === undefined && callback === undefined) {
-		console.error(
-			`[ClickableLine] ERROR: "${labelText}"\n` +
-				`At least one of these props is required:\n` +
-				`   • bind:isChecked={your $tate variable}\n` +
-				`   • callback={(state:boolean) => void}\n` +
-				`The line will not respond to clicks otherwise.`
-		);
+	// No default on $bindable → isSelected stays undefined if not passed
+	let { line, isSelected = $bindable<boolean>(), callback, cssClass }: TProps = $props();
+	let selected = $state(false);
+	function onClick() {
+		selected = !selected;
+		if (isSelected !== undefined) {
+			isSelected = selected;
+		}
+		if (callback) {
+			callback.callback(callback.arg, selected);
+		}
 	}
-	// });
+	onMount(() => {
+		// Runtime validation: at least one control method must be provided
+		if (isSelected === undefined && callback === undefined) {
+			console.error(
+				`[ClickableLine] ERROR: "${line}"\n` +
+					`At least one of these optional props is required:\n` +
+					`   • bind:isSelected={your $state variable}\n` +
+					`   • callback={(payload:string, state:boolean) => void}\n` +
+					`The line will not respond to clicks otherwise.`
+			);
+			return;
+		}
 
-	function handleChange(checked: boolean) {
-		// Call callback if provided
-		callback?.callback(callback?.arg, checked);
-		// isChecked updates automatically via binding when used
-	}
+		let lineEl = document.querySelector(`.${cssClass}`) as HTMLSpanElement;
+		if (!lineEl) {
+			lineEl = document.querySelector('toggler') as HTMLSpanElement;
+		}
+		lineEl.addEventListener('mousemove', (e: MouseEvent) => {
+			const { x, y } = lineEl.getBoundingClientRect();
+			// @ts-expect-error number not assignable to string, but it was a string
+			const xpos = String(parseInt(e.clientX - x));
+			lineEl.style.setProperty('--x', xpos);
+		});
+	});
 </script>
 
-<label class="toggler-label">
-	<input type="checkbox" bind:checked={isChecked} onchange={(e) => handleChange(e.currentTarget.checked)} />
-	<span class="toggler {cssclass}">
-		{labelText}
-	</span>
-</label>
+<span
+	class="toggler {cssClass}"
+	style={cssClass}
+	class:select={selected}
+	onclick={onClick}
+	onkeyup={() => {}}
+	aria-hidden={true}>{line}</span
+>
 
 <style lang="scss">
-	.toggler-label {
+	.toggler {
 		position: relative;
 		display: block;
-		cursor: pointer;
-		user-select: none;
-	}
-
-	.toggler {
 		font-size: 14px;
 		color: navy;
 		transition: color 0.2s ease;
-	}
-
-	/* only input checkbox under ,toggle-label make hidden */
-	.toggler-label input[type='checkbox'] {
-		position: absolute;
-		opacity: 0;
-		width: 0;
-		height: 0;
-	}
-
-	/* high specificity all the way down to the .toggler */
-	.toggler-label input[type='checkbox'] {
-		&:checked + .toggler {
-			color: tomato;
+		&:hover {
+			cursor: pointer;
+			color: blue;
+			&::after {
+				position: absolute;
+				content: 'click to toggle add';
+				top: -1.5rem;
+				left: calc(var(--x, 0) * 1px - 50px);
+				width: max-content;
+				font-size: 12px;
+				padding: 0 0.5rem;
+				color: blue;
+				background-color: cornsilk;
+				border: 1px solid gray;
+				border-radius: 5px;
+			}
 		}
 	}
-	.toggler:hover::after {
-		position: absolute;
-		content: 'click to toggle add';
-		top: -1.5rem;
-		left: 3rem;
-		// z-index: 12;
-		padding: 0 1rem;
-		background-color: cornsilk;
-		border: 1px solid gray;
-		border-radius: 5px;
+	.select {
+		color: tomato !important;
 	}
 </style>

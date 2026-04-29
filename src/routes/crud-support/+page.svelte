@@ -3,22 +3,18 @@
 	import { SvelteMap } from 'svelte/reactivity'; // get(key), set(key,value), delete(key), clear ()
 	import { createEventHandler, isEmpty, sleep } from '$lib/utils';
 	import type { Field, Model, Models } from './parse-prisma-schema';
-	import ClickableLine from '$lib/components/ClickableLine.svelte'
+	import ClickableLine from '$lib/components/ClickableLine.svelte';
 	import type { PageProps } from './$types';
 
-	// type Getter<T> = () => T;
-
-	// const noop = () => {};
 	const log = console.log;
 	let { data }: PageProps = $props();
-	function data_() {
-		return data;
-	}
+	const data_ = $derived(data);
+
 	let models: Models = $state<Models>({}) as Models;
-	// snippet renders Prisma ORM models from schema.prisma but when user select checkbox
+	// snippet renders Prisma ORM models from schema.prisma but when user clicks on line
 	// for including Register and Login routes we add to registerLoginModels for user to
 	// add fields from Prisma ORM models to them by click/shift-click/ctrl-click on fields
-	let crComponents: string[] = $state([]);
+	let crComponents: string[] = $state(['CRInput', 'CRSpinner', 'CRActivity', 'CRTooltip', 'CRSummaryDetails']);
 	let appFeatures: string[] = $state([]);
 	let includeCheched: Record<string, boolean> = $state({ Login: false, Register: false });
 	function toggleCheckboxes(e: MouseEvent) {
@@ -27,8 +23,6 @@
 		el.innerText = newState ? '(clear all)' : '(select all)';
 
 		(document.querySelectorAll('.model-checkboxes') as unknown as Array<HTMLInputElement>).forEach(async (chkbox) => {
-			console.log(chkbox);
-			// chkbox.checked = newState;
 			chkbox.click();
 			await sleep(100);
 		});
@@ -36,11 +30,9 @@
 	let modelName = $state<string>('');
 	let isLoading = $state(true);
 
-function callback(state:boolean){
-	console.log(state)
-}
-	function setModel(modelName: string, state:boolean) {
-		includeCheched[modelName] = state //(document.getElementById(`add${modelName}`) as HTMLInputElement).checked;
+	function setModel(modelName: string, state: boolean) {
+		// includeCheched holds fake models for Lofin anf Register -- not included initially in models
+		includeCheched[modelName] = state; //(document.getElementById(`add${modelName}`) as HTMLInputElement).checked;
 		if (includeCheched[modelName]) {
 			if (modelName === 'Register') {
 				models[modelName] = models.Login ?? { fields: [] };
@@ -60,14 +52,28 @@ function callback(state:boolean){
 	// onclick Create CRUD Support sends models to extension to
 	// create individual pages or part of the application
 	function getPayload() {
+		console.log($state.snapshot([...candidates]));
 		if (candidateModels.length === 0) {
 			// return JSON.stringify($state.snapshot(candidates));
 			return $state.snapshot([...candidates]);
 		}
-		const payload: Record<string, Model> = {}; // { route: string | null } = { route: null };
+		const payload: Record<string, Model | string[] | string> = {}; // { route: string | null } = { route: null };
 		candidateModels.forEach((modelName) => {
 			payload[modelName] = $state.snapshot(models[modelName]) as Model;
 		});
+		if (crComponents.length) {
+			payload['crComponents'] = crComponents;
+		}
+		for (const key of ['authorization', 'authentication']) {
+			const el = document.querySelector(`input[name=${key}]:checked`) as HTMLInputElement;
+			if (el) {
+				payload[key] = el.value;
+			}
+		}
+
+		if (appFeatures.length) {
+			payload['features'] = appFeatures;
+		}
 		// return JSON.stringify($state.snapshot(payload));
 		return $state.snapshot(payload);
 	}
@@ -99,7 +105,7 @@ function callback(state:boolean){
 	}
 
 	setTimeout(() => {
-		models = data_().models;
+		models = data_.models;
 		isLoading = false;
 	}, 1000);
 
@@ -156,7 +162,8 @@ function callback(state:boolean){
 	}
 
 	function onPrismaClick(e: MouseEvent) {
-		if (e.ctrlKey) {
+		console.log('event type', e.type);
+		if (e.ctrlKey || e.type !== 'click') {
 			return;
 		}
 		const el = e.target as HTMLElement;
@@ -401,7 +408,6 @@ function callback(state:boolean){
 	{/each}
 	<p id="candidateTooltipId" class="cr-remove-hint">click to remove</p>
 {/snippet} -->
-
 {#snippet summaryPrismaModel()}
 	{#each Object.entries(models) as [modelName, model] (modelName)}
 		<div style="position:relative;">
@@ -444,22 +450,30 @@ to handle prisma model fields on mouse events
 {/snippet}
 
 {#snippet appIncludes()}
-	<label for="addNavbar" class="app-labels">
-		<input type="checkbox" id="addNavbar" value="Navbar" bind:group={appFeatures} />
+	<label for="Navbar" class="app-labels">
+		<input type="checkbox" id="Navbar" value="NavBar" bind:group={appFeatures} />
 		Include navbar in app root +layout.svelte</label
 	>
-	<label for="addThemeIcon" class="app-labels">
-		<input type="checkbox" id="addThemeIcon" value="ThemeIcon" bind:group={appFeatures} />
+	<label for="ThemeIcon" class="app-labels">
+		<input type="checkbox" id="ThemeIcon" value="ThemeIcon" bind:group={appFeatures} />
 		Include dark/light/system theme icon</label
 	>
-	<ClickableLine cssclass='clickable-line' labelText='Include Login module to add Login Page' callback={{callback:setModel,arg:'Login'}} />
-	<ClickableLine cssclass='clickable-line' labelText='Include Register module to add Register Page' callback={{callback:setModel,arg:'Register'}} />
+	<ClickableLine
+		line="Click to include Login module to add Login Page"
+		callback={{ callback: setModel, arg: 'Login' }}
+		cssClass="clickable-line"
+	/>
+	<ClickableLine
+		line="Click to include Register module to add Register Page"
+		callback={{ callback: setModel, arg: 'Register' }}
+		cssClass="clickable-line"
+	/>
 
 	<div class="radio-check-groups">
 		<div class="authentication">
 			{#each ['pasword-based', 'multi-factor MFA', 'certificate-based', 'token-based JWT'] as auth (auth.slice(0, 4))}
 				<label>
-					<input type="radio" name="auths" value={auth} />
+					<input type="radio" name="authentication" value={auth} checked={auth === 'token-based JWT'} />
 					{auth}
 				</label>
 			{/each}
@@ -467,7 +481,7 @@ to handle prisma model fields on mouse events
 		<div class="authorization">
 			{#each ['JSON Web Tokens JWT', 'API Keys', 'Bearer Tokens', 'Digest Authentication', 'Mutual TLS'] as auth (auth.slice(0, 4))}
 				<label>
-					<input type="radio" name="author" value={auth} />
+					<input type="radio" name="authorization" value={auth} checked={auth === 'Bearer Tokens'} />
 					{auth}
 				</label>
 			{/each}
@@ -499,13 +513,13 @@ to handle prisma model fields on mouse events
 			<div class="checkbox-item">
 				<label for="CRTooltip"
 					><input id="CRTooltip" type="checkbox" value="CRTooltip" bind:group={crComponents} />
-					Tooltip component</label
+					CRTooltip component</label
 				>
 			</div>
 			<div class="checkbox-item">
-				<label for="CRSummaryDetail"
-					><input id="CRSummaryDetail" type="checkbox" value="CRSummaryDetail" bind:group={crComponents} />
-					Summary/Details component</label
+				<label for="CRSummaryDetails"
+					><input id="CRSummaryDetails" type="checkbox" value="CRSummaryDetails" bind:group={crComponents} />
+					CRSummaryDetails component</label
 				>
 			</div>
 		</div>
@@ -540,8 +554,8 @@ to handle prisma model fields on mouse events
 				<div class="spinner-wrapper"><span class="spinner"></span><span>Loading models...</span></div>
 			{:else}
 				{@render summaryPrismaModel()}
-				<p id="ormModelTooltipId" class="cr-prisma-remove-hint">click, add to candidates</p>
 			{/if}
+			<p id="ormModelTooltipId" class="cr-prisma-remove-hint">click, add to candidates</p>
 		</div>
 	</div>
 	<p class="orm-models-caption">Route Names and ORM Models</p>
@@ -549,10 +563,6 @@ to handle prisma model fields on mouse events
 </div>
 
 <style lang="scss">
-	:root {
-		--login: 'Include Login module to add Login Page';
-		--register: 'Include Register module to add Register Page';
-	}
 	*,
 	*::before,
 	*::after {
@@ -567,7 +577,7 @@ to handle prisma model fields on mouse events
 		column-gap: 1rem;
 		margin-top: 0.5rem;
 		width: 100vw;
-		height: 90vh;
+		height: 80vh;
 		align-items: start;
 		// border-bottom: 1px solid gray;
 	}
@@ -952,8 +962,8 @@ to handle prisma model fields on mouse events
 		column-gap: 0.5rem;
 		// justify-content: flex-start;
 	}
-	:global(.clickable-line){
-		margin-left:2.6rem;
-		font-size:15px!important;
+	:global(.clickable-line) {
+		margin-left: 2.6rem;
+		font-size: 15px !important;
 	}
 </style>
