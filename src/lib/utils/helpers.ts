@@ -47,12 +47,12 @@ export const getCSSValue = (varName: string): string | undefined => {
 		console.log('getCSSValue error:', (err as Error).message);
 	}
 };
-export const setCSSValue = (varName: string, value: string) => {
+export const setCSSValue = (varName: string, value: string | number) => {
 	try {
 		if (browser) {
 			const root = document.querySelector(':root') as HTMLElement;
 			if (root) {
-				root.style.setProperty(varName, value);
+				root.style.setProperty(varName, value as string);
 				// console.log('cssValue',root.style.getPropertyValue(varName))
 			}
 		}

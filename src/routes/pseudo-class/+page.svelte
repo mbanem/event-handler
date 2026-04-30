@@ -2,28 +2,34 @@
 	import { onMount } from 'svelte';
 	import { getCSSValue, setCSSValue } from '$lib/utils';
 	let count = $state(0);
-	let LRB = $state('');
+
+	// radio buttons group to select Login, Register or both
+	// rqdio button group containeer
 	let toAddWhereEl: HTMLDivElement | null = null;
+	let schemaContainerEl: HTMLDivElement | null = null;
+	let LRB = $state('');
 	const changeColorPseudoEle = () => {
 		const root = document.querySelector(':root') as HTMLElement; //grabbing the root element
 		let color = root.style.getPropertyValue('--before-background-color');
 		root.style.setProperty('--before-background-color', color === 'blue' ? 'darkcyan' : 'blue');
 		color = root.style.getPropertyValue('--after-background-color');
 		root.style.setProperty('--after-background-color', color === 'orangered' ? 'rebeccapurple' : 'orangered');
-		// Selecting the "#box::after" CSS
-		// rule from rule list.
-
-		// Change the styles of the pseudo element.
-		// st1.style.backgroundColor = st1.style.backgroundColor === 'blue' ? 'orangered' : 'blue';
-		// st2.style.backgroundColor = st2.style.backgroundColor == 'crimson' ? 'darkcyan' : 'crimson';
 	};
 
+	let r: { left: number; right: number; top: number; bottom: number } = {}; // bounding rectangle
+	function insideElBounds(e: MouseEvent) {
+		return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+	}
 	function toggleOpacity(e: MouseEvent) {
+		if (e.type === 'mouseout' && !insideElBounds(e)) {
+			setCSSValue('--opacity', 0);
+			return;
+		}
 		const target = e.target as HTMLElement;
 		const related = e.relatedTarget as HTMLElement | null;
-
 		const p = target.closest('p');
 		if (!p) return;
+
 		// Ignore moves within the same <p>
 		if (related && p.contains(related)) return;
 
@@ -32,16 +38,14 @@
 		}
 		toAddWhereEl.style.top = String(p.offsetTop - p.offsetHeight) + 'px';
 		toAddWhereEl.style.left = String(p.offsetLeft + 12) + 'px';
-		// toAddWhereEl.style.opacity = '1';
-		setCSSValue('--opacity', '1');
-		console.log('toggleOpacity', p.innerText, getCSSValue('--opacity'));
+		setCSSValue('--opacity', 1);
 	}
+
 	function onChangeLRB() {
-		console.log('onChangeLRB');
 		const el = document.querySelector('input[name=LRB]:checked');
 		setTimeout(async () => {
 			setCSSValue('--opacity', '0');
-		}, 300);
+		}, 100);
 		setTimeout(async () => {
 			document.querySelectorAll('input[name=LRB]').forEach((rb) => {
 				(rb as HTMLInputElement).checked = false;
@@ -51,6 +55,8 @@
 	}
 	onMount(() => {
 		toAddWhereEl = document.querySelector('.to-add-where') as HTMLDivElement;
+		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
+		r = schemaContainerEl?.getBoundingClientRect();
 	});
 </script>
 
@@ -75,7 +81,14 @@
 	decreament
 </button>
 <button onclick={() => count++} style="margin-left:10px;padding:0;"> increment </button>
-<div id="schemaContainerId" onmouseover={toggleOpacity} role="status" onfocus={() => {}}>
+<div
+	id="schemaContainerId"
+	onmouseover={toggleOpacity}
+	onmouseout={toggleOpacity}
+	role="status"
+	onblur={() => {}}
+	onfocus={() => {}}
+>
 	{#each Array(5) as _, i (10 * i)}
 		<p>field number {i + 10}</p>
 	{/each}
@@ -94,27 +107,29 @@
 		--before-color: white;
 		--after-background-color: orangered;
 		--after-color: white;
-		--opacity: '0';
+		--opacity: 0;
 	}
 	#schemaContainerId {
 		position: relative;
 		margin-left: 3rem;
+		width: max-content;
+		padding: 0 2.5rem 0 2rem;
 		p {
 			width: max-content;
+			padding: 1px 0.5rem;
 		}
 		.to-add-where {
 			position: absolute;
 			top: -1.5rem;
-			left: -2rem !important;
+			left: 0 !important;
 			width: max-content;
-			height: 2rem;
-			padding: 1px 0.5rem;
-			border-bottom: 6px solid transparent;
+			height: 1.1rem;
+			padding: 1px 0.4rem 1rem 0.1rem;
 			color: var(--model-name);
 			opacity: var(--opacity);
 			.radio-wrapper {
 				background-color: skyblue;
-				padding: 1px 0.3rem;
+				padding: 3px 0.5rem;
 				border-radius: 5px !important;
 				cursor: pointer;
 				label,
