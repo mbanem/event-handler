@@ -13,22 +13,24 @@
 	// radio buttons group to select Login, Register or Both
 	// Login, Register, Both radio button group container
 	let toAddWhereEl: HTMLDivElement | null = null;
-	let LRB = $state('');
-	// schema summary/detail container bounding rect to hide radib buttons group
-	// when mouse gets out of its bounds
+
+	let LRB = $state(''); // LRB for Login, Register or Both
+	// schema summary/detail container bounding rect used to hide radio buttons
+	// group when mouse gets out of its bounds (set inside onMount)
 	let r: { left: number; right: number; top: number; bottom: number } = {}; // bounding rectangle
+
 	function insideElBounds(e: MouseEvent) {
 		const res = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
 		return res;
 	}
-	// visibility is acieved via toggling the opacity of radio buttons container
+	// visibility is achieved via toggling the opacity of radio buttons container
 	function toggleOpacity(e: MouseEvent) {
 		// e.preventDefault();
 		if (insideElBounds(e) === false) {
 			// necessary separate it from the return
 			setTimeout(() => {
-				setCSSValue('--opacity', '0');
-			}, 300);
+				setCSSValue('--opacity', 0);
+			}, 0);
 			return;
 		}
 		const target = e.target as HTMLElement;
@@ -42,8 +44,8 @@
 		// Ignore moves within the same <p> tag
 		if (related && p.contains(related)) return;
 
-		console.log('toggleOpacity', target.innerText);
 		if (!toAddWhereEl) {
+			// probably unnecessary
 			toAddWhereEl = document.querySelector('.to-add-where') as HTMLDivElement;
 		}
 		toAddWhereEl.style.top = String(p.offsetTop - p.offsetHeight) + 'px';

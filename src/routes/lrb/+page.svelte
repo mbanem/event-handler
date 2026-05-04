@@ -31,7 +31,5 @@
 <style lang="scss">
 	.main {
 		margin: 3rem 0 0 1rem;
-		border: 1px solid gray;
-		border-radius: 10px;
 	}
 </style>
