@@ -30,7 +30,7 @@
 </script>
 
 <!-- popup action -- radio button group -->
-<div class="radio-wrapper" bind:this={radioGroupEl}>
+<div class="radio-wrapper hidden" bind:this={radioGroupEl}>
 	<label data-item><input type="radio" name="LRB" value="L" />Login</label>
 	<label data-item><input type="radio" name="LRB" value="R" />Register</label>
 	<label data-item><input type="radio" name="LRB" value="LR" />Both</label>
@@ -268,5 +268,8 @@
 				margin: 0;
 			}
 		}
+	}
+	.hidden{
+		display:none;
 	}
 </style>

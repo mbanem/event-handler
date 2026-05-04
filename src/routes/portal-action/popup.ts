@@ -5,12 +5,13 @@ type PopupParams = {
 	trigger: Trigger;
 	radioGroupClass?: string;
 	containerClass?: string;
-	onItemClick?: (e: MouseEvent, hoveringEl?: HTMLElement, el?: HTMLElement ) => void;
+	onItemClick?: (e: MouseEvent, hoveringEl?: HTMLElement, el?: HTMLElement) => void;
 };
 
 export function popup(node: HTMLElement, params: PopupParams) {
 	const { radioGroupClass, containerClass } = params;
-	let { content, trigger, onItemClick } = params;	// mutable with newParams
+	let { content, trigger, onItemClick } = params; // mutable with newParams
+	content.classList.toggle('hidden');
 	document.body.appendChild(content);
 	const radioGroupEl = radioGroupClass
 		? (document.querySelector(`.${radioGroupClass}`) as HTMLDivElement | null)
