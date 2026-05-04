@@ -7,7 +7,7 @@ type ContextMenuParams = {
 
 export function contextMenu(node: HTMLElement, params: ContextMenuParams) {
 	const { contextMenuEl: menu, menuItemSelected } = params;
-
+	menu.classList.toggle('hidden');
 	document.body.appendChild(menu);
 
 	menu.style.position = 'absolute';

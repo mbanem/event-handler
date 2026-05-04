@@ -11,6 +11,7 @@ type Params = {
 
 export function contMenu(node: HTMLElement, params: Params) {
 	const { menu } = params;
+	menu.classList.toggle('hidden');
 	let { classes } = params;
 
 	document.body.appendChild(menu);

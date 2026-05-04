@@ -5,6 +5,7 @@ type DropDownParams = {
 };
 export function dropdown(node: HTMLElement, params: DropDownParams) {
 	const { dropdownMenuEl, dropdownSelected } = params;
+	dropdownMenuEl.classList.toggle('hidden');
 	let open = false;
 	dropdownMenuEl.addEventListener('click', (e) => {
 		dropdownSelected(e);

@@ -54,9 +54,9 @@
 	</div>
 </div>
 
-<!-- context menu action -->
+<!-- context menu action -- hidden used until action kicks in and toggle it-->
 
-<div bind:this={contextMenuEl} class="context-menu">
+<div bind:this={contextMenuEl} class="context-menu hidden">
 	<div>Edit</div>
 	<div>Duplicate</div>
 	<div>Delete</div>
@@ -65,9 +65,9 @@
 	contextMenu Right click anywhere here
 </div>
 
-<!-- drop down action -->
+<!-- drop down action  -- hidden used until action kicks in and toggle it-->
 
-<div bind:this={dropdownMenuEl} class="dropdown-menu">
+<div bind:this={dropdownMenuEl} class="dropdown-menu hidden">
 	<div>Profile</div>
 	<div>Settings</div>
 	<div>Logout</div>
@@ -87,7 +87,7 @@
 	}}
 >
 	Improved Right click me
-	<div bind:this={contMenuEl} class="ctx-menu-item">
+	<div bind:this={contMenuEl} class="ctx-menu-item hidden">
 		<div>Edit</div>
 		<div>Duplicate</div>
 		<div>Delete</div>
@@ -96,7 +96,7 @@
 
 <!-- using popup action -->
 
-<div bind:this={popupMenuEl} class="popupMenu">
+<div bind:this={popupMenuEl} class="popupMenu hidden">
 	<div data-item data-action="edit">Popup Edit</div>
 	<div data-item data-action="delete">Popup Delete</div>
 </div>
@@ -269,7 +269,7 @@
 			}
 		}
 	}
-	.hidden{
-		display:none;
+	.hidden {
+		display: none;
 	}
 </style>
