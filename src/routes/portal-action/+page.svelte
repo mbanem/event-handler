@@ -57,9 +57,9 @@
 <!-- context menu action -- hidden used until action kicks in and toggle it-->
 
 <div bind:this={contextMenuEl} class="context-menu hidden">
-	<div>Edit</div>
-	<div>Duplicate</div>
-	<div>Delete</div>
+	<p>Edit</p>
+	<p>Duplicate</p>
+	<p>Delete</p>
 </div>
 <div use:contextMenu={{ contextMenuEl, menuItemSelected }} class="context-menu-area">
 	contextMenu Right click anywhere here
@@ -68,13 +68,18 @@
 <!-- drop down action  -- hidden used until action kicks in and toggle it-->
 
 <div bind:this={dropdownMenuEl} class="dropdown-menu hidden">
-	<div>Profile</div>
-	<div>Settings</div>
-	<div>Logout</div>
+	<p>Profile</p>
+	<p>Settings</p>
+	<p>Logout</p>
 </div>
 <button use:dropdown={{ dropdownMenuEl, dropdownSelected }}> Open Menu </button>
 
 <!-- using improved contMenu -->
+<div bind:this={contMenuEl} class="ctx-menu-item hidden">
+	<p>Edit</p>
+	<p>Duplicate</p>
+	<p>Delete</p>
+</div>
 <div
 	class="ctx-menu-parent"
 	use:contMenu={{
@@ -87,18 +92,13 @@
 	}}
 >
 	Improved Right click me
-	<div bind:this={contMenuEl} class="ctx-menu-item hidden">
-		<div>Edit</div>
-		<div>Duplicate</div>
-		<div>Delete</div>
-	</div>
 </div>
 
-<!-- using popup action -->
+<!-- using popup action TODO mouse out of container hide context menu -->
 
 <div bind:this={popupMenuEl} class="popupMenu hidden">
-	<div data-item data-action="edit">Popup Edit</div>
-	<div data-item data-action="delete">Popup Delete</div>
+	<p data-item data-action="edit">Popup Edit</p>
+	<p data-item data-action="delete">Popup Delete</p>
 </div>
 <div
 	class="popup-wrapper"
@@ -128,25 +128,47 @@
 	.context-menu {
 		background: white;
 		border: 1px solid #ccc;
-		padding: 6px;
 		border-radius: 6px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		width: max-content;
-		div {
-			width: inherit;
+		cursor: default;
+		p {
+			color: blue;
+			cursor: inherit;
+			padding: 1px 5px;
+			margin: 0;
+			border: none;
+			transition: background 0.3s;
+			&:hover {
+				/* to strech bg color container .ctx-menu-item
+				should not have padding to cut the strech
+				*/
+				background-color: cornsilk;
+				cursor: pointer;
+			}
 		}
 	}
 
 	.dropdown-menu {
 		background: white;
 		border: 1px solid #ccc;
-		padding: 6px;
 		border-radius: 6px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		width: max-content;
-		div {
-			width: inherit;
+		p {
 			color: blue;
+			cursor: inherit;
+			padding: 1px 5px;
+			margin: 0;
+			border: none;
+			transition: background 0.3s;
+			&:hover {
+				/* to strech bg color container .ctx-menu-item
+				should not have padding to cut the strech
+				*/
+				background-color: cornsilk;
+				cursor: pointer;
+			}
 		}
 	}
 	/* send CSS class names to contMenu action
@@ -163,28 +185,52 @@
 		border-radius: 5px;
 		color: navy;
 		margin: 1rem 0 0 2rem;
+		cursor: default;
 	}
 
 	.ctx-menu-item {
-		padding: 6px 10px;
-		cursor: pointer;
-		div {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		cursor: inherit;
+		border: 1px solid gray;
+		border-radius: 4px;
+		background: white;
+		p {
 			color: blue;
+			cursor: inherit;
+			padding: 1px 5px;
+			margin: 0;
+			border: none;
+			transition: background 0.3s;
+			&:hover {
+				/* to strech bg color container .ctx-menu-item
+				should not have padding to cut the strech
+				*/
+				background-color: cornsilk;
+				cursor: pointer;
+			}
 		}
 	}
 
 	.popupMenu {
-		width: 6rem;
-		height: 4rem;
+		height: auto;
 		border: 1px solid gray;
 		border-radius: 5px;
-		padding-left: 6px;
 		color: navy;
-		div {
+		cursor: default;
+		p {
 			color: blue;
 			width: inherit;
+			padding: 0;
+			margin: 0;
+			padding: 1px 5px;
+			cursor: inherit;
 			&:first-of-type {
 				margin-top: 6px;
+			}
+			&:last-of-type {
+				margin-bottom: 6px;
 			}
 			&:hover {
 				cursor: pointer;
@@ -195,9 +241,10 @@
 	.popup-wrapper {
 		width: 12rem;
 		height: 3rem;
-		padding: 5px 1rem;
+		/* padding: 5px 1rem; */
 		border: 1px solid gray;
 		border-radius: 5px;
+		cursor: default;
 	}
 	/* 
 		list container firstName, lastName,...
@@ -263,7 +310,7 @@
 			}
 			border-radius: 5px;
 			label {
-				widthz: max-content;
+				width: max-content;
 				padding: 0;
 				margin: 0;
 			}
