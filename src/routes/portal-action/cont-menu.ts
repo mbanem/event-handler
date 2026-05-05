@@ -6,14 +6,15 @@ type MenuClasses = {
 
 type Params = {
 	menu: HTMLElement;
-	classes: MenuClasses;
+	classes?: MenuClasses;
+	elements?: HTMLElement | HTMLElement[];
 };
 
 export function contMenu(node: HTMLElement, params: Params) {
 	const { menu, classes } = params;
-
-	menu.addEventListener('click', classes.itemAction);
-
+	if (classes) {
+		menu.addEventListener('click', classes.itemAction);
+	}
 	document.body.appendChild(menu);
 
 	menu.classList.add('ctx-menu');

@@ -11,17 +11,14 @@
 	import { dropdown } from './drop-down';
 	let dropdownMenuEl: HTMLDivElement;
 	function dropdownSelected(e: MouseEvent) {
-		console.log('dropdown item selected', (e.target as HTMLElement).innerText);
+		console.log('contextMenu item selected', (e.target as HTMLElement).innerText);
 	}
 
-	function theItemAction(e: MouseEvent) {
-		console.log('itemAction', (e.target as HTMLElement).innerText);
+	function itemCallback(e: MouseEvent) {
+		console.log('itemCallback', (e.target as HTMLElement).innerText);
 	}
 	function onItemClick(e: MouseEvent) {
 		console.log((e.target as HTMLElement).innerText);
-	}
-	function menuItemSelected(e: MouseEvent) {
-		console.log('context menu -- item selected', (e.target as HTMLElement).innerText);
 	}
 	function radioLRBSelected(e: MouseEvent, hoveringEl?: HTMLElement, el?: HTMLElement) {
 		console.log(hoveringEl?.innerText, el?.innerText);
@@ -61,7 +58,7 @@
 	<p>Duplicate</p>
 	<p>Delete</p>
 </div>
-<div use:contextMenu={{ contextMenuEl, menuItemSelected }} class="context-menu-area">
+<div use:contextMenu={{ contextMenuEl, itemCallback }} class="context-menu-area">
 	contextMenu Right click anywhere here
 </div>
 
@@ -87,7 +84,7 @@
 		classes: {
 			menuClassName: 'my-menu',
 			itemClassName: 'my-item',
-			itemAction: theItemAction,
+			itemCallback: itemCallback,
 		},
 	}}
 >
@@ -113,10 +110,22 @@
 </div>
 
 <style>
+	/* test */
+	.my-menu {
+		color: red;
+		border: 1px solid red;
+	}
+	.my_item {
+		color: green;
+		&:hover {
+			color: white;
+			background-color: tomato;
+		}
+	}
 	.context-menu-area {
 		width: max-content;
 		height: 4rem;
-		padding: 1rem;
+		/* padding: 1rem; */
 		margin: 1rem 0 0 5rem;
 		color: var(--candidate-color);
 		background-color: var(--candidate-bg-color);
@@ -131,7 +140,7 @@
 		border-radius: 6px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		width: max-content;
-		cursor: default;
+		cursor: defaul !important;
 		p {
 			color: blue;
 			cursor: inherit;
@@ -192,7 +201,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
-		cursor: inherit;
+		cursor: default;
 		border: 1px solid gray;
 		border-radius: 4px;
 		background: white;
@@ -218,7 +227,7 @@
 		border: 1px solid gray;
 		border-radius: 5px;
 		color: navy;
-		cursor: default;
+		cursor: default !important;
 		p {
 			color: blue;
 			width: inherit;

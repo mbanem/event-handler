@@ -1,7 +1,7 @@
 type MenuClasses = {
 	menuClassName?: string;
 	itemClassName?: string;
-	itemAction?: (e: MouseEvent, el: HTMLElement) => void;
+	itemCallback?: (e: MouseEvent, el: HTMLElement) => void;
 };
 
 type Params = {
@@ -49,7 +49,7 @@ export function contMenu(node: HTMLElement, params: Params) {
 		const target = (e.target as HTMLElement).closest('.ctx-menu-item') as HTMLElement;
 		if (!target) return;
 
-		classes?.itemAction?.(e, target);
+		classes?.itemCallback?.(e, target);
 		hide();
 	}
 

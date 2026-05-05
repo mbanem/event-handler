@@ -1,12 +1,12 @@
 // contextMenu.ts
-type ContextMenuParams = {
+type Params = {
 	contextMenuEl: HTMLElement;
 
-	menuItemSelected: (e: MouseEvent) => void;
+	itemCallback: (e: MouseEvent) => void;
 };
 
-export function contextMenu(node: HTMLElement, params: ContextMenuParams) {
-	const { contextMenuEl: menu, menuItemSelected } = params;
+export function contextMenu(node: HTMLElement, params: Params) {
+	const { contextMenuEl: menu, itemCallback } = params;
 	menu.classList.toggle('hidden');
 	document.body.appendChild(menu);
 
@@ -26,7 +26,7 @@ export function contextMenu(node: HTMLElement, params: ContextMenuParams) {
 		menu.style.opacity = '0';
 	}
 	node.addEventListener('contextmenu', show);
-	menu.addEventListener('click', menuItemSelected);
+	menu.addEventListener('click', itemCallback);
 
 	document.addEventListener('click', hide);
 
