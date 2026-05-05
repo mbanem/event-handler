@@ -33,6 +33,7 @@ export function popup(node: HTMLElement, params: PopupParams) {
 	}
 
 	function showAt(x: number, y: number) {
+		document.documentElement.click();
 		positionAt(x, y);
 		content.style.opacity = '1';
 		visible = true;

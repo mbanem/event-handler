@@ -26,7 +26,7 @@ export function contMenu(node: HTMLElement, params: Params) {
 
 	function show(e: MouseEvent) {
 		e.preventDefault();
-
+		document.documentElement.click();
 		menu.style.top = `${e.clientY + window.scrollY}px`;
 		menu.style.left = `${e.clientX + window.scrollX}px`;
 		menu.style.opacity = '1';

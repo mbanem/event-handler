@@ -25,6 +25,7 @@ export function dropdown(node: HTMLElement, params: DropDownParams) {
 	}
 
 	function toggle() {
+		document.documentElement.click();
 		open = !open;
 		if (open) {
 			position();
