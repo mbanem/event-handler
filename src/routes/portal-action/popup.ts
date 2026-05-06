@@ -77,7 +77,7 @@ export function popup(node: HTMLElement, params: PopupParams) {
 		showAt(r.x + window.scrollX, r.y - 25 + window.scrollY);
 	}
 	function handleClick(e: MouseEvent) {
-		const item = (e.target as HTMLElement).closest('[data-item]');
+		const item = e.target as HTMLElement; //.closest('[data-item]');
 		if (!item) return;
 
 		content.style.opacity = '0';

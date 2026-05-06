@@ -28,9 +28,9 @@
 
 <!-- popup action -- radio button group -->
 <div class="radio-wrapper hidden" bind:this={radioGroupEl}>
-	<label data-item><input type="radio" name="LRB" value="L" />Login</label>
-	<label data-item><input type="radio" name="LRB" value="R" />Register</label>
-	<label data-item><input type="radio" name="LRB" value="LR" />Both</label>
+	<input type="radio" name="LRB" value="L" /><span>Login</span>
+	<input type="radio" name="LRB" value="R" /><span>Register</span>
+	<input type="radio" name="LRB" value="LR" /><span>Both</span>
 </div>
 <div class="list-container">
 	<div
@@ -235,6 +235,7 @@
 			margin: 0;
 			padding: 1px 5px;
 			cursor: inherit;
+			background-color: white;
 			&:first-of-type {
 				margin-top: 6px;
 			}
@@ -263,7 +264,7 @@
 		--hover-color: red;
 
 		position: relative;
-		margin-left: 3rem;
+		margin: 1rem 0 0 3rem;
 		width: max-content;
 		padding: 0;
 		background-color: transparent;
