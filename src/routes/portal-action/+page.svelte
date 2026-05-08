@@ -1,46 +1,79 @@
 <script lang="ts">
 	import { contextMenu } from './context-menu';
-	import { contMenu } from './cx-menu';
 	import { popup } from './popup';
-
-	let contextMenuEl: HTMLDivElement;
-	let contMenuEl: HTMLDivElement;
-	let popupMenuEl: HTMLDivElement;
-	let radioGroupEl: HTMLDivElement;
-
 	import { dropdown } from './drop-down';
-	let dropdownMenuEl: HTMLDivElement;
-	function dropdownSelected(e: MouseEvent) {
-		console.log('contextMenu item selected', (e.target as HTMLElement).innerText);
+
+	// contextMenuEl is used in two cases as only one is active at a time
+	let contextMenuEl: HTMLDivElement; // not $state() squiggle
+	let dropdownMenuEl: HTMLDivElement; // not $state() squiggle
+
+	// radio button uses popup hover action wjich calls onItemHover to decide
+	// whether to show radio buttons or 'not data entry field' so user has no
+	// confusion about why no radio buttons are shown for some fields
+	let isDataEntry = $state(true);
+	const noDataEntry = new Set(['todos', 'profile', 'posts', 'createdAt', 'blogs']);
+	function onItemHover(e: MouseEvent) {
+		const fieldName = (e.target as HTMLElement).innerText.split(':')[0];
+		isDataEntry = !noDataEntry.has(fieldName);
+	}
+	// when radio button is clicked we want to know which field
+	// it is for and to which model(s) to add it
+	const fnm: Record<string, string> = {}; // {fieldName, model}
+
+	// this function extracts model from radio button block wrapped with a
+	// <label><radio button>model</label>
+	// or a span as <radio button><span>model</span>
+	function radioLRBSelected(e: MouseEvent, hoveringEl?: HTMLElement) {
+		fnm.fieldName = hoveringEl?.innerText as string;
+		const el = e.target as HTMLElement;
+		// }
+		if ((el?.innerText as string) === '') {
+			fnm.model = (el?.nextElementSibling as HTMLElement).innerText;
+		} else {
+			fnm.model = el?.innerText as string;
+		}
+		console.log('fnm', fnm);
 	}
 
+	// dropdown action callback when dropdown item is clicked we want to know
+	// which item is clicked to perform some action
+	function dropdownSelected(e: MouseEvent) {
+		console.log('callbackdropdownSelected', (e.target as HTMLElement).innerText);
+	}
+
+	// used as a callback for two different context menus jets for testing and not for
+	// production as it is not clear which menu item is clicked as they have same items
 	function itemCallback(e: MouseEvent) {
 		console.log('itemCallback', (e.target as HTMLElement).innerText);
 	}
-	function onItemClick(e: MouseEvent) {
-		console.log((e.target as HTMLElement).innerText);
+
+	function onPopupClick(e: MouseEvent) {
+		console.log('onPoppupClick', (e.target as HTMLElement).innerText);
 	}
-	function radioLRBSelected(e: MouseEvent, hoveringEl?: HTMLElement, el?: HTMLElement) {
-		console.log(hoveringEl?.innerText, el?.innerText);
-		// e.target as HTMLElement
+
+	function improvedCallback(e: MouseEvent) {
+		console.log('improvedCallback', (e.target as HTMLElement).innerText);
 	}
 </script>
 
 <!-- popup action -- radio button group -->
-<div class="radio-wrapper hidden" bind:this={radioGroupEl}>
-	<input type="radio" name="LRB" value="L" /><span>Login</span>
-	<input type="radio" name="LRB" value="R" /><span>Register</span>
-	<input type="radio" name="LRB" value="LR" /><span>Both</span>
+<div class="radio-wrapper hidden" bind:this={contextMenuEl}>
+	{#if isDataEntry}
+		<input type="radio" name="LRB" value="L" /><span>Login</span>
+		<input type="radio" name="LRB" value="R" /><span>Register</span>
+		<input type="radio" name="LRB" value="LR" /><span>Both</span>
+	{:else}
+		<span class="not-data-entry">not data-entry field</span>
+	{/if}
 </div>
 <div class="list-container">
 	<div
 		class="to-add-where"
 		use:popup={{
-			content: radioGroupEl,
+			contentEl: contextMenuEl,
 			trigger: 'hover',
-			radioGroupClass: 'radio-wrapper',
-			containerClass: 'list-container',
-			onItemClick: radioLRBSelected,
+			onItemHover: onItemHover,
+			onItemCallback: radioLRBSelected,
 		}}
 	>
 		<p>firstName: string</p>
@@ -48,6 +81,11 @@
 		<p>updatedAt: Date</p>
 		<p>role: Role</p>
 		<p>passwordHash: string</p>
+		<p>todos: Todo[]</p>
+		<p>profile: Profile</p>
+		<p>posts: Posts</p>
+		<p>createdAt: Date</p>
+		<p>blogs: Blogs[]</p>
 	</div>
 </div>
 
@@ -55,61 +93,55 @@
 
 <div bind:this={contextMenuEl} class="context-menu hidden">
 	<p>Edit</p>
-	<p>Duplicate</p>
+	<p>Transport</p>
 	<p>Delete</p>
 </div>
-<div use:contextMenu={{ contextMenuEl, itemCallback }} class="context-menu-area">
-	contextMenu Right click anywhere here
-</div>
+<div class="context-menu-area" use:contextMenu={{ contextMenuEl, itemCallback }}>contextMenu Right click anywhere</div>
 
 <!-- drop down action  -- hidden used until action kicks in and toggle it-->
 
-<div bind:this={dropdownMenuEl} class="dropdown-menu hidden">
-	<p>Profile</p>
-	<p>Settings</p>
-	<p>Logout</p>
+<div class="dropdown-menu" use:dropdown={{ contextMenuEl: dropdownMenuEl, dropdownSelected }}>
+	Dropdown Menu
+	<div bind:this={dropdownMenuEl} class="dropdown-items hidden">
+		<p>Profile</p>
+		<p>Settings</p>
+		<p>Logout</p>
+	</div>
 </div>
-<button use:dropdown={{ dropdownMenuEl, dropdownSelected }}> Open Menu </button>
 
 <!-- using improved contMenu -->
-<div bind:this={contMenuEl} class="ctx-menu-item hidden">
-	<p>Edit</p>
-	<p>Duplicate</p>
-	<p>Delete</p>
-</div>
-<div
-	class="ctx-menu-parent"
-	use:contMenu={{
-		menu: contMenuEl,
-		classes: {
-			menuClassName: 'my-menu',
-			itemClassName: 'my-item',
-			itemCallback: itemCallback,
-		},
-	}}
->
-	Improved Right click me
+<div class="context-menu-area" use:contextMenu={{ contextMenuEl, itemCallback: improvedCallback }}>
+	Improved contextMenu Right click
+	<div bind:this={contextMenuEl} class="ctx-menu-item hidden">
+		<span>Edit</span>
+		<span>Duplicate</span>
+		<span>Delete</span>
+	</div>
 </div>
 
 <!-- using popup action TODO mouse out of container hide context menu -->
 
-<div bind:this={popupMenuEl} class="popupMenu hidden">
-	<p data-item data-action="edit">Popup Edit</p>
-	<p data-item data-action="delete">Popup Delete</p>
-</div>
 <div
 	class="popup-wrapper"
 	use:popup={{
-		content: popupMenuEl,
+		contentEl: contextMenuEl,
 		trigger: 'contextmenu',
-		containerClass: 'popup-wrapper',
-		onItemClick: onItemClick,
+		// containerClass: 'popup-wrapper',
+		onItemCallback: onPopupClick,
 	}}
 >
 	Right click popup action
+	<div bind:this={contextMenuEl} class="popupMenu hidden">
+		<p data-item data-action="edit">Popup Edit</p>
+		<p data-item data-action="delete">Popup Delete</p>
+	</div>
 </div>
 
-<style>
+<style lang="scss">
+	:root {
+		--hover-color: navy;
+		--hover-off-color: navy;
+	}
 	/* test */
 	.my-menu {
 		color: red;
@@ -123,7 +155,11 @@
 		}
 	}
 	.context-menu-area {
+		display: flex;
+		justify-content: center;
+		align-items: center;
 		width: max-content;
+		padding: 0 1rem;
 		height: 4rem;
 		/* padding: 1rem; */
 		margin: 1rem 0 0 5rem;
@@ -135,6 +171,7 @@
 	}
 
 	.context-menu {
+		position: relative;
 		background: white;
 		border: 1px solid #ccc;
 		border-radius: 6px;
@@ -143,13 +180,13 @@
 		cursor: defaul !important;
 		p {
 			color: blue;
-			cursor: inherit;
+			cursor: inherit !important;
 			padding: 1px 5px;
 			margin: 0;
 			border: none;
 			transition: background 0.3s;
 			&:hover {
-				/* to strech bg color container .ctx-menu-item
+				/* to strech bg color container parent .ctx-menu-item
 				should not have padding to cut the strech
 				*/
 				background-color: cornsilk;
@@ -157,26 +194,68 @@
 			}
 		}
 	}
-
+	.not-data-entry {
+		position: absolute;
+		top: -0.6rem;
+		left: 0;
+		color: tomato;
+		width: max-content;
+		border: 1px solid lightgray;
+		border-radius: 5px;
+		padding: 1px 1rem;
+		background-color: white;
+	}
 	.dropdown-menu {
-		background: white;
-		border: 1px solid #ccc;
+		position: relative !important;
+		color: var(--candidate-color);
+		height: 1.5rem;
+		background-color: var(--candidate-bg-color);
+		border: 1px solid gray;
 		border-radius: 6px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-		width: max-content;
-		p {
-			color: blue;
-			cursor: inherit;
-			padding: 1px 5px;
-			margin: 0;
-			border: none;
-			transition: background 0.3s;
-			&:hover {
-				/* to strech bg color container .ctx-menu-item
-				should not have padding to cut the strech
-				*/
-				background-color: cornsilk;
-				cursor: pointer;
+		width: 8rem;
+		text-align: center;
+		cursor: pointer;
+		margin-left: 5rem;
+
+		.dropdown-items {
+			margin-top: 0.4rem;
+			// height: 1rem;
+			width: 100%;
+			border: 1px solid lightgray;
+			border-radius: 4px;
+			background: white;
+			// z-index: 1000;
+			p {
+				// position: absolute !important;
+				// top: 6px;
+				// left: 0;
+				color: var(--candidate-color);
+				background-color: var(--candidate-bg-color);
+				cursor: inherit !important;
+				width: calc(100% - 0.7rem);
+				padding-left: 0.5rem;
+				margin: 0;
+				height: 1.3rem;
+				text-align: left;
+				:first-of-type {
+					border-top-left-radius: 4px;
+					border-top-right-radius: 4px;
+				}
+				:last-of-type {
+					border-bottom-left-radius: 4px;
+					border-bottom-right-radius: 4px;
+				}
+				border-radius: 4px;
+				transition: background 0.5s;
+
+				&:hover {
+					/* to strech bg color container parent .ctx-menu-item
+						should not have padding to cut the strech
+						*/
+					background-color: cornsilk;
+					cursor: pointer;
+				}
 			}
 		}
 	}
@@ -192,7 +271,8 @@
 		height: 4rem;
 		border: 1px solid lightgray;
 		border-radius: 5px;
-		color: navy;
+		color: var(--candidate-color);
+		background-color: var(--candidate-bg-color);
 		margin: 1rem 0 0 2rem;
 		cursor: default;
 	}
@@ -201,13 +281,13 @@
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
-		cursor: default;
+		cursor: default !important;
 		border: 1px solid gray;
 		border-radius: 4px;
 		background: white;
 		p {
 			color: blue;
-			cursor: inherit;
+			cursor: default !important;
 			padding: 1px 5px;
 			margin: 0;
 			border: none;
@@ -234,7 +314,7 @@
 			padding: 0;
 			margin: 0;
 			padding: 1px 5px;
-			cursor: inherit;
+			cursor: inherit !important;
 			background-color: white;
 			&:first-of-type {
 				margin-top: 6px;
@@ -249,19 +329,24 @@
 		}
 	}
 	.popup-wrapper {
+		display: flex;
+		justify-content: center;
+		align-items: center;
 		width: 12rem;
 		height: 3rem;
 		/* padding: 5px 1rem; */
 		border: 1px solid gray;
 		border-radius: 5px;
-		cursor: default;
+		color: var(--candidate-color);
+		background-color: var(--candidate-bg-color);
+		cursor: default !important;
 	}
 	/* 
 		list container firstName, lastName,...
 	*/
 	.list-container {
 		--back-color: skyblue;
-		--hover-color: red;
+		/* --hover-color: red; */
 
 		position: relative;
 		margin: 1rem 0 0 3rem;
@@ -291,7 +376,10 @@
 			opacity: var(--opacity);
 			color: var(--candidate-color);
 			background-color: var(--candidate-bg-color);
-
+			p {
+				color: var(--candidate--color);
+				background-color: var(--candidate-bg-color);
+			}
 			transition: opacity ease 1s;
 		}
 	}
@@ -302,6 +390,8 @@
 		flex-direction: row;
 		width: max-content;
 		color: var(--candidate-color);
+		border: 1px solid lightgray;
+		border-radius: 5px;
 		background-color: var(--candidate-bg-color);
 		padding: 3px 0.5rem;
 		outline: 1rem solid transparent;
