@@ -1,4 +1,4 @@
-type Trigger = 'click' | 'hover' | 'contextmenu' | 'dropdown';
+type Trigger = 'click' | 'hover';
 
 type Params = {
 	contentEl: HTMLElement;
@@ -7,7 +7,7 @@ type Params = {
 	onItemCallback?: (e: MouseEvent, hoveringEl?: HTMLElement) => void;
 };
 
-export function popup(node: HTMLElement, params: Params) {
+export function tooltipRBBlock(node: HTMLElement, params: Params) {
 	let { contentEl, trigger, onItemHover, onItemCallback } = params; // mutable with newParams
 	let hoveringEl: HTMLElement;
 	let visible = false;
@@ -44,20 +44,8 @@ export function popup(node: HTMLElement, params: Params) {
 
 	// 🔁 unified trigger handling
 	function handleTrigger(e: MouseEvent) {
-		if (trigger === 'contextmenu') e.preventDefault();
-
 		const rect = node.getBoundingClientRect();
-
-		if (trigger === 'contextmenu') {
-			if (visible && isOutsideBounds(e, contentEl)) {
-				contentEl.style.opacity = '0';
-				visible = false;
-				return;
-			}
-			showAt(e.clientX + window.scrollX, e.clientY + window.scrollY);
-		} else {
-			showAt(rect.left + window.scrollX, rect.bottom + window.scrollY);
-		}
+		showAt(rect.left + window.scrollX, rect.bottom + window.scrollY);
 	}
 
 	function handleHover(e: MouseEvent) {
@@ -89,14 +77,13 @@ export function popup(node: HTMLElement, params: Params) {
 
 	if (trigger === 'hover') {
 		node.addEventListener('mouseover', handleHover);
-		// node.addEventListener('mouseout', handleHover);
 		if (onItemHover) {
 			contentEl.addEventListener('click', handleClick);
 			contentEl.addEventListener('mouseleave', hide);
 			node.addEventListener('mouseleave', hide);
 		}
 	} else {
-		node.addEventListener(trigger === 'contextmenu' ? 'contextmenu' : 'click', handleTrigger);
+		node.addEventListener('click', handleTrigger);
 	}
 
 	document.addEventListener('click', hide);
@@ -112,6 +99,12 @@ export function popup(node: HTMLElement, params: Params) {
 			onItemCallback = newParams.onItemCallback;
 		},
 		destroy() {
+			node.removeEventListener('mouseover', handleHover);
+			node.removeEventListener('click', handleTrigger);
+			node.removeEventListener('mouseleave', hide);
+			document.removeEventListener('click', hide);
+			contentEl.removeEventListener('click', handleClick);
+			contentEl.removeEventListener('mouseleave', hide);
 			contentEl.remove();
 		},
 	};

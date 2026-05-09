@@ -1,50 +1,53 @@
 // dropdown.ts
-type Trigger = 'click' | 'hover' | 'contextmenu' | 'dropdown';
-
 type Params = {
 	contentEl: HTMLElement;
-	trigger: Trigger;
-	onItemHover?: (e: MouseEvent) => void;
 	onItemCallback?: (e: MouseEvent, hoveringEl?: HTMLElement) => void;
 };
 export function dropdown(node: HTMLElement, params: Params) {
-	const { contentEl, onItemCallback } = params;
-	contentEl.addEventListener('click', (e) => {
-		onItemCallback?.(e);
-		contentEl.style.opacity = '0';
-	});
+	// cannot use const as update function needs to update
+	// these variables with newParams
+	let { contentEl, onItemCallback } = params;
+	contentEl.style.opacity = '0';
+	// dropdown items have hidden class to prevent rendering markup
+	// of displaying them initially and the hidden class is removed
+	// now and opacity is used to toggle their visibility
+	contentEl.classList.toggle('hidden');
 
-	function position() {
-		const r = node.getBoundingClientRect();
-		contentEl.style.top = `${r.bottom + window.scrollY}px`;
-		contentEl.style.left = `${r.left + window.scrollX}px`;
+	function contentOnClick(e: MouseEvent) {
+		// do not turn opacity to '0' as it will be done at close func
+		e.preventDefault();
+		onItemCallback?.(e);
 	}
+
+	contentEl.addEventListener('click', contentOnClick);
 
 	function toggle() {
-		document.documentElement.click();
-
-		if (contentEl.classList.contains('hidden')) {
-			position();
-			contentEl.style.opacity = '1';
-		} else {
-			contentEl.style.opacity = '0';
-		}
-		contentEl.classList.toggle('hidden');
+		contentEl.style.opacity = contentEl.style.opacity === '0' ? '1' : '0';
 	}
+	// toggle dropdown items visibility on click of the dropdown 'button'
 	node.addEventListener('click', toggle);
 
 	function close(e: MouseEvent) {
+		if (contentEl.style.opacity === '0') {
+			return;
+		}
 		if (!contentEl.contains(e.target as Node) && !node.contains(e.target as Node)) {
 			contentEl.style.opacity = '0';
 		}
 	}
 
+	// close dropdown items when clicking outside of the dropdown component
 	document.addEventListener('click', close);
 
 	return {
+		update(newParams: Params) {
+			contentEl = newParams.contentEl;
+			onItemCallback = newParams.onItemCallback;
+		},
 		destroy() {
 			node.removeEventListener('click', toggle);
 			document.removeEventListener('click', close);
+			contentEl.removeEventListener('click', contentOnClick);
 			contentEl.remove();
 		},
 	};

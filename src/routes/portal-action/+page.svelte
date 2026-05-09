@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { popup } from './popup';
+	import { tooltipRBBlock } from './tooltipRBBlock';
+	import { contextMenu } from './context-menu';
 	import { dropdown } from './drop-down';
 
 	// contextMenuEl is used in two cases as only one is active at a time
@@ -68,7 +69,7 @@
 <div class="list-container">
 	<div
 		class="to-add-where"
-		use:popup={{
+		use:tooltipRBBlock={{
 			contentEl: contextMenuEl,
 			trigger: 'hover',
 			onItemHover: onItemHover,
@@ -95,17 +96,19 @@
 	<p>Transport</p>
 	<p>Delete</p>
 </div>
-<div
-	class="context-menu-area"
-	use:popup={{ contentEl: contextMenuEl, trigger: 'contextmenu', onItemCallback: itemCallback }}
->
+<div class="context-menu-area" use:contextMenu={{ contentEl: contextMenuEl, onItemCallback: itemCallback }}>
 	contextMenu Right click anywhere
 </div>
 
 <!-- drop down action  -- hidden used until action kicks in and toggle it-->
 
-<div class="dropdown-menu" use:dropdown={{ contentEl: dropdownMenuEl, trigger: 'dropdown', onItemCallback:dropdownSelected }}>
+<div class="dropdown-menu" use:dropdown={{ contentEl: dropdownMenuEl, onItemCallback: dropdownSelected }}>
 	Dropdown Menu
+	<!-- hidden class is necessary to prevent rendering markup
+			of displaying dropdown-items as the dropdown component 
+			will remove hidden class when it starts and use opacity 
+			to toggle items visibility
+	-->
 	<div bind:this={dropdownMenuEl} class="dropdown-items hidden">
 		<p>Profile</p>
 		<p>Settings</p>
@@ -114,10 +117,7 @@
 </div>
 
 <!-- using improved contMenu -->
-<div
-	class="context-menu-area"
-	use:popup={{ contentEl: contextMenuEl, trigger: 'contextmenu', onItemCallback: improvedCallback }}
->
+<div class="context-menu-area" use:contextMenu={{ contentEl: contextMenuEl, onItemCallback: improvedCallback }}>
 	Improved contextMenu Right click
 	<div bind:this={contextMenuEl} class="context-menu hidden">
 		<span>Edit</span>
@@ -130,14 +130,12 @@
 
 <div
 	class="popup-wrapper"
-	use:popup={{
+	use:contextMenu={{
 		contentEl: contextMenuEl,
-		trigger: 'contextmenu',
-		// containerClass: 'popup-wrapper',
 		onItemCallback: onPopupClick,
 	}}
 >
-	Right click popup action
+	Right click contextMenu action
 	<div bind:this={contextMenuEl} class="popupMenu hidden">
 		<p data-item data-action="edit">Popup Edit</p>
 		<p data-item data-action="delete">Popup Delete</p>
@@ -150,23 +148,12 @@
 		--hover-off-color: navy;
 	}
 	/* test */
-	.my-menu {
-		color: red;
-		border: 1px solid red;
-	}
-	.my_item {
-		color: green;
-		&:hover {
-			color: white;
-			background-color: tomato;
-		}
-	}
 	.context-menu-area {
 		display: flex;
 		justify-content: center;
 		align-items: center;
 		width: max-content;
-		padding: 0 1rem;
+		padding: 1px 1rem;
 		height: 4rem;
 		/* padding: 1rem; */
 		margin: 1rem 0 0 5rem;
@@ -184,12 +171,13 @@
 		border-radius: 6px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		width: max-content;
+		// padding: 0 0.5rem;
 		cursor: defaul !important;
 		& > * {
 			display: block;
 			color: blue;
 			cursor: inherit !important;
-			padding: 1px 5px;
+			padding: 1px 0.5rem;
 			margin: 0;
 			border: none;
 			transition: background 0.3s;
@@ -198,6 +186,8 @@
 				should not have padding to cut the strech
 				*/
 				background-color: cornsilk;
+				/* without this background-color will not stretch */
+				padding: 1px 0.5rem;
 				cursor: pointer;
 			}
 		}
@@ -340,7 +330,9 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		width: 12rem;
+		width: max-content;
+		padding: 4px 1rem;
+		margin: 1rem 0 0 5rem;
 		height: 3rem;
 		/* padding: 5px 1rem; */
 		border: 1px solid gray;
