@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { contextMenu } from './context-menu';
 	import { popup } from './popup';
 	import { dropdown } from './drop-down';
 
@@ -96,11 +95,16 @@
 	<p>Transport</p>
 	<p>Delete</p>
 </div>
-<div class="context-menu-area" use:contextMenu={{ contextMenuEl, itemCallback }}>contextMenu Right click anywhere</div>
+<div
+	class="context-menu-area"
+	use:popup={{ contentEl: contextMenuEl, trigger: 'contextmenu', onItemCallback: itemCallback }}
+>
+	contextMenu Right click anywhere
+</div>
 
 <!-- drop down action  -- hidden used until action kicks in and toggle it-->
 
-<div class="dropdown-menu" use:dropdown={{ contextMenuEl: dropdownMenuEl, dropdownSelected }}>
+<div class="dropdown-menu" use:dropdown={{ contentEl: dropdownMenuEl, trigger: 'dropdown', onItemCallback:dropdownSelected }}>
 	Dropdown Menu
 	<div bind:this={dropdownMenuEl} class="dropdown-items hidden">
 		<p>Profile</p>
@@ -110,9 +114,12 @@
 </div>
 
 <!-- using improved contMenu -->
-<div class="context-menu-area" use:contextMenu={{ contextMenuEl, itemCallback: improvedCallback }}>
+<div
+	class="context-menu-area"
+	use:popup={{ contentEl: contextMenuEl, trigger: 'contextmenu', onItemCallback: improvedCallback }}
+>
 	Improved contextMenu Right click
-	<div bind:this={contextMenuEl} class="ctx-menu-item hidden">
+	<div bind:this={contextMenuEl} class="context-menu hidden">
 		<span>Edit</span>
 		<span>Duplicate</span>
 		<span>Delete</span>
@@ -178,7 +185,8 @@
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		width: max-content;
 		cursor: defaul !important;
-		p {
+		& > * {
+			display: block;
 			color: blue;
 			cursor: inherit !important;
 			padding: 1px 5px;

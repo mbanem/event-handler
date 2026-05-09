@@ -1,4 +1,4 @@
-type Trigger = 'click' | 'hover' | 'contextmenu';
+type Trigger = 'click' | 'hover' | 'contextmenu' | 'dropdown';
 
 type Params = {
 	contentEl: HTMLElement;
