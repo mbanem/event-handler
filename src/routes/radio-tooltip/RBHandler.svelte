@@ -1,5 +1,11 @@
 <!--
 @component
+Component acts on a list of elements sent as a $props() to component
+displaying as a tooltip an HTML container element, defined in parent,
+whose reference is sent to compoonent as $props(). The tooltip holds 
+a block of radio button group, which on select adds the selected list 
+element to an additional model whouse modelName is a value of selected
+radio button
 -->
 
 <script lang="ts">
@@ -48,16 +54,7 @@
 	let hoveredEl: HTMLElement | null = null;
 	let modelName = '';
 	let det: HTMLDetailsElement;
-	// console.log('rb component', tooltip, models, noDataEntry);
-	// let detailsEl: HTMLDetailsElement;
-	// let listEl: HTMLDivElement;
-	function handleHover(e: MouseEvent) {
-		// console.log((e.target as HTMLElement).innerText);
-	}
 
-	function detailsOnClick(e: MouseEvent) {
-		// console.log((e.target as HTMLElement).innerText);
-	}
 	function getUIField(fieldName: string) {
 		if (/password/i.test(fieldName)) {
 			return {
@@ -74,13 +71,12 @@
 	function addFieldToModel(e: Event) {
 		const modelName = (e.target as HTMLInputElement).value;
 		const fieldName = hoveredEl?.innerText as string;
-		// console.log(fieldName, modelName, det.innerText);
 		models[modelName].fields.push(getUIField(fieldName));
-		// after adding the field to a model clear the radio button
-		// and hide the radio button v=block
+		// after adding the field to a model clear selected
+		// radio button and hide the radio button block
 		(e.target as HTMLInputElement).checked = false;
 		tooltipBlockEl.style.opacity = '0';
-		console.log(models[modelName]);
+		console.log(models.Login, models.Register);
 	}
 	let busy = false;
 	let timer: ReturnType<typeof setTimeout>;
@@ -106,9 +102,9 @@
 			await tick();
 			Object.assign(tooltipBlockEl.style, {
 				position: 'fixed',
-				top: `${y - 12}px`, // small offset
+				top: `${y - 12}px`,
 				left: `${x}px`,
-				zIndex: '9999', // or even higher if needed
+				zIndex: '9999',
 				pointerEvents: 'auto',
 				opacity: '1',
 			});
@@ -154,7 +150,6 @@
 		Object.values(tooltipBlockEl.children)
 			.slice(0, -1)
 			.forEach((el) => {
-				// console.log((el as HTMLElement).innerText);
 				models[(el as HTMLElement).innerText] = { fields: [], attrs: [] };
 			});
 	}
@@ -206,7 +201,6 @@
 			</details>
 		</div>
 	{/each}
-	<!-- <p id="ormModelTooltipId" class="cr-prisma-remove-hint">click, add to candidates</p> -->
 {/snippet}
 <div class="container">
 	<div id="schemaContainerId" onclick={expandModelFields} aria-hidden={true}>
@@ -253,12 +247,9 @@
 		position: relative;
 		width: 22rem;
 		height: 88vh;
-		// margin-left: 2rem;
 		border: 1px solid gray;
 		border-radius: 6px;
 		padding-top: 1rem;
-		/* could not make overflow scroll-bar hidden */
-		// overflow-y: auto;
 	}
 	.model-details {
 		width: 21.5rem;
@@ -277,7 +268,6 @@
 		left: 1rem;
 		z-index: 15;
 		padding: 0 5px;
-		// width: 13.6rem;
 		color: var(--candidate-color);
 		background-color: var(--panel-bg-color);
 	}

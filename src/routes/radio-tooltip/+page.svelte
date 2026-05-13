@@ -23,83 +23,10 @@
 <RBHandler {models} {tooltipBlockEl}></RBHandler>
 
 <style lang="scss">
-	:root {
-		--hover-color: navy;
-		--hover-off-color: navy;
-	}
-	/* test */
-	.summary {
-		cursor: pointer;
-		// list-style: none;
-		width: max-content;
-		padding: 4px 1rem;
-		border: 1px solid lightgray;
-		border-radius: 5px;
-		color: var(--candidate-color);
-		background-color: var(--candidate-bg-color);
-	}
-
-	.not-data-entry {
-		position: absolute;
-		top: -0.6rem;
-		left: 0;
-		color: tomato;
-		width: max-content;
-		border: 1px solid lightgray;
-		border-radius: 5px;
-		padding: 1px 1rem;
-		background-color: white;
-	}
-
-	/* send CSS class names to contMenu action
-		as actions are in the app scope and can
-		access classes by name
-	*/
-
 	/* 
 		list container firstName, lastName,...
 	*/
-	.list-container,
-	.details {
-		--back-color: skyblue;
-		margin-left: 5rem;
 
-		position: absolute;
-		margin: 1rem 0 0 3rem;
-		width: max-content;
-		padding: 0;
-		background-color: transparent;
-		cursor: default;
-		p {
-			// display: inline-block;
-			width: max-content;
-			padding: 1px 0.5rem;
-			margin: 0 0 0 1rem;
-			color: var(--candidate-color);
-			background-color: var(--candidate-bg-color);
-			&:first-child {
-				margin-top: 0.2rem;
-			}
-		}
-		.to-add-where,
-		.to-add-where2 {
-			// position: relative;
-			display: flex;
-			flex-direction: column;
-			/* width: max-content; */
-			height: auto;
-			padding: 0; /*1px 0.4rem 1rem 0.1rem;*/
-			/* border: 1px solid gray; */
-			// opacity: var(--opacity);
-			color: var(--candidate-color);
-			background-color: var(--candidate-bg-color);
-			p {
-				color: var(--candidate--color);
-				background-color: var(--candidate-bg-color);
-			}
-			transition: opacity ease 1s;
-		}
-	}
 	#tooltipBlockEl {
 		position: absolute; // I tried fixed as well
 		top: 5rem;

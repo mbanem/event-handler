@@ -30,7 +30,7 @@
 		ui: 'ui',
 		namesOnly: 'namesOnly',
 		nonUI: 'nonUI',
-		all: 'all'
+		all: 'all',
 	} as const;
 	type UIType = (typeof UI)[keyof typeof UI];
 
@@ -62,7 +62,7 @@
 		'role',
 		'updatedAt',
 		'priority',
-		'price'
+		'price',
 	];
 	let strModelNames = '|';
 	const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms;
@@ -111,10 +111,7 @@
 			function isUICandidate({ name, type, attrs }: Field): boolean {
 				type = type.toLowerCase().trim();
 				attrs = attrs ?? '';
-				if (
-					strModelNames.indexOf(`|${type}|`) !== -1 ||
-					strModelNames.indexOf(`|${name}|`) !== -1
-				) {
+				if (strModelNames.indexOf(`|${type}|`) !== -1 || strModelNames.indexOf(`|${name}|`) !== -1) {
 					return false;
 				}
 				if (
@@ -125,9 +122,7 @@
 				) {
 					return false;
 				}
-				const ui =
-					/\b@id @default(uuid())\b/i.test(attrs) ||
-					['string', 'number', 'boolean', 'role'].includes(type);
+				const ui = /\b@id @default(uuid())\b/i.test(attrs) || ['string', 'number', 'boolean', 'role'].includes(type);
 
 				return ui;
 			}
@@ -219,13 +214,13 @@
 						fields.push({
 							name: parts[0],
 							type: parts[1],
-							attrs: parts.slice(2).join(' ')
+							attrs: parts.slice(2).join(' '),
 						});
 					}
 				}
 				models[modelName] = {
 					fields: fields, //: sortObjectKeys(fields),
-					attrs: modelAttrs
+					attrs: modelAttrs,
 				};
 
 				fields = [];
@@ -344,9 +339,7 @@
 		}
 
 		const tf =
-			Object.values(uiModels[modelName].fields).find(
-				(el) => el.name === value.replace(/:.+$/, '')
-			) !== undefined;
+			Object.values(uiModels[modelName].fields).find((el) => el.name === value.replace(/:.+$/, '')) !== undefined;
 
 		if (tf) {
 			return true;
@@ -392,9 +385,7 @@
 		const divEl = document.createElement('div');
 
 		divEl.innerHTML =
-			"<div data-event-list='click mouseover mouseout' draggable='true'><span>" +
-			fieldName +
-			'</span></div>';
+			"<div data-event-list='click mouseover mouseout' draggable='true'><span>" + fieldName + '</span></div>';
 
 		// Append spanEl to divEl
 		// divEl.appendChild(spanEl);
@@ -405,18 +396,15 @@
 
 	// Event  handlers for CandidateList items click, mouseover, mouseout
 	function candidateMouseover(event: MouseEvent) {
-
 		const el = event.target as HTMLDivElement;
 		removeHintEl.style.top = String(el.offsetTop - el.offsetHeight) + 'px';
 		removeHintEl.style.left = String(el.offsetLeft + 12) + 'px';
 		removeHintEl.style.opacity = '1';
 	}
 	function candidateMouseout(_: MouseEvent) {
-
 		removeHintEl.style.opacity = '0';
 	}
 	function candidateClick(event: MouseEvent) {
-
 		let el = event.target as HTMLElement;
 		// if the el is span only field name/item-text is
 		// cleared so take the parent div to remove the field
@@ -492,8 +480,7 @@
 	function setLabelCaption(text: string, duration: number, type: string = 'route') {
 		const color = document.documentElement.classList.contains('dark') ? 'pink' : 'red';
 		// preserve text to restore at timeout
-		const [node, restore] =
-			type === 'route' ? [routeLabelNode, 'Route Name'] : [fieldLabelNode, fieldNameAndType];
+		const [node, restore] = type === 'route' ? [routeLabelNode, 'Route Name'] : [fieldLabelNode, fieldNameAndType];
 		node.textContent = text;
 		(node.parentElement as HTMLLabelElement).style.color = color;
 		if (duration > 0) {
@@ -527,7 +514,6 @@
 			// ------------- KEYUP HANDLER  keyboard handler ---------------------
 			(fieldNameEl as HTMLInputElement).addEventListener('keyup', (event: KeyboardEvent) => {
 				// ----------- KEYUP HANDLER  keyboard handler ---------------------
-
 
 				if (nokeyup) {
 					nokeyup = false;
@@ -570,7 +556,6 @@
 		schemaContainerEl!.addEventListener('click', async (event: MouseEvent) => {
 			// ------------ click on SUMMARY or DETAILS -----------------
 			if ((event.target as HTMLElement).tagName === 'SUMMARY') {
-
 				middleColumnEl.classList.toggle('cr-middle-column-height');
 				// now at app level active modelName
 				modelName = (event.target as HTMLElement).innerText;
@@ -605,7 +590,7 @@
 				eh.setup(fieldsListEl, {
 					click: candidateClick,
 					mouseenter: candidateMouseover,
-					mouseleave: candidateMouseout
+					mouseleave: candidateMouseout,
 				});
 				//----------------
 			} else {
@@ -655,14 +640,12 @@
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
 		<cr-pre class="cr-span-two">
-			To create a UI Form for CRUD operations against the underlying ORM fill out the <i>
-				Candidate Fields
-			</i>
-			by entering field names in the <i>Field Name and Type</i> input box with its datatype, e.g.
-			firstName: string, and pressing the Enter key or expand a table from the
-			<i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating fields
-			usually colored in pink.The UI Form + page.svelte with accompanying + page.server.ts will be created
-			in the route specified in the Route Name input box.
+			To create a UI Form for CRUD operations against the underlying ORM fill out the <i> Candidate Fields </i>
+			by entering field names in the <i>Field Name and Type</i> input box with its datatype, e.g. firstName: string, and
+			pressing the Enter key or expand a table from the
+			<i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating fields usually colored in
+			pink.The UI Form + page.svelte with accompanying + page.server.ts will be created in the route specified in the Route
+			Name input box.
 		</cr-pre>
 
 		<div class="cr-left-column">
@@ -680,12 +663,8 @@
 			<p id="removeHintId" class="cr-remove-hint">click to remove</p>
 		</div>
 
-		<div
-			style="display:flex;height:1.4rem !important;margin:0;padding:0;align-items:center;grid-column: span 2;"
-		>
-			<p style="display:inline-block;width:max-content;margin-right:1rem;">
-				Render all input boxes the same CSS width
-			</p>
+		<div style="display:flex;height:1.4rem !important;margin:0;padding:0;align-items:center;grid-column: span 2;">
+			<p style="display:inline-block;width:max-content;margin-right:1rem;">Render all input boxes the same CSS width</p>
 			<input
 				id="inputBoxWidthId"
 				type="text"
@@ -719,12 +698,7 @@
 	</div>
 
 	<div id="rightColumnId" class="cr-right-column">
-		<p
-			class="collapse-all"
-			onclick={closeSchemaModels}
-			onkeypress={closeSchemaModels}
-			aria-hidden={true}
-		>
+		<p class="collapse-all" onclick={closeSchemaModels} onkeypress={closeSchemaModels} aria-hidden={true}>
 			(collapse all)
 		</p>
 		<div id="schemaContainerId"></div>
@@ -947,7 +921,7 @@
 	:global(.cr-fields-column p:nth-child(odd)) {
 		color: skyblue;
 		cursor: pointer;
-		width: 100 %;
+		width: 100%;
 		padding: 2px 0 2px 0.5rem;
 	}
 

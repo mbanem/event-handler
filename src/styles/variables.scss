@@ -86,20 +86,20 @@
   outline: 1px solid gray;
 }
 
-button {
-  display: inline-block;
-  width: max-content;
-  padding: 3px 1rem;
-  font-size: 12px;
-  text-align: center;
-  margin-right: 1rem;
+// button {
+//   display: inline-block;
+//   width: max-content;
+//   padding: 3px 1rem;
+//   font-size: 12px;
+//   text-align: center;
+//   margin-right: 1rem;
 
-  &:last-child {
-    margin-right: 0;
-  }
-}
+//   &:last-child {
+//     margin-right: 0;
+//   }
+// }
 
-pre {
-  font: var(--pre-font);
-  color: var(--pre-color);
-}
+// pre {
+//   font: var(--pre-font);
+//   color: var(--pre-color);
+// }
