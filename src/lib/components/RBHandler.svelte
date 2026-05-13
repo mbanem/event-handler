@@ -76,7 +76,7 @@ radio button
 		// radio button and hide the radio button block
 		(e.target as HTMLInputElement).checked = false;
 		tooltipBlockEl.style.opacity = '0';
-		console.log(models.Login, models.Register);
+		// console.log(models.Login, models.Register);
 	}
 	let busy = false;
 	let timer: ReturnType<typeof setTimeout>;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import RBHandler from './RBHandler.svelte';
+	import RBHandler from '../../lib/components/RBHandler.svelte';
 	import type { PageProps } from './$types';
 	import type { Models } from '$lib/utils';
 	let { data }: PageProps = $props();
