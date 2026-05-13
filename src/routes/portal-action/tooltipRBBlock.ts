@@ -11,7 +11,8 @@ export function tooltipRBBlock(node: HTMLElement, params: Params) {
 	let { contentEl, trigger, onItemHover, onItemCallback } = params; // mutable with newParams
 	let hoveringEl: HTMLElement;
 	let visible = false;
-	contentEl.classList.toggle('hidden');
+	// console.lolg('entry opacity', contentEl.style.opacity);
+	contentEl.classList.remove('hidden');
 
 	document.body.appendChild(contentEl);
 
@@ -25,17 +26,23 @@ export function tooltipRBBlock(node: HTMLElement, params: Params) {
 	}
 
 	function showAt(x: number, y: number) {
+		// console.lolg('showAt', (e.target as HTMLElement).innerText);
 		document.documentElement.click(); // close other openned popups or context menus
 		positionAt(x, y);
 		contentEl.style.opacity = '1';
 		visible = true;
 	}
+
 	function isOutsideBounds(e: MouseEvent, boundEl: HTMLElement) {
+		// console.lolg('isOutsideBounds', (e.target as HTMLElement).innerText);
 		const r = boundEl.getBoundingClientRect();
 		return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
 	}
+
 	function hide(e: MouseEvent) {
+		// console.lolg('hide', (e.target as HTMLElement).innerText);
 		if (visible && e && !isOutsideBounds(e, contentEl)) {
+			// console.lolg('ignore hide', (e.target as HTMLElement).innerText);
 			return;
 		}
 		contentEl.style.opacity = '0';
@@ -44,11 +51,13 @@ export function tooltipRBBlock(node: HTMLElement, params: Params) {
 
 	// 🔁 unified trigger handling
 	function handleTrigger(e: MouseEvent) {
+		// console.lolg('handleTrigger', (e.target as HTMLElement).innerText);
 		const rect = node.getBoundingClientRect();
 		showAt(rect.left + window.scrollX, rect.bottom + window.scrollY);
 	}
 
 	function handleHover(e: MouseEvent) {
+		// console.lolg('handleHover', (e.target as HTMLElement).innerText);
 		if ((e.target as HTMLElement) === node) {
 			return;
 		}
@@ -58,8 +67,14 @@ export function tooltipRBBlock(node: HTMLElement, params: Params) {
 		showAt(r.x + window.scrollX, r.y - 25 + window.scrollY);
 	}
 	function handleClick(e: MouseEvent) {
+		// console.lolg('handleClick', (e.target as HTMLElement).tagName);
+		// console.lolg('handleClick entry', (e.target as HTMLElement).innerText);
+
 		const item = e.target as HTMLElement; //.closest('[data-item]');
-		if (!item) return;
+		if (!item) {
+			// console.lolg('handleClick ignore');
+			return;
+		}
 
 		contentEl.style.opacity = '0';
 		visible = false;
@@ -69,6 +84,7 @@ export function tooltipRBBlock(node: HTMLElement, params: Params) {
 			if (item.parentElement) {
 				item.parentElement.querySelectorAll('input').forEach((rb) => (rb.checked = false));
 			}
+			// console.lolg('clear radio buttons');
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : String(err);
 			console.log('clear radiobox', msg);
@@ -79,6 +95,7 @@ export function tooltipRBBlock(node: HTMLElement, params: Params) {
 		node.addEventListener('mouseover', handleHover);
 		if (onItemHover) {
 			contentEl.addEventListener('click', handleClick);
+			// console.lolg('add listener mouse leave');
 			contentEl.addEventListener('mouseleave', hide);
 			node.addEventListener('mouseleave', hide);
 		}
@@ -86,7 +103,7 @@ export function tooltipRBBlock(node: HTMLElement, params: Params) {
 		node.addEventListener('click', handleTrigger);
 	}
 
-	document.addEventListener('click', hide);
+	// document.addEventListener('click', hide);
 	contentEl.addEventListener('click', handleClick);
 
 	return {

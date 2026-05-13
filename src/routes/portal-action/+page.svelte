@@ -5,6 +5,7 @@
 
 	// contextMenuEl is used in two cases as only one is active at a time
 	let contextMenuEl: HTMLDivElement; // not $state() squiggle
+	let contextMenuEl2: HTMLDivElement; // not $state() squiggle
 	let dropdownMenuEl: HTMLDivElement; // not $state() squiggle
 
 	// radio button uses popup hover action wjich calls onItemHover to decide
@@ -16,6 +17,10 @@
 		const fieldName = (e.target as HTMLElement).innerText.split(':')[0];
 		isDataEntry = !noDataEntry.has(fieldName);
 	}
+	// function onItemHover2(e: MouseEvent) {
+	// 	const fieldName = (e.target as HTMLElement).innerText.split(':')[0];
+	// 	isDataEntry = !noDataEntry.has(fieldName);
+	// }
 	// when radio button is clicked we want to know which field
 	// it is for and to which model(s) to add it
 	const fnm: Record<string, string> = {}; // {fieldName, model}
@@ -34,6 +39,17 @@
 		}
 		console.log('fnm', fnm);
 	}
+	// function radioLRBSelected2(e: MouseEvent, hoveringEl?: HTMLElement) {
+	// 	fnm.fieldName = hoveringEl?.innerText as string;
+	// 	const el = e.target as HTMLElement;
+	// 	// }
+	// 	if ((el?.innerText as string) === '') {
+	// 		fnm.model = (el?.nextElementSibling as HTMLElement).innerText;
+	// 	} else {
+	// 		fnm.model = el?.innerText as string;
+	// 	}
+	// 	console.log('fnm', fnm);
+	// }
 
 	// dropdown action callback when dropdown item is clicked we want to know
 	// which item is clicked to perform some action
@@ -56,7 +72,6 @@
 	}
 </script>
 
-<!-- popup action -- radio button group -->
 <div class="radio-wrapper hidden" bind:this={contextMenuEl}>
 	{#if isDataEntry}
 		<input type="radio" name="LRB" value="L" /><span>Login</span>
@@ -66,29 +81,65 @@
 		<span class="not-data-entry">not data-entry field</span>
 	{/if}
 </div>
-<div class="list-container">
-	<div
-		class="to-add-where"
-		use:tooltipRBBlock={{
-			contentEl: contextMenuEl,
-			trigger: 'hover',
-			onItemHover: onItemHover,
-			onItemCallback: radioLRBSelected,
-		}}
-	>
-		<p>firstName: string</p>
-		<p>lastName: string</p>
-		<p>updatedAt: Date</p>
-		<p>role: Role</p>
-		<p>passwordHash: string</p>
-		<p>todos: Todo[]</p>
-		<p>profile: Profile</p>
-		<p>posts: Posts</p>
-		<p>createdAt: Date</p>
-		<p>blogs: Blogs[]</p>
+<details style="margin-left: 5rem;">
+	<summary class="summary">data models one</summary>
+	<div class="list-container">
+		<div
+			class="to-add-where"
+			use:tooltipRBBlock={{
+				contentEl: contextMenuEl,
+				trigger: 'hover',
+				onItemHover: onItemHover,
+				onItemCallback: radioLRBSelected,
+			}}
+		>
+			<p>firstName: string</p>
+			<p>lastName: string</p>
+			<p>updatedAt: Date</p>
+			<p>role: Role</p>
+			<p>passwordHash: string</p>
+			<p>todos: Todo[]</p>
+			<p>profile: Profile</p>
+			<p>posts: Posts</p>
+			<p>createdAt: Date</p>
+			<p>blogs: Blogs[]</p>
+		</div>
 	</div>
+</details>
+<div class="radio-wrapper hidden" bind:this={contextMenuEl2}>
+	{#if isDataEntry}
+		<input type="radio" name="LRB" value="L" /><span>Login</span>
+		<input type="radio" name="LRB" value="R" /><span>Register</span>
+		<input type="radio" name="LRB" value="LR" /><span>Both</span>
+	{:else}
+		<span class="not-data-entry">not data-entry field</span>
+	{/if}
 </div>
-
+<details style="margin-left: 5rem">
+	<summary class="summary">data models two</summary>
+	<div class="list-container" style="margin-left: 10rem">
+		<div
+			class="to-add-where"
+			use:tooltipRBBlock={{
+				contentEl: contextMenuEl,
+				trigger: 'hover',
+				onItemHover: onItemHover,
+				onItemCallback: radioLRBSelected,
+			}}
+		>
+			<p>firstName: stringx</p>
+			<p>lastName: stringx</p>
+			<p>updatedAt: Datex</p>
+			<p>role: Rolex</p>
+			<p>passwordHash: stringx</p>
+			<p>todos: Todo[]x</p>
+			<p>profile: Profilex</p>
+			<p>posts: Postsx</p>
+			<p>createdAt: Datex</p>
+			<p>blogs: Blogs[]x</p>
+		</div>
+	</div>
+</details>
 <!-- context menu action -- hidden used until action kicks in and toggle it-->
 
 <div bind:this={contextMenuEl} class="context-menu hidden">
@@ -163,7 +214,16 @@
 		border-radius: 5px;
 		cursor: default !important;
 	}
-
+	.summary {
+		cursor: pointer;
+		// list-style: none;
+		width: max-content;
+		padding: 4px 1rem;
+		border: 1px solid lightgray;
+		border-radius: 5px;
+		color: var(--candidate-color);
+		background-color: var(--candidate-bg-color);
+	}
 	.context-menu {
 		position: relative;
 		background: white;
@@ -344,7 +404,8 @@
 	/* 
 		list container firstName, lastName,...
 	*/
-	.list-container {
+	.list-container,
+	.list-container2 {
 		--back-color: skyblue;
 		/* --hover-color: red; */
 
@@ -365,7 +426,8 @@
 				margin-top: 0.2rem;
 			}
 		}
-		.to-add-where {
+		.to-add-where,
+		.to-add-where2 {
 			position: relative;
 			display: flex;
 			flex-direction: column;

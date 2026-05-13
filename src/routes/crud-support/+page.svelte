@@ -193,7 +193,7 @@
 			return;
 		}
 		if (!includeCheched.Login && !includeCheched.Register) {
-			prismaContainerTooltip('check ReLogin or Register');
+			prismaContainerTooltip('check Login or Register');
 		} else {
 			const field = getUIField(et);
 			if (field) {
