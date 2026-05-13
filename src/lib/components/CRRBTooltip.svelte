@@ -10,6 +10,7 @@ radio button
 
 <script lang="ts">
 	import { tick, onMount } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { sleep } from '$lib/utils';
 	type Model = {
 		fields: Field[];
@@ -32,6 +33,8 @@ radio button
 	let { models, tooltipBlockEl }: TProps = $props();
 
 	let candidateModels = $state<string[]>([]);
+	let includeAll = ''; // last word for models in CRRBTooltip -- here is 'Both'
+	let extraModels = new SvelteSet<string>();
 	const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g');
 	let x = $state(100);
 	let y = $state(100);
@@ -69,9 +72,16 @@ radio button
 		return models[modelName].fields.find((field) => field.name === fieldName) as Field;
 	}
 	function addFieldToModel(e: Event) {
-		const modelName = (e.target as HTMLInputElement).value;
 		const fieldName = hoveredEl?.innerText as string;
-		models[modelName].fields.push(getUIField(fieldName));
+		const modelName = (e.target as HTMLInputElement).value;
+		if (modelName === includeAll) {
+			const field = getUIField(fieldName);
+			for (const model of extraModels) {
+				models[model].fields.push(field);
+			}
+		} else {
+			models[modelName].fields.push(getUIField(fieldName));
+		}
 		// after adding the field to a model clear selected
 		// radio button and hide the radio button block
 		(e.target as HTMLInputElement).checked = false;
@@ -146,16 +156,21 @@ radio button
 		clearTimeout(timer);
 		tooltipBlockEl.style.opacity = '0';
 	}
-	function addNewMOdels() {
+	function addNewModels() {
+		const last = Object.values(tooltipBlockEl.children).slice(-1)[0] as HTMLLabelElement;
+		includeAll = (last.firstChild as HTMLInputElement).value;
 		Object.values(tooltipBlockEl.children)
 			.slice(0, -1)
 			.forEach((el) => {
-				models[(el as HTMLElement).innerText] = { fields: [], attrs: [] };
+				const modelName = (el as HTMLElement).innerText as string;
+				candidateModels.push(modelName);
+				extraModels.add(modelName);
+				models[modelName] = { fields: [], attrs: [] };
 			});
 	}
 	onMount(() => {
 		tooltipBlockEl.style.opacity = '0';
-		addNewMOdels();
+		addNewModels();
 		tooltipBlockEl.addEventListener('change', addFieldToModel);
 		tooltipBlockEl.addEventListener('mouseleave', hideTooltipBlock);
 		return () => {
@@ -186,7 +201,7 @@ radio button
 					{modelName}
 				</summary>
 
-				<div class="X-{modelName} cr-fields-column" data-event-list="click mouseover mouseout">
+				<div class="cr-fields-column" data-event-list="click mouseover mouseout">
 					{#each model.fields as field (field.name)}
 						{@const attrClass = fieldAttrsClass(field) as string}
 						<section>{field.name}</section>

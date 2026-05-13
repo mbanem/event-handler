@@ -1,5 +1,5 @@
 <script lang="ts">
-	import RBHandler from '../../lib/components/RBHandler.svelte';
+	import CRRBTooltip from '../../lib/components/CRRBTooltip.svelte';
 	import type { PageProps } from './$types';
 	import type { Models } from '$lib/utils';
 	let { data }: PageProps = $props();
@@ -20,7 +20,7 @@
 {/snippet}
 
 {@render tooltipBlock()}
-<RBHandler {models} {tooltipBlockEl}></RBHandler>
+<CRRBTooltip {models} {tooltipBlockEl}></CRRBTooltip>
 
 <style lang="scss">
 	/* 

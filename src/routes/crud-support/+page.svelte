@@ -4,6 +4,7 @@
 	import { createEventHandler, isEmpty, sleep } from '$lib/utils';
 	import type { Field, Model, Models } from './parse-prisma-schema';
 	import ClickableLine from '$lib/components/ClickableLine.svelte';
+	import CRRBTooltip from '$lib/components/CRRBTooltip.svelte';
 	import type { PageProps } from './$types';
 
 	const log = console.log;
