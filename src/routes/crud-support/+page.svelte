@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity'; // get(key), set(key,value), delete(key), clear ()
-	import { createEventHandler, isEmpty, sleep } from '$lib/utils';
+	import { createEventHandler, isEmpty, sleep, capitalize } from '$lib/utils';
 	import type { Field, Model, Models } from './parse-prisma-schema';
 	import ClickableLine from '$lib/components/ClickableLine.svelte';
 	import CRRBTooltip from '$lib/components/CRRBTooltip.svelte';
@@ -12,11 +12,15 @@
 	const data_ = $derived(data);
 
 	let models: Models = $state<Models>({}) as Models;
+	let isSelected = $state(false);
+	let newModelName = $state('');
 	// snippet renders Prisma ORM models from schema.prisma but when user clicks on line
 	// for including Register and Login routes we add to registerLoginModels for user to
 	// add fields from Prisma ORM models to them by click/shift-click/ctrl-click on fields
 	let crComponents: string[] = $state(['CRInput', 'CRSpinner', 'CRActivity', 'CRTooltip', 'CRSummaryDetails']);
 	let appFeatures: string[] = $state([]);
+	let rbTooltip = $state<HTMLDivElement>();
+	let newModels = new Set<string>();
 	let includeCheched: Record<string, boolean> = $state({ Login: false, Register: false });
 	function toggleCheckboxes(e: MouseEvent) {
 		const el = e.target as HTMLParagraphElement;
@@ -32,22 +36,45 @@
 	let isLoading = $state(true);
 
 	function setModel(modelName: string, state: boolean) {
-		// includeCheched holds fake models for Lofin anf Register -- not included initially in models
-		includeCheched[modelName] = state; //(document.getElementById(`add${modelName}`) as HTMLInputElement).checked;
-		if (includeCheched[modelName]) {
-			if (modelName === 'Register') {
-				models[modelName] = models.Login ?? { fields: [] };
-				setTimeout(() => {
-					Array.from(document.querySelectorAll('summary'))
-						.find((s) => s.textContent?.trim() === 'Register')
-						?.click();
-				}, 300);
-			} else {
-				models[modelName] = { fields: [] };
-			}
-		} else {
-			delete models[modelName];
+		if (models[modelName]) {
+			return;
 		}
+		// // includeCheched holds fake models for Login and Register -- not included initially in models
+		// includeCheched[modelName] = state; //(document.getElementById(`add${modelName}`) as HTMLInputElement).checked;
+		// if (includeCheched[modelName]) {
+		// 	if (modelName === 'Register') {
+		// 		models[modelName] = models.Login ?? { fields: [] };
+		// 		setTimeout(() => {
+		// 			Array.from(document.querySelectorAll('summary'))
+		// 				.find((s) => s.textContent?.trim() === 'Register')
+		// 				?.click();
+		// 		}, 300);
+		// 	} else {
+		models[modelName] = { fields: [], attrs: [] };
+		// 	}
+		// } else {
+		// 	delete models[modelName];
+	}
+	function rbSelected(e: Event) {
+		console.log('rbSelected', e.target);
+	}
+	function addNewModel() {
+		const model = capitalize(newModelName);
+		if (!newModelName || models[model]) {
+			return;
+		}
+		setModel(model, true);
+		newModels.add(model);
+		newModelName = '';
+	}
+	function removeModel() {
+		const model = capitalize(newModelName);
+		if (!newModelName || !models[model]) {
+			return;
+		}
+		delete models[model];
+		newModelName = '';
+		newModels.delete(model);
 	}
 
 	// onclick Create CRUD Support sends models to extension to
@@ -188,20 +215,28 @@
 	}
 
 	let schemaContainerRect: DOMRect | null = null;
-	function onPrismaMouseOver(e: MouseEvent) {
+	function fieldMouseOver(e: MouseEvent) {
 		const et = e.target as HTMLParagraphElement;
 		if (et.innerText.slice(0, 5) === 'type:') {
 			return;
 		}
-		if (!includeCheched.Login && !includeCheched.Register) {
-			prismaContainerTooltip('check Login or Register');
+		if (newModels.size === 0) {
+			prismaContainerTooltip('No new models added');
 		} else {
 			const field = getUIField(et);
 			if (field) {
 				if (models.Login.fields.includes(field)) {
 					prismaContainerTooltip(fieldSelected);
 				} else if (field.isDataEntry) {
-					prismaContainerTooltip(fieldTitleDefault);
+					const { x, y } = et.getBoundingClientRect();
+					Object.assign(et.style, {
+						position: 'fixed',
+						top: `${y - 12}px`,
+						left: `${x}px`,
+						zIndex: '9999',
+						pointerEvents: 'auto',
+						opacity: '1',
+					});
 				}
 			} else {
 				prismaContainerTooltip('Not a data-entry field');
@@ -217,7 +252,7 @@
 		ormModelTooltipEl.style.opacity = '1';
 	}
 
-	function onPrismaMouseOut(e: MouseEvent) {
+	function fieldMouseOut(e: MouseEvent) {
 		tooltipEl().style.opacity = '0';
 	}
 
@@ -276,7 +311,7 @@
 		// separately based on fake class name X-<modelName>
 		const className = `.X-${modelName}`;
 		const prismaList = document.querySelector(className) as HTMLDivElement;
-		eh.setup(prismaList, { click: onPrismaClick, mouseover: onPrismaMouseOver, mouseout: onPrismaMouseOut });
+		eh.setup(prismaList, { click: onPrismaClick, mouseover: fieldMouseOver, mouseout: fieldMouseOut });
 
 		// 	// drag-drop to move fieldNames up and down the candidates list
 		// 	eh.setup(candidatesListEl);
@@ -379,6 +414,17 @@
 	function fieldAttrs(field: Field) {
 		return field.attrs ?? 'no attributes';
 	}
+	function labelAll() {
+		switch (newModels.size) {
+			case 0:
+			case 1:
+				return '';
+			case 2:
+				return 'Both';
+			default:
+				return 'All';
+		}
+	}
 	// let save: string[] = [];
 	// function toggleBuildingApp() {
 	// 	buildingApp = !buildingApp;
@@ -391,6 +437,7 @@
 	// }
 </script>
 
+<p>Is include Register Model Selected? {isSelected}</p>
 <svelte:head>
 	<title>CRUD Support</title>
 </svelte:head>
@@ -409,13 +456,13 @@
 	{/each}
 	<p id="candidateTooltipId" class="cr-remove-hint">click to remove</p>
 {/snippet} -->
-{#snippet summaryPrismaModel()}
+{#snippet summaryDetailsModels()}
 	{#each Object.entries(models) as [modelName, model] (modelName)}
 		<div style="position:relative;">
 			<input
 				type="text"
 				id="route{modelName}"
-				value={modelName}
+				value={modelName.toLowerCase()}
 				style="position:absolute;top:0;left:4px;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
 			/>
 			<input
@@ -467,6 +514,7 @@ to handle prisma model fields on mouse events
 	<ClickableLine
 		line="Click to include Register module to add Register Page"
 		callback={{ callback: setModel, arg: 'Register' }}
+		bind:isSelected
 		cssClass="clickable-line"
 	/>
 
@@ -554,13 +602,27 @@ to handle prisma model fields on mouse events
 			{#if isLoading}
 				<div class="spinner-wrapper"><span class="spinner"></span><span>Loading models...</span></div>
 			{:else}
-				{@render summaryPrismaModel()}
+				{@render summaryDetailsModels()}
 			{/if}
+			<div class="add-new-model">
+				<input type="text" bind:value={newModelName} placeholder="New model name" />
+				<button onclick={addNewModel}>add</button>
+				<button onclick={removeModel}>remove</button>
+			</div>
 			<p id="ormModelTooltipId" class="cr-prisma-remove-hint">click, add to candidates</p>
 		</div>
 	</div>
-	<p class="orm-models-caption">Route Names and ORM Models</p>
+	<p class="orm-models-caption">Route Names in Lowercase and ORM Models</p>
 	<p class="select-all" onclick={toggleCheckboxes} aria-hidden={true}>(select all)</p>
+</div>
+
+<div bind:this={rbTooltip} onchange={rbSelected} class="radio-tooltip" aria-hidden={true}>
+	{#each newModels as model (model)}
+		<label><input type="radio" name="group" value={model} />{model}</label>
+	{/each}
+	{#if newModels.size > 1}
+		<label><input type="radio" name="group" value="All" />{labelAll()}</label>
+	{/if}
 </div>
 
 <style lang="scss">
@@ -732,7 +794,7 @@ to handle prisma model fields on mouse events
 		left: 34rem;
 		z-index: 15;
 		padding: 0 5px;
-		width: 13.6rem;
+		width: 20rem;
 		color: var(--candidate-color);
 		background-color: var(--panel-bg-color);
 	}
@@ -966,5 +1028,34 @@ to handle prisma model fields on mouse events
 	:global(.clickable-line) {
 		margin-left: 2.6rem;
 		font-size: 15px !important;
+	}
+	.add-new-model {
+		display: flex;
+		align-items: center;
+		width: max-content;
+		padding: 2px 0.5rem;
+		input {
+			width: 10rem;
+			padding-left: 0.5rem;
+		}
+		button {
+			width: 4rem;
+			height: 1.3rem;
+			// line-height: 0.4rem;
+		}
+		column-gap: 4px;
+	}
+	.radio-tooltip {
+		position: fixed;
+		top: -12px;
+		left: 0;
+		width: max-content;
+		padding: 2px 0.5rem 1px 4px;
+		border: 1px solid gray;
+		color: var(--candidate-color);
+		background-color: var(--candidate-bg-color);
+		outline: inline solid transparent;
+		cursor: pointer;
+		opacity: 0;
 	}
 </style>

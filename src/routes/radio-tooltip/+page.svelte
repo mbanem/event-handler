@@ -4,23 +4,15 @@
 	import type { Models } from '$lib/utils';
 	let { data }: PageProps = $props();
 	const data_ = () => {
+		// let isLoading = false;
 		return data;
 	};
 
 	let models = data_().models as Models;
-	let tooltipBlockEl: HTMLDivElement;
+	// let tooltipBlockEl: HTMLDivElement;
 </script>
 
-{#snippet tooltipBlock()}
-	<div bind:this={tooltipBlockEl} class="radio-button-block hidden">
-		<label><input type="radio" name="LRB" value="Login" />Login</label>
-		<label><input type="radio" name="LRB" value="Register" />Register</label>
-		<label><input type="radio" name="LRB" value="Both" />Both</label>
-	</div>
-{/snippet}
-
-{@render tooltipBlock()}
-<CRRBTooltip {models} {tooltipBlockEl}></CRRBTooltip>
+<CRRBTooltip {models}></CRRBTooltip>
 
 <style lang="scss">
 	/* 

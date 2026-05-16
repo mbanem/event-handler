@@ -1,4 +1,11 @@
+<!--
+@component
+Clickable line sends back a state of the line selected or not
+clicking toggles the selected status true/false on every click
+I telivers status 
+-->
 <script lang="ts">
+	// import { notDeepEqual } from 'node:assert';
 	import { onMount } from 'svelte';
 	type TProps = {
 		line: string;

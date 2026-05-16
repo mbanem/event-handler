@@ -5,12 +5,24 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "SvelteKit Chrome",
+			"type": "chrome",
+			"request": "launch",
+			"url": "http://localhost:5173",
+			"webRoot": "${workspaceFolder}",
+			"sourceMaps": true,
+			"smartStep": false,
+			"skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+			"resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"]
+		},
+		{
 			"type": "chrome",
 			"request": "launch",
 			"name": "Launch Chrome against localhost",
 			"url": "http://localhost:5173",
 			"webRoot": "${workspaceFolder}",
 			"smartStep": false,
+			"sourceMaps": true,
 			"sourceMapPathOverrides": {
 				"/@fs/*": "*",
 				"/src/*": "${workspaceFolder}/src/*",
