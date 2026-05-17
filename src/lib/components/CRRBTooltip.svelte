@@ -32,15 +32,15 @@
 	let isLoading = $state(true);
 	let tooltipBlockEl: HTMLDivElement;
 	let candidateModels = $state<string[]>([]);
-	let emptyModel = $state({ fields: [], attrs: [] });
-	let includeAll = ''; // last word for models in CRRBTooltip -- here is 'Both'
+	let emptyModel: Model = { fields: [], attrs: [] };
+	let includeAll = 'All'; // last word for models in CRRBTooltip -- here is 'Both'
 	let newModelName = $state('');
 	let isSummaryOpen = $state(false);
 	let extraModels = new SvelteSet<string>();
-	let notDataEntryField: HTMLDivElement;
+	let notDataEntryEl: HTMLDivElement;
 	let modelWrapperEl: HTMLDivElement;
-	let hoveredEl: HTMLElement | null = null;
 	let addExtraModelEl: HTMLDivElement;
+	let hoveredEl: HTMLElement | null = null;
 
 	let det: HTMLDetailsElement;
 	const defaultMessage = 'Add/Remove extra model like Login, Admin,...';
@@ -86,65 +86,75 @@
 		return models[modelName].fields.find((field) => field.name === fieldName) as Field;
 	}
 
-	// called from tooltipBlockEl when radio button fires change event
+	// called from tooltipBlockEl tooltip when radio button fires change event
 	function addFieldToModel(e: Event) {
-		console.log('addFieldToModel entry');
+		e.preventDefault();
 		const fieldName = hoveredEl?.innerText as string;
-		// const modelName = (e.target as HTMLInputElement).value;
 		const mName = (tooltipBlockEl.querySelector(`input[type=radio]:checked`) as HTMLInputElement).value as string;
 		if (mName === includeAll) {
 			const field = getUIField(fieldName);
-			for (const model of extraModels) {
-				models[model].fields.push(field);
+			for (const m of extraModels) {
+				if (models[m]) {
+					models[m].fields.push(field);
+				}
 			}
 		} else {
 			models[mName].fields.push(getUIField(fieldName));
 		}
 		// after adding the field to a model clear selected
-		// radio button and hide the radio button block
+		// radio button and hide the radio button tooltip
 		(e.target as HTMLInputElement).checked = false;
-		// tooltipBlockEl.style.opacity = '0';
+		tooltipBlockEl.style.opacity = '0';
 	}
 
 	function outOfBound(e: MouseEvent) {
 		const rect = modelWrapperEl.getBoundingClientRect();
 		return e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
 	}
-	async function showRBTooltip(e: MouseEvent) {
+	function showNoDataEntry(x: number, y: number) {
+		clearTimeout(timer);
+		hoveredEl = null;
+		tooltipBlockEl.style.opacity = '0';
+		Object.assign(notDataEntryEl.style, {
+			position: 'fixed',
+			top: `${y - 20}px`,
+			left: `${x}px`,
+			zIndex: '9999',
+			pointerEvents: 'auto',
+			opacity: '1',
+		});
+	}
+	async function showTooltip(e: MouseEvent) {
 		e.preventDefault();
 		if (outOfBound(e)) {
+			if (!extraModels.size) {
+				return;
+			}
 			console.log('out of bound');
 			clearTimeout(timer);
-			// tooltipBlockEl.style.opacity = '0';
+			tooltipBlockEl.style.opacity = '0';
 		}
 		if ((e.target as HTMLElement).tagName !== 'SECTION') {
-			console.log('not a SECTION');
+			tooltipBlockEl.style.opacity = '0';
 			return;
 		}
 		if (e.type === 'mouseover') {
-			const rbTooltip = (e.currentTarget as HTMLDivElement).lastChild as HTMLDivElement;
-			console.log('rbTooltip', rbTooltip);
-			console.log('mouse is over');
-			const de = (e.target as HTMLElement).dataset.entry;
-			const { x, y } = (e.target as HTMLElement).getBoundingClientRect();
-			if (de === 'false') {
-				// tooltipBlockEl.style.opacity = '0';
-				Object.assign(notDataEntryField.style, {
-					position: 'fixed',
-					top: `${y - 12}px`,
-					left: `${x}px`,
-					zIndex: '9999',
-					pointerEvents: 'auto',
-					opacity: '1',
-				});
+			if (extraModels.size === 0) {
 				return;
 			}
-			notDataEntryField.style.opacity = '0';
+			const de = (e.target as HTMLElement).dataset.entry;
+			const { x, y } = (e.target as HTMLElement).getBoundingClientRect();
+			await tick();
+			if (de === 'false') {
+				showNoDataEntry(x, y);
+				return;
+			}
+			notDataEntryEl.style.opacity = '0';
+			hoveredEl = e.target as HTMLElement;
 			timer = setTimeout(() => {
 				busy = false;
 			}, 2000);
 			busy = true;
-			// tooltipBlockEl.style.opacity = '1';
 			await tick();
 			Object.assign(tooltipBlockEl.style, {
 				position: 'fixed',
@@ -154,15 +164,12 @@
 				pointerEvents: 'auto',
 				opacity: '1',
 			});
-			hoveredEl = e.target as HTMLElement;
 		} else {
-			console.log('mouse not over');
 			if (busy) {
 				return;
 			}
-			// tooltipBlockEl.style.opacity = '0';
-			// notDataEntryField.style.opacity = '0';
-			// hoveredEl = null;
+			tooltipBlockEl.style.opacity = '0';
+			notDataEntryEl.style.opacity = '0';
 		}
 	}
 
@@ -170,8 +177,8 @@
 		const el = e.target as HTMLElement;
 		switch (el.tagName) {
 			case 'SUMMARY':
-				// console.log('summary', el, modelWrapperEl);
-				// modelWrapperEl.querySelectorAll('[data-det=""]');
+				det = el.parentElement as HTMLDetailsElement;
+				modelName = det.innerText?.match(/^\S+/)?.[0] as string;
 				for (const item of modelWrapperEl.getElementsByTagName('DETAILS')) {
 					if (item.firstChild !== el) {
 						Object.assign((item.parentElement as HTMLElement).style, {
@@ -188,58 +195,29 @@
 					addExtraModelEl.classList.add('hidden');
 				}
 				isSummaryOpen = !isSummaryOpen;
+				// hovering is necessary only when newModels is not empty
+				if (!extraModels.size) {
+					return;
+				}
+				if (det.open) {
+					modelWrapperEl.removeEventListener('mouseover', showTooltip);
+					modelWrapperEl.removeEventListener('mouseout', showTooltip);
+				} else {
+					modelWrapperEl.addEventListener('mouseover', showTooltip);
+					modelWrapperEl.addEventListener('mouseout', showTooltip);
+				}
 				return;
 			case 'BUTTON':
-				if (el.innerText === 'add') {
-					// add new model
-					console.log('add', el.innerText);
-				} else if (el.innerText === 'remove') {
-					console.log('remove', el.innerText);
-				}
-				break;
 			case 'SECTION':
-				console.log(el.innerText);
-				break;
 			default:
 				break;
 		}
-		//console.log('summary', (el.parentElement as HTMLDetailsElement).open);
 		return;
 	}
-	async function expandDetails(e: MouseEvent) {
-		e.preventDefault();
-		const el = e.target as HTMLElement;
-		if (el.tagName === 'SUMMARY') {
-			console.log('summary', (el.parentElement as HTMLDetailsElement).open);
-			return;
-		}
-		console.log('expandDetails', (e.target as HTMLElement).tagName);
-		await tick();
-		det = (e.target as HTMLElement).parentElement as HTMLDetailsElement;
-		modelName = det.innerText?.match(/^\S+/)?.[0] as string;
-		Object.values(modelWrapperEl.children).forEach((el) => {
-			if (det.open) {
-				// tooltipBlockEl.classList.remove('hidden');
-				if (det !== el.children[2]) {
-					(el as HTMLElement).classList.add('hidden');
-				}
-			} else {
-				// tooltipBlockEl.classList.add('hidden');
-				(el as HTMLElement).classList.remove('hidden');
-			}
-		});
-		// add on hover event litener
-		if (det.open) {
-			modelWrapperEl.addEventListener('mouseover', showRBTooltip);
-			modelWrapperEl.addEventListener('mouseout', showRBTooltip);
-		} else {
-			modelWrapperEl.removeEventListener('mouseover', showRBTooltip);
-			modelWrapperEl.removeEventListener('mouseout', showRBTooltip);
-		}
-	}
+
 	function hideTooltipBlock(e: MouseEvent) {
 		clearTimeout(timer);
-		// tooltipBlockEl.style.opacity = '0';
+		tooltipBlockEl.style.opacity = '0';
 	}
 
 	function showMessage(msg: string, className: string = 'tomato', milisec: number = 2000) {
@@ -250,10 +228,12 @@
 			msgClass = 'navy';
 		}, milisec);
 	}
-	async function addNewModel(e: MouseEvent) {
-		// console.log('addNewModel');
-		// console.log('tooltipBlockEl', tooltipBlockEl.children);
+	async function addNewModel(e: MouseEvent | KeyboardEvent) {
+		if (e instanceof KeyboardEvent && e.key !== 'Enter') {
+			return;
+		}
 		e.preventDefault();
+		tooltipBlockEl.style.opacity = '0';
 		if (!newModelName) {
 			showMessage(noModelName);
 			return;
@@ -264,13 +244,9 @@
 			showMessage(alreadyDefined);
 			newModelName = '';
 			return;
-		} else {
-			console.log(model, 'not registered');
 		}
 		await tick();
-		// bound to input text box
 
-		await tick();
 		extraModels.add(model);
 		models[model] = emptyModel;
 		newModelName = '';
@@ -297,13 +273,10 @@
 		setTimeout(() => {
 			isLoading = false;
 		}, 100);
-		// tooltipBlockEl = document.getElementById('tooltipBlockId') as HTMLDivElement;
-		// inside the snippet but rendered without any condition, so should be ready at onMount?
-		// tooltipBlockEl.style.opacity = '0';
 		tooltipBlockEl.classList.remove('hidden');
+		notDataEntryEl.classList.remove('hidden');
 		tooltipBlockEl.addEventListener('change', addFieldToModel);
 		tooltipBlockEl.addEventListener('mouseleave', hideTooltipBlock);
-		notDataEntryField.classList.remove('hidden');
 
 		return () => {
 			modelWrapperEl.removeEventListener('change', addFieldToModel);
@@ -314,15 +287,15 @@
 
 <div bind:this={tooltipBlockEl} class="radio-tooltip hidden">
 	{@render tooltipBlock()}
-	<div bind:this={notDataEntryField} class="no-data-entry hidden">not data entry field</div>
 </div>
+<div bind:this={notDataEntryEl} class="no-data-entry hidden">not data entry field</div>
 
 {#snippet tooltipBlock()}
 	{#each extraModels as model (model)}
 		<label><input type="radio" name={model} value={model} />{model}</label>
 	{/each}
 	{#if extraModels.size > 1}
-		<label><input type="radio" name="All" value="To All" />All</label>
+		<label><input type="radio" name="All" value="All" />All</label>
 	{/if}
 {/snippet}
 {#snippet summaryDetailsModel(modelName: string, model: Model)}
@@ -377,12 +350,10 @@
 				{@render summaryDetailsModels()}
 				<div bind:this={addExtraModelEl} class="add-extra-model">
 					<span class={msgClass}>{message}</span>
-					<input type="text" bind:value={newModelName} placeholder="Add extra model" />
+					<input type="text" bind:value={newModelName} onkeyup={addNewModel} placeholder="Add extra model" />
 					<button onclick={addNewModel}>add</button><button onclick={removeModel}>remove</button>
 				</div>
 			{/if}
-			<!-- <div bind:this={tooltipBlockEl} class="radio-tooltip hidden" onclick={copyFieldFrom} aria-hidden={true}> -->
-			<!-- radio buttons already fire onchange event for adding field to rb selected model  -->
 		</div>
 	</div>
 </div>
@@ -447,6 +418,7 @@
 		color: var(--candidate-color);
 		background-color: var(--candidate-bg-color);
 		margin: 6px 0 0 4px;
+		opacity: 1;
 		input {
 			width: 64% !important;
 			font-size: 14px;
@@ -500,7 +472,7 @@
 		}
 	}
 
-	:global(.cr-model-attr) {
+	.cr-model-attr {
 		grid-column: span 2;
 		width: 18rem;
 		padding: 0;
@@ -509,7 +481,7 @@
 		color: tomato;
 		font-size: 13px;
 	}
-	:global(.cr-model-name) {
+	.cr-model-name {
 		color: var(--summary-color);
 		background-color: var(--summary-bg-color);
 		margin: 3px 9px 0 0;
@@ -523,7 +495,7 @@
 		}
 	}
 
-	:global(.cr-fields-column) {
+	.cr-fields-column {
 		// position: relative;
 		display: grid;
 		grid-template-columns: 7rem 9.5rem;
@@ -539,20 +511,20 @@
 		overflow-y: auto;
 	}
 
-	:global(.cr-fields-column p) {
+	.cr-fields-column p {
 		margin: 4px 0 0 0;
 		padding: 1px 0 1px 6px;
 		// border-bottom: 1px solid lightgray;
 		text-wrap: wrap;
 	}
 
-	:global(.cr-fields-column p:nth-child(odd)) {
+	.cr-fields-column p:nth-child(odd) {
 		cursor: pointer;
 		width: max-content;
 		padding: 4px 1rem;
 	}
 
-	:global(.cr-fields-column p:nth-child(even)) {
+	.cr-fields-column p:nth-child(even) {
 		font-weight: 400 !important;
 		font-size: 12px !important; /* prisma attrs column */
 		color: var(--model-name);
@@ -563,10 +535,10 @@
 		}
 	}
 
-	:global(.pink-tomato) {
+	.pink-tomato {
 		color: var(--pink-tomato);
 	}
-	:global(.attr-id) {
+	.attr-id {
 		color: var(--attr-id);
 	}
 
