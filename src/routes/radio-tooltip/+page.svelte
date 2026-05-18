@@ -1,7 +1,8 @@
 <script lang="ts">
-	import CRRBTooltip from '../../lib/components/CRRBTooltip.svelte';
+	import CRRBTooltip, { type SelectedModels } from '../../lib/components/CRRBTooltip.svelte';
 	import type { PageProps } from './$types';
 	import type { Models } from '$lib/utils';
+	// let selectedModules: (selected: SelectedModels) => void;
 	let { data }: PageProps = $props();
 	const data_ = () => {
 		// let isLoading = false;
@@ -9,16 +10,16 @@
 	};
 
 	let models = data_().models as Models;
-	// let tooltipBlockEl: HTMLDivElement;
+	// selectedModels are bound $props() mutated by component
+	// when any checkbox on a model list is updated
+	// filling selectedModels with SelectedModels from the list
+	let selectedModels = $state<SelectedModels>({});
 </script>
 
-<CRRBTooltip {models}></CRRBTooltip>
+<!-- <pre>selectedModels {Object.keys(selectedModels).length}</pre> -->
+<CRRBTooltip {models} bind:selectedModels></CRRBTooltip>
 
 <style lang="scss">
-	/* 
-		list container firstName, lastName,...
-	*/
-
 	#tooltipBlockEl {
 		position: absolute; // I tried fixed as well
 		top: 5rem;

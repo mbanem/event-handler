@@ -22,9 +22,12 @@
 
 	type TProps = {
 		models: Models;
+		selectedModels: SelectedModels;
 	};
+	type RouteName = string;
+	export type SelectedModels = Record<RouteName, Model>;
 	// Receive initial models from parent
-	let { models: initialModels = {} }: TProps = $props();
+	let { models: initialModels = {}, selectedModels = $bindable() }: TProps = $props();
 
 	// Make it deeply reactive + owned by this component
 	let models = $state<Models>(structuredClone(initialModels)); // or just { ...initialModels } if shallow is enough
@@ -55,6 +58,26 @@
 	const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g');
 	let x = $state(100);
 	let y = $state(100);
+	export const exportModules = () => {
+		selectedModels = {};
+		// get only selected models based on the checkbox checked state
+		for (const chkbox of modelWrapperEl.querySelectorAll('input[type="checkbox"]:checked')) {
+			const routeName = ((chkbox as HTMLInputElement).previousElementSibling as HTMLInputElement).value;
+			const modelName = ((chkbox as HTMLInputElement).nextElementSibling as HTMLDetailsElement).id.slice(4);
+			try {
+				selectedModels[routeName] = emptyModel;
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				console.log(msg);
+			}
+			try {
+				selectedModels[routeName] = models[modelName];
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				console.log(msg);
+			}
+		}
+	};
 	function fieldAttrsClass(field: Field) {
 		return nuiRegex.test(field.attrs as string) ? 'attr-id' : '';
 	}
@@ -91,15 +114,17 @@
 		e.preventDefault();
 		const fieldName = hoveredEl?.innerText as string;
 		const mName = (tooltipBlockEl.querySelector(`input[type=radio]:checked`) as HTMLInputElement).value as string;
+		const field = getUIField(fieldName);
 		if (mName === includeAll) {
-			const field = getUIField(fieldName);
 			for (const m of extraModels) {
-				if (models[m]) {
+				if (models[m] && !models[m].fields.includes(field)) {
 					models[m].fields.push(field);
 				}
 			}
 		} else {
-			models[mName].fields.push(getUIField(fieldName));
+			if (!models[mName].fields.includes(field)) {
+				models[mName].fields.push(getUIField(fieldName));
+			}
 		}
 		// after adding the field to a model clear selected
 		// radio button and hide the radio button tooltip
@@ -174,6 +199,7 @@
 	}
 
 	async function toggleSummary(e: MouseEvent) {
+		// console.log('toggleSummary', (e.target as HTMLElement).tagName, (e.target as HTMLElement).type === 'checkbox');
 		const el = e.target as HTMLElement;
 		switch (el.tagName) {
 			case 'SUMMARY':
@@ -207,6 +233,11 @@
 					modelWrapperEl.addEventListener('mouseout', showTooltip);
 				}
 				return;
+			case 'INPUT':
+				if (el.type && el.type === 'checkbox') {
+					exportModules();
+				}
+				break;
 			case 'BUTTON':
 			case 'SECTION':
 			default:
@@ -428,8 +459,9 @@
 		button {
 			width: 3.5rem;
 			padding: 0;
-			&:first-of-type {
-				margin-right: 4px;
+			margin-right: 4px;
+			&:last-of-type {
+				margin-right: 0;
 			}
 		}
 	}
