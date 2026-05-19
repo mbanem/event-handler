@@ -2,7 +2,6 @@
 	import CRRBTooltip, { type SelectedModels } from '../../lib/components/CRRBTooltip.svelte';
 	import type { PageProps } from './$types';
 	import type { Models } from '$lib/utils';
-	// let selectedModules: (selected: SelectedModels) => void;
 	let { data }: PageProps = $props();
 	const data_ = () => {
 		// let isLoading = false;
@@ -14,9 +13,12 @@
 	// when any checkbox on a model list is updated
 	// filling selectedModels with SelectedModels from the list
 	let selectedModels = $state<SelectedModels>({});
+	// function logSelectedModels() {
+	// 	console.log(selectedModels);
+	// }
 </script>
 
-<!-- <pre>selectedModels {Object.keys(selectedModels).length}</pre> -->
+<!-- <button onclick={logSelectedModels}>log selected models</button> -->
 <CRRBTooltip {models} bind:selectedModels></CRRBTooltip>
 
 <style lang="scss">

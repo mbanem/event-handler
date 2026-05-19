@@ -62,21 +62,18 @@
 		selectedModels = {};
 		// get only selected models based on the checkbox checked state
 		for (const chkbox of modelWrapperEl.querySelectorAll('input[type="checkbox"]:checked')) {
-			const routeName = ((chkbox as HTMLInputElement).previousElementSibling as HTMLInputElement).value;
-			const modelName = ((chkbox as HTMLInputElement).nextElementSibling as HTMLDetailsElement).id.slice(4);
 			try {
+				const routeName = ((chkbox as HTMLInputElement).previousElementSibling as HTMLInputElement).value;
+				const modelName = ((chkbox as HTMLInputElement).nextElementSibling as HTMLDetailsElement).id.slice(4);
 				selectedModels[routeName] = emptyModel;
-			} catch (err: unknown) {
-				const msg = err instanceof Error ? err.message : String(err);
-				console.log(msg);
-			}
-			try {
 				selectedModels[routeName] = models[modelName];
 			} catch (err: unknown) {
 				const msg = err instanceof Error ? err.message : String(err);
 				console.log(msg);
 			}
 		}
+		console.clear();
+		console.log($state.snapshot(selectedModels));
 	};
 	function fieldAttrsClass(field: Field) {
 		return nuiRegex.test(field.attrs as string) ? 'attr-id' : '';
@@ -112,8 +109,15 @@
 	// called from tooltipBlockEl tooltip when radio button fires change event
 	function addFieldToModel(e: Event) {
 		e.preventDefault();
+		clearTimeout(timer);
+		if (!hoveredEl) {
+			return;
+		}
 		const fieldName = hoveredEl?.innerText as string;
 		const mName = (tooltipBlockEl.querySelector(`input[type=radio]:checked`) as HTMLInputElement).value as string;
+		if (!(mName === includeAll || extraModels.has(mName))) {
+			return;
+		}
 		const field = getUIField(fieldName);
 		if (mName === includeAll) {
 			for (const m of extraModels) {
@@ -123,7 +127,7 @@
 			}
 		} else {
 			if (!models[mName].fields.includes(field)) {
-				models[mName].fields.push(getUIField(fieldName));
+				models[mName].fields.push(field);
 			}
 		}
 		// after adding the field to a model clear selected
@@ -132,8 +136,8 @@
 		tooltipBlockEl.style.opacity = '0';
 	}
 
-	function outOfBound(e: MouseEvent) {
-		const rect = modelWrapperEl.getBoundingClientRect();
+	function outOfBound(e: MouseEvent, el: HTMLElement) {
+		const rect = el.getBoundingClientRect();
 		return e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
 	}
 	function showNoDataEntry(x: number, y: number) {
@@ -151,15 +155,16 @@
 	}
 	async function showTooltip(e: MouseEvent) {
 		e.preventDefault();
-		if (outOfBound(e)) {
+		clearTimeout(timer);
+		if (outOfBound(e, modelWrapperEl)) {
 			if (!extraModels.size) {
 				return;
 			}
 			console.log('out of bound');
-			clearTimeout(timer);
 			tooltipBlockEl.style.opacity = '0';
 		}
-		if ((e.target as HTMLElement).tagName !== 'SECTION') {
+
+		if ((e.target as HTMLElement).tagName !== 'SECTION' && outOfBound(e, tooltipBlockEl)) {
 			tooltipBlockEl.style.opacity = '0';
 			return;
 		}
@@ -178,16 +183,17 @@
 			hoveredEl = e.target as HTMLElement;
 			timer = setTimeout(() => {
 				busy = false;
-			}, 2000);
+			}, 500);
 			busy = true;
 			await tick();
 			Object.assign(tooltipBlockEl.style, {
 				position: 'fixed',
-				top: `${y - 12}px`,
+				top: `${y - 8}px`,
 				left: `${x}px`,
 				zIndex: '9999',
 				pointerEvents: 'auto',
 				opacity: '1',
+				cursor: 'pointer',
 			});
 		} else {
 			if (busy) {
@@ -216,9 +222,11 @@
 					}
 				}
 				if (isSummaryOpen) {
-					addExtraModelEl.classList.remove('hidden');
+					// addExtraModelEl.classList.remove('hidden');
+					addExtraModelEl.style.opacity = '1';
 				} else {
-					addExtraModelEl.classList.add('hidden');
+					// addExtraModelEl.classList.add('hidden');
+					addExtraModelEl.style.opacity = '0';
 				}
 				isSummaryOpen = !isSummaryOpen;
 				// hovering is necessary only when newModels is not empty
@@ -226,15 +234,17 @@
 					return;
 				}
 				if (det.open) {
+					console.log('add mouseover/mouseout');
 					modelWrapperEl.removeEventListener('mouseover', showTooltip);
 					modelWrapperEl.removeEventListener('mouseout', showTooltip);
 				} else {
+					console.log('remove mouseover/mouseout');
 					modelWrapperEl.addEventListener('mouseover', showTooltip);
 					modelWrapperEl.addEventListener('mouseout', showTooltip);
 				}
 				return;
 			case 'INPUT':
-				if (el.type && el.type === 'checkbox') {
+				if ((el as HTMLInputElement).type && (el as HTMLInputElement).type === 'checkbox') {
 					exportModules();
 				}
 				break;
@@ -248,7 +258,7 @@
 
 	function hideTooltipBlock(e: MouseEvent) {
 		clearTimeout(timer);
-		tooltipBlockEl.style.opacity = '0';
+		// tooltipBlockEl.style.opacity = '0';
 	}
 
 	function showMessage(msg: string, className: string = 'tomato', milisec: number = 2000) {
@@ -260,10 +270,10 @@
 		}, milisec);
 	}
 	async function addNewModel(e: MouseEvent | KeyboardEvent) {
+		e.preventDefault();
 		if (e instanceof KeyboardEvent && e.key !== 'Enter') {
 			return;
 		}
-		e.preventDefault();
 		tooltipBlockEl.style.opacity = '0';
 		if (!newModelName) {
 			showMessage(noModelName);
@@ -607,7 +617,10 @@
 		padding: 4px 0.5rem 1px 5px;
 		color: var(--candidate-color);
 		background-color: skyblue;
-		cursor: pointer;
+		label,
+		input {
+			cursor: pointer !important;
+		}
 	}
 	.no-data-entry {
 		position: fixed;
