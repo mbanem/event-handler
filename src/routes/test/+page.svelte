@@ -1,46 +1,74 @@
+<!--
+@component
+-->
+
 <script lang="ts">
-	import { Paginator } from '@dflare/svelte-page-navigation';
-	type TValue = number | boolean;
-	type TProps = Record<string, TValue>;
-	// let pages = 20;
-	// let currentPage = 6; // It can be omitted if you want to use the default value of 0
-	// let initChunkSize = 10;
-	// let initShowFirstButton = true; // It can be omitted if you want to use the default value of true
-	// let initShowLastButton = true; // It can be omitted if you want to use the default value of true
-	// let showCurrentPageLabel = true; // It can be omitted if you want to use the default value of false
-	let props: TProps = {
-		pages: 20,
-		currentPage: 6,
-		initChunkSize: 10,
-		initShowFirstButton: true,
-		initShowLastButton: true,
-		showCurrentPageLabel: true,
+	type User = {
+		id: string;
+		name: string;
+		age: number;
+		address: {
+			street: string;
+			city: string;
+			zip: number;
+		};
 	};
-	function pageChangeHandler(event: MouseEvent) {
-		props.currentPage = event.detail.page;
+	let user: User = {
+		id: 'wavfdfvdfb',
+		name: 'bane',
+		age: 81,
+		address: { street: 'Fruskogorska 27', city: 'Pavlovci', zip: 22400 },
+	};
+	function createUser(usr: Omit<User, 'id'>) {
+		user = { id: '1334', ...usr };
+		console.log('createUser', user);
 	}
+	function updateUser(props: Partial<User>) {
+		user = { ...user, ...props };
+		// for (const p of Object.entries(props)) {
+		// 	console.log('updateUser', p);
+		// }
+	}
+	function updateStreet(props: UStreet) {
+		user.address.street = props.address.street;
+		// for (const p of Object.entries(props)) {
+		// 	console.log('updateStreet', p);
+		// }
+	}
+	let userX: User = {
+		id: '1',
+		name: 'bane',
+		age: 81,
+		address: { street: 'Fruskogorska 27', city: 'Pavlovci', zip: 22419 },
+	};
+	createUser(userX);
+	// updateUser({ name: 'milivoje' });
+	// updateUser({ age: 82 });
+
+	type NestedPick<T, K extends string> = K extends `${infer K1}.${infer K2}`
+		? K1 extends keyof T
+			? { [P in K1]: NestedPick<T[K1], K2> }
+			: never
+		: K extends keyof T
+			? Pick<T, K>
+			: never;
+
+	// Resulting type: { address: { street: string } }
+	type UStreet = NestedPick<User, 'address.street'>;
+	console.log('before', user);
+	setTimeout(() => {
+		let str: UStreet = { address: { street: 'Radnicka 27' } };
+		updateStreet(str);
+		console.log('after', user);
+	}, 500);
 </script>
 
-<div class="after-radio-block">
-	Add field to
-	<div class="to-add-where">
-		<label><input type="radio" name="LRB" value="L" />Login</label>
-		<label><input type="radio" name="LRB" value="R" />Register</label>
-		<label><input type="radio" name="LRB" value="B" />Both</label>
-	</div>
-</div>
-<div>
-	Current Page: {(props.currentPage as number) + 1}
-</div>
+<div class="main"></div>
 
-<Paginator props onchange={pageChangeHandler} />
-
-<div>Try resizing the width of the window</div>
-
-<style>
-	div {
-		text-align: center;
-		font-size: 2.5rem;
-		margin: 2rem auto;
+<style lang="scss">
+	.main {
+		margin: 3rem 0 0 1rem;
+		border: 1px solid gray;
+		border-radius: 10px;
 	}
 </style>

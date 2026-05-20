@@ -1,94 +1,46 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { SvelteMap } from 'svelte/reactivity'; // get(key), set(key,value), delete(key), clear ()
 	import { createEventHandler, isEmpty, sleep, capitalize } from '$lib/utils';
 	import type { Field, Model, Models } from './parse-prisma-schema';
-	import ClickableLine from '$lib/components/ClickableLine.svelte';
-	import CRRBTooltip from '$lib/components/CRRBTooltip.svelte';
+	import CRRBTooltip, { type SelectedModels } from '$lib/components/CRRBTooltip.svelte';
 	import type { PageProps } from './$types';
+	import type { Models } from '$lib/utils';
+	import type { AnyARecord } from 'node:dns';
 
+	type Payload = Record<string, SelectedModels | Model | string[] | string>; // { route: string | null } = { route: null };
 	const log = console.log;
 	let { data }: PageProps = $props();
-	const data_ = $derived(data);
 
-	let models: Models = $state<Models>({}) as Models;
-	let isSelected = $state(false);
-	let newModelName = $state('');
+	let models = data.models as Models; // avoid $derived
+	console.log('component models', models);
+
+	let isLoading = $state(true); // TODO set to true
+	setTimeout(() => {
+		isLoading = false;
+	}, 1000);
+	// selectedModels are bound $props() mutated by component
+	// when any checkbox on a model list is updated
+	// filling selectedModels with SelectedModels from the list
+	let selectedModels = $state<SelectedModels>({});
 	// snippet renders Prisma ORM models from schema.prisma but when user clicks on line
 	// for including Register and Login routes we add to registerLoginModels for user to
 	// add fields from Prisma ORM models to them by click/shift-click/ctrl-click on fields
 	let crComponents: string[] = $state(['CRInput', 'CRSpinner', 'CRActivity', 'CRTooltip', 'CRSummaryDetails']);
 	let appFeatures: string[] = $state([]);
-	let rbTooltip = $state<HTMLDivElement>();
-	let newModels = new Set<string>();
-	let includeCheched: Record<string, boolean> = $state({ Login: false, Register: false });
-	function toggleCheckboxes(e: MouseEvent) {
-		const el = e.target as HTMLParagraphElement;
-		const newState = el.innerText.includes('select all') ? true : false;
-		el.innerText = newState ? '(clear all)' : '(select all)';
-
-		(document.querySelectorAll('.model-checkboxes') as unknown as Array<HTMLInputElement>).forEach(async (chkbox) => {
-			chkbox.click();
-			await sleep(100);
-		});
-	}
-	let modelName = $state<string>('');
-	let isLoading = $state(true);
-
-	function setModel(modelName: string, state: boolean) {
-		if (models[modelName]) {
-			return;
-		}
-		// // includeCheched holds fake models for Login and Register -- not included initially in models
-		// includeCheched[modelName] = state; //(document.getElementById(`add${modelName}`) as HTMLInputElement).checked;
-		// if (includeCheched[modelName]) {
-		// 	if (modelName === 'Register') {
-		// 		models[modelName] = models.Login ?? { fields: [] };
-		// 		setTimeout(() => {
-		// 			Array.from(document.querySelectorAll('summary'))
-		// 				.find((s) => s.textContent?.trim() === 'Register')
-		// 				?.click();
-		// 		}, 300);
-		// 	} else {
-		models[modelName] = { fields: [], attrs: [] };
-		// 	}
-		// } else {
-		// 	delete models[modelName];
-	}
-	function rbSelected(e: Event) {
-		console.log('rbSelected', e.target);
-	}
-	function addNewModel() {
-		const model = capitalize(newModelName);
-		if (!newModelName || models[model]) {
-			return;
-		}
-		setModel(model, true);
-		newModels.add(model);
-		newModelName = '';
-	}
-	function removeModel() {
-		const model = capitalize(newModelName);
-		if (!newModelName || !models[model]) {
-			return;
-		}
-		delete models[model];
-		newModelName = '';
-		newModels.delete(model);
-	}
 
 	// onclick Create CRUD Support sends models to extension to
 	// create individual pages or part of the application
 	function getPayload() {
-		console.log($state.snapshot([...candidates]));
-		if (candidateModels.length === 0) {
+		// console.log($state.snapshot([...candidates]));
+		if (Object.keys(selectedModels).length === 0) {
 			// return JSON.stringify($state.snapshot(candidates));
-			return $state.snapshot([...candidates]);
+			return selectedModels;
 		}
-		const payload: Record<string, Model | string[] | string> = {}; // { route: string | null } = { route: null };
-		candidateModels.forEach((modelName) => {
-			payload[modelName] = $state.snapshot(models[modelName]) as Model;
-		});
+
+		let payload: Payload = {};
+		// candidateModels.forEach((modelName) => {
+		// 	payload[modelName] = $state.snapshot(models[modelName]) as Model;
+		// });
 		if (crComponents.length) {
 			payload['crComponents'] = crComponents;
 		}
@@ -102,6 +54,7 @@
 		if (appFeatures.length) {
 			payload['features'] = appFeatures;
 		}
+		payload['selectedModels'] = selectedModels;
 		// return JSON.stringify($state.snapshot(payload));
 		return $state.snapshot(payload);
 	}
@@ -113,7 +66,7 @@
 			? // @ts-expect-error not an extenson coontent
 				acquireVsCodeApi()
 			: {
-					postMessage: (msg: any) => {
+					postMessage: (msg: { command: string; payload: Payload }) => {
 						log(`[DEV] ${msg.command} in progress...`);
 						setTimeout(() => {
 							log(`${msg.command} is done`, msg.payload ?? 'with no payload');
@@ -125,377 +78,35 @@
 	function createCRUDSupport() {
 		vscode.postMessage({
 			command: 'CreateCrudSupport',
-			payload: {
-				// route: routeNameEl.value,
-				payload: getPayload(),
-			},
+			payload: getPayload(),
 		});
 	}
 
-	setTimeout(() => {
-		models = data_.models;
-		isLoading = false;
-	}, 1000);
-
 	// Make a reactive local copy that you can safely bind to
-	let uiFields = new SvelteMap<string, Field>();
-	let candidates = new SvelteMap<string, Model>();
+	// let uiFields = new SvelteMap<string, Field>();
+	// let candidates = new SvelteMap<string, Model>();
 
 	// debugger;
 
 	const eh = createEventHandler();
-	// event handler wrappers for candidate fields list and details ORM model list
-	// let candidatesListEl = $state<HTMLDivElement>();
-	let schemaContainerEl: HTMLDivElement;
-
-	// associated <p>tooltip</p> event handler mouseover/out paragraphs
-	// defined after @render and moved via event handler mouseover handler
-	// let candidateTooltipEl: HTMLParagraphElement;
-	let ormModelTooltipEl: HTMLParagraphElement;
-	function tooltipEl() {
-		if (!ormModelTooltipEl) {
-			ormModelTooltipEl = document.getElementById('ormModelTooltipId') as HTMLParagraphElement;
-		}
-		return ormModelTooltipEl;
-	}
-	// input for defining route folder for Svelte
-	// let routeNameEl: HTMLInputElement;
-
-	// let timer: ReturnType<typeof setTimeout>;	// NOTE keep it as an example
-
-	const fieldTitleDefault = 'Click, add to Login & Register\nShift + click, add to Register';
-	const fieldSelected = 'already selected';
-
-	function getUIField(el: HTMLElement) {
-		let fieldName = (el as HTMLElement).innerText;
-		if (/password/i.test(fieldName)) {
-			return {
-				name: 'password',
-				isDataEntry: true,
-				isOptional: false,
-				isArray: false,
-				attrs: 'saved excrypted',
-			} as Field;
-		}
-
-		const match = fieldName.match(/(\w+)/);
-		if (match && match[1]) {
-			return uiFields.get(match[1]) as Field;
-		}
-		return null;
-	}
-	function prismaContainerTooltip(s: string) {
-		ormModelTooltipEl.innerText = s;
-		tooltipEl().style.color = s === fieldTitleDefault ? 'navy' : s === fieldSelected ? 'darkgreen' : 'tomato';
-	}
-
-	function onPrismaClick(e: MouseEvent) {
-		console.log('event type', e.type);
-		if (e.ctrlKey || e.type !== 'click') {
-			return;
-		}
-		const el = e.target as HTMLElement;
-		const field = getUIField(el) as Field;
-		if (includeCheched.Login && !e.shiftKey) {
-			if (models.Login.fields.includes(field)) {
-				prismaContainerTooltip(fieldSelected);
-			} else {
-				models.Login.fields.push(field);
-			}
-		}
-		// Register model must have all Login model fields
-		if (includeCheched.Register) {
-			if (!models.Register.fields.includes(field)) {
-				models.Register.fields.push(field);
-			}
-		}
-
-		tooltipEl().style.opacity = '0';
-		setButtonAvailability();
-	}
-
-	let schemaContainerRect: DOMRect | null = null;
-	function fieldMouseOver(e: MouseEvent) {
-		const et = e.target as HTMLParagraphElement;
-		if (et.innerText.slice(0, 5) === 'type:') {
-			return;
-		}
-		if (newModels.size === 0) {
-			prismaContainerTooltip('No new models added');
-		} else {
-			const field = getUIField(et);
-			if (field) {
-				if (models.Login.fields.includes(field)) {
-					prismaContainerTooltip(fieldSelected);
-				} else if (field.isDataEntry) {
-					const { x, y } = et.getBoundingClientRect();
-					Object.assign(et.style, {
-						position: 'fixed',
-						top: `${y - 12}px`,
-						left: `${x}px`,
-						zIndex: '9999',
-						pointerEvents: 'auto',
-						opacity: '1',
-					});
-				}
-			} else {
-				prismaContainerTooltip('Not a data-entry field');
-			}
-			if (!schemaContainerRect) {
-				schemaContainerRect = (
-					document.getElementById('schemaContainerId') as HTMLParagraphElement
-				).getBoundingClientRect();
-			}
-		}
-		tooltipEl().style.top = String(et.offsetTop - et.offsetHeight) + 'px';
-		ormModelTooltipEl.style.left = String(et.offsetLeft + 12) + 'px';
-		ormModelTooltipEl.style.opacity = '1';
-	}
-
-	function fieldMouseOut(e: MouseEvent) {
-		tooltipEl().style.opacity = '0';
-	}
-
-	// let candidatesRect: DOMRect | null = null;
-	// function onMouseOver(e: MouseEvent) {
-	// 	if (!candidatesRect) {
-	// 		candidatesRect = (document.getElementById('middleColumnId') as HTMLParagraphElement).getBoundingClientRect();
-	// 	}
-	// 	const et = e.target as HTMLParagraphElement;
-	// 	candidateTooltipEl.style.top = String(et.offsetTop - et.offsetHeight) + 'px';
-	// 	candidateTooltipEl.style.left = String(et.offsetLeft + 12) + 'px';
-	// 	candidateTooltipEl.style.opacity = '1';
-	// }
-
-	// function onMouseOut(_: MouseEvent) {
-	// 	candidateTooltipEl.style.opacity = '0';
-	// }
-
-	// drag-drop works silently but if we want to handle some
-	// events like onDrop we set on a wrapper w.ondrop = onDrop
-	// function onDrop(_: MouseEvent) {	// NOTE keep it as an example
-	// 	log('onDrop');
-	// }
 
 	function setButtonAvailability() {
-		return !isEmpty(candidates);
+		return !isEmpty(selectedModels);
 	}
 
-	// candidate fields handlers
-	// function onClick(e: MouseEvent) {
-	// 	const el = e.target as HTMLElement;
-	// 	const match = (el as HTMLElement).innerText.match(/(\w+)/);
-	// 	if (match) {
-	// 		candidates.delete(match[1]);
-	// 	}
-	// 	candidateTooltipEl.style.opacity = '0';
-	// 	el.remove();
-	// 	setButtonAvailability();
-	// }
-
-	function setHandlers() {
-		// 	eh.destroy();
-		// 	if (!candidatesListEl) {
-		// 		return;
-		// 	}
-		// 	// NOTE drag drop will work without this setting, but if we want
-		// 	// to handle this event we should set the handler, like onDrop here
-		// 	// candidatesListEl.ondrop = onDrop;	// NOTE keep it as an example
-		// 	// bind candidates fields to event-handler
-		// 	eh.setup(candidatesListEl, {
-		// 		click: onClick,
-		// 		mouseover: onMouseOver,
-		// 		// mouseout: onMouseOut,
-		// 	});
-		// bind prisma model fields to event-handler for every <summary>
-		// separately based on fake class name X-<modelName>
-		const className = `.X-${modelName}`;
-		const prismaList = document.querySelector(className) as HTMLDivElement;
-		eh.setup(prismaList, { click: onPrismaClick, mouseover: fieldMouseOver, mouseout: fieldMouseOut });
-
-		// 	// drag-drop to move fieldNames up and down the candidates list
-		// 	eh.setup(candidatesListEl);
-	}
-
-	// function initialize() {
 	onMount(() => {
-		// candidatesListEl = document.getElementById('candidatesListId') as HTMLDivElement;
-		// candidateTooltipEl = document.getElementById('candidateTooltipId') as HTMLParagraphElement;
-		schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
-		ormModelTooltipEl = document.getElementById('ormModelTooltipId') as HTMLParagraphElement;
-		if (schemaContainerEl) {
-			// listener for <summary/details> blocks
-			schemaContainerEl.addEventListener('click', async (event: MouseEvent) => {
-				if ((event.target as HTMLElement).tagName === 'SUMMARY') {
-					modelName = (event.target as HTMLElement).innerText;
-					const details = (event.target as HTMLElement).closest('details');
-					if (details && details.open) {
-						setTimeout(() => {
-							details?.removeAttribute('open');
-							// has to use setTimeout as the element is still in opening
-						}, 200);
-						closeSchemaModels();
-						closeDetails();
-						eh.destroy();
-						setButtonAvailability();
-						return; // here is return
-					}
-
-					closeSchemaModels();
-
-					// routeNameEl.value = modelName.toLowerCase();
-					candidates.clear();
-					// make current uiFields and put them in candidate fields list
-					try {
-						candidates.set(modelName, models[modelName]);
-						models[modelName].fields.forEach((fld) => {
-							if (fld.isDataEntry) {
-								uiFields.set(fld.name, fld);
-							}
-						});
-
-						summaryOpen = true;
-						setButtonAvailability();
-					} catch (err: unknown) {
-						const msg = err instanceof Error ? err.message : String(err);
-						log('models[modelName].fields', msg);
-					}
-
-					// now we have prisma models revealed in details and candidate fields list
-					// so call event-handler setup to handle tooltips and clicks on the lists
-					setHandlers();
-				}
-			});
-		}
-
 		return () => {
 			eh.destroy();
 		};
 	});
-	// }
-	// onDestroy(() => {
-	// 	eh.destroy();
-	// });
-	// function closeDetails(dets: HTMLCollection) {
-	function closeDetails() {
-		// for (const child of Object.entries(dets)) {
-		// 	const el = child[1].children[0] as HTMLElement;
-		// 	if (el && el.hasAttribute('open')) {
-		// 		el.removeAttribute('open');
-		// 	}
-		// }
-		document.querySelectorAll('.cr-model-name').forEach((el) => {
-			const det = el.closest('details');
-			if (det?.hasAttribute('open')) {
-				det.removeAttribute('open');
-			}
-		});
-		setButtonAvailability();
-	}
-	function closeSchemaModels() {
-		if (!schemaContainerEl) {
-			schemaContainerEl = document.getElementById('schemaContainerId') as HTMLDivElement;
-		}
-		// const children = schemaContainerEl?.children as HTMLCollection;
-		closeDetails();
-		candidates.clear();
-		summaryOpen = false;
-		setButtonAvailability();
-		// buttonNotAllowed = candidateModels.length === 0;
-	}
-	let candidateModels = $state<string[]>([]);
-	let summaryOpen = $state(false);
-	let buttonNotAllowed = $derived(candidateModels.length === 0 && !summaryOpen);
 
-	const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g');
-	function fieldAttrsClass(field: Field) {
-		return nuiRegex.test(field.attrs as string) ? 'attr-id' : '';
-	}
-	function fieldAttrs(field: Field) {
-		return field.attrs ?? 'no attributes';
-	}
-	function labelAll() {
-		switch (newModels.size) {
-			case 0:
-			case 1:
-				return '';
-			case 2:
-				return 'Both';
-			default:
-				return 'All';
-		}
-	}
-	// let save: string[] = [];
-	// function toggleBuildingApp() {
-	// 	buildingApp = !buildingApp;
-	// 	if (buildingApp) {
-	// 		save = candidateModels;
-	// 		candidateModels = [];
-	// 	} else {
-	// 		candidateModels = [...save];
-	// 	}
-	// }
+	let buttonNotAllowed = $derived(Object.keys(selectedModels).length === 0);
 </script>
 
-<p>Is include Register Model Selected? {isSelected}</p>
+<!-- <p>Is include Register Model Selected? {isSelected}</p> -->
 <svelte:head>
 	<title>CRUD Support</title>
 </svelte:head>
-<!-- {#snippet candidateFields(model: Getter<Model>)}
-	{@const modex = model()}
-	<p>model {modex}</p>
-	<p>model {$state.snapshot(model.fields)}</p>
-	{#each model.fields as field (field.name)}
-		{#if field.isDataEntry}
-			<div class="cr-list-el" data-event-list="click mouseover mouseout" draggable="true">
-				<span style="pointer-events: none;">
-					{field.name}: {field.type}{field.isOptional ? '?' : ''}
-				</span>
-			</div>
-		{/if}
-	{/each}
-	<p id="candidateTooltipId" class="cr-remove-hint">click to remove</p>
-{/snippet} -->
-{#snippet summaryDetailsModels()}
-	{#each Object.entries(models) as [modelName, model] (modelName)}
-		<div style="position:relative;">
-			<input
-				type="text"
-				id="route{modelName}"
-				value={modelName.toLowerCase()}
-				style="position:absolute;top:0;left:4px;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
-			/>
-			<input
-				type="checkbox"
-				style="position:absolute;top:0;left:6rem;"
-				value={modelName}
-				bind:group={candidateModels}
-				class="model-checkboxes"
-			/>
-			<details class="model-details">
-				<summary class="cr-model-name">
-					{modelName}
-				</summary>
-				<!-- X-modelName to find element by modelName and use eh.setup on it
-to handle prisma model fields on mouse events
-				-->
-				<div class="X-{modelName} cr-fields-column" data-event-list="click mouseover mouseout">
-					{#each model.fields as field (field.name)}
-						{@const attrClass = fieldAttrsClass(field) as string}
-						<p>{field.name}</p>
-						<p>type:{field.type} <span class={attrClass}>{fieldAttrs(field)}</span></p>
-					{/each}
-				</div>
-				<div>
-					{#each model.attrs as attr (attr)}
-						<p class="cr-model-attr">{attr}</p>
-					{/each}
-				</div>
-			</details>
-		</div>
-	{/each}
-	<!-- <p id="ormModelTooltipId" class="cr-prisma-remove-hint">click, add to candidates</p> -->
-{/snippet}
 
 {#snippet appIncludes()}
 	<label for="Navbar" class="app-labels">
@@ -506,17 +117,6 @@ to handle prisma model fields on mouse events
 		<input type="checkbox" id="ThemeIcon" value="ThemeIcon" bind:group={appFeatures} />
 		Include dark/light/system theme icon</label
 	>
-	<ClickableLine
-		line="Click to include Login module to add Login Page"
-		callback={{ callback: setModel, arg: 'Login' }}
-		cssClass="clickable-line"
-	/>
-	<ClickableLine
-		line="Click to include Register module to add Register Page"
-		callback={{ callback: setModel, arg: 'Register' }}
-		bind:isSelected
-		cssClass="clickable-line"
-	/>
 
 	<div class="radio-check-groups">
 		<div class="authentication">
@@ -594,35 +194,10 @@ to handle prisma model fields on mouse events
 	{@render pageByPageMiddleColumn()}
 {/snippet}
 <div id="crudUIBlockId" class="cr-main-grid">
-	<div class="cr-grid-wrapper">
+	<div class="application-settings">
 		{@render pageByPageNote()}
 	</div>
-	<div id="rightColumnId" class="cr-right-column">
-		<div id="schemaContainerId">
-			{#if isLoading}
-				<div class="spinner-wrapper"><span class="spinner"></span><span>Loading models...</span></div>
-			{:else}
-				{@render summaryDetailsModels()}
-			{/if}
-			<div class="add-new-model">
-				<input type="text" bind:value={newModelName} placeholder="New model name" />
-				<button onclick={addNewModel}>add</button>
-				<button onclick={removeModel}>remove</button>
-			</div>
-			<p id="ormModelTooltipId" class="cr-prisma-remove-hint">click, add to candidates</p>
-		</div>
-	</div>
-	<p class="orm-models-caption">Route Names in Lowercase and ORM Models</p>
-	<p class="select-all" onclick={toggleCheckboxes} aria-hidden={true}>(select all)</p>
-</div>
-
-<div bind:this={rbTooltip} onchange={rbSelected} class="radio-tooltip" aria-hidden={true}>
-	{#each newModels as model (model)}
-		<label><input type="radio" name="group" value={model} />{model}</label>
-	{/each}
-	{#if newModels.size > 1}
-		<label><input type="radio" name="group" value="All" />{labelAll()}</label>
-	{/if}
+	<CRRBTooltip {models} bind:selectedModels></CRRBTooltip>
 </div>
 
 <style lang="scss">
@@ -636,20 +211,14 @@ to handle prisma model fields on mouse events
 		position: relative;
 		display: grid;
 		grid-template-columns: 30rem 30rem;
-		padding: 0.6rem 0 0 0.6rem;
+		// padding: 0.6rem 0 0 0.6rem;
 		column-gap: 1rem;
-		margin-top: 0.5rem;
-		width: 100vw;
-		height: 80vh;
+		margin: 0.5rem 0 0 1rem;
+		width: max-content;
+		height: auto;
 		align-items: start;
-		// border-bottom: 1px solid gray;
 	}
-
-	.cr-grid-wrapper {
-		// display: grid;
-		// grid-template-columns: 27rem 12rem;
-		// column-gap: 0.5rem;
-		// row-gap: 1rem;
+	.application-settings {
 		width: 30rem;
 		align-items: start;
 		height: 100%;
@@ -692,17 +261,6 @@ to handle prisma model fields on mouse events
 			color: var(--red-type) !important;
 		}
 	}
-	// .cr-middle-column {
-	// 	@include container($head: 'Data-Entry Fields', $head-color: navy);
-	// 	position: relative;
-	// 	border: 1px solid gray;
-	// 	border-radius: 5px;
-	// 	padding: 1rem 6px 0 6px;
-	// 	height: 76vh;
-	// 	width: 12rem;
-	// 	background-color: var(--panel-bg-color);
-	// 	/* overflow-y: auto;	 */ /* cuts container's header */
-	// }
 
 	:global(.cr-fields-list) {
 		display: grid;
@@ -863,13 +421,6 @@ to handle prisma model fields on mouse events
 		color: tomato;
 		font-size: 13px;
 	}
-	// :global(.cr-model-block) {
-	// 	// max-height: auto;
-	// 	// overflow-y: overlay;
-	// 	// .no-scrollbar::-webkit-scrollbar {
-	// 	// 	display: none; /* Chrome, Safari, and Opera */
-	// 	// }
-	// }
 	:global(.cr-model-name) {
 		color: var(--summary-color);
 		background-color: var(--summary-bg-color);
@@ -980,9 +531,7 @@ to handle prisma model fields on mouse events
 			transform: rotate(360deg);
 		}
 	}
-	.model-checkboxes {
-		color: navy;
-	}
+
 	.app-labels {
 		color: var(--checkbox-label-color);
 		margin: 3px 0 3px 1rem;
@@ -992,15 +541,6 @@ to handle prisma model fields on mouse events
 		}
 	}
 
-	details:last-of-type[open]::details-content {
-		width: 25.9rem;
-		background-color: #f0f0f0;
-		border-bottom-left-radius: 8px;
-		border-bottom-right-radius: 8px;
-	}
-	details:last-of-type[open] summary {
-		background-color: var(--summary-bg-color);
-	}
 	.authentication,
 	.authorization {
 		@include container(
@@ -1024,38 +564,5 @@ to handle prisma model fields on mouse events
 		grid-template-columns: 11rem 14rem;
 		column-gap: 0.5rem;
 		// justify-content: flex-start;
-	}
-	:global(.clickable-line) {
-		margin-left: 2.6rem;
-		font-size: 15px !important;
-	}
-	.add-new-model {
-		display: flex;
-		align-items: center;
-		width: max-content;
-		padding: 2px 0.5rem;
-		input {
-			width: 10rem;
-			padding-left: 0.5rem;
-		}
-		button {
-			width: 4rem;
-			height: 1.3rem;
-			// line-height: 0.4rem;
-		}
-		column-gap: 4px;
-	}
-	.radio-tooltip {
-		position: fixed;
-		top: -12px;
-		left: 0;
-		width: max-content;
-		padding: 2px 0.5rem 1px 4px;
-		border: 1px solid gray;
-		color: var(--candidate-color);
-		background-color: var(--candidate-bg-color);
-		outline: inline solid transparent;
-		cursor: pointer;
-		opacity: 0;
 	}
 </style>

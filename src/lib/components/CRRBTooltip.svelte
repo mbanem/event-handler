@@ -234,11 +234,11 @@
 					return;
 				}
 				if (det.open) {
-					console.log('add mouseover/mouseout');
+					console.log('remove mouseover/mouseout');
 					modelWrapperEl.removeEventListener('mouseover', showTooltip);
 					modelWrapperEl.removeEventListener('mouseout', showTooltip);
 				} else {
-					console.log('remove mouseover/mouseout');
+					console.log('add mouseover/mouseout');
 					modelWrapperEl.addEventListener('mouseover', showTooltip);
 					modelWrapperEl.addEventListener('mouseout', showTooltip);
 				}
@@ -430,7 +430,7 @@
 		position: relative;
 		width: 22rem;
 		height: 88vh;
-		border: 1px solid gray;
+		border: 1px solid red;
 		border-radius: 6px;
 		padding-top: 1rem;
 	}
