@@ -61,6 +61,32 @@
 		updateStreet(str);
 		console.log('after', user);
 	}, 500);
+
+	const routes = {
+		home: '/',
+		asmin: '/admin',
+		users: '/users',
+	} as const; // witout as const props are strings
+	type RouteKeys = keyof typeof routes;
+	type Route = (typeof routes)[RouteKeys];
+	const goToRoute = (route: Route) => {
+		console.log('goToRoute', route);
+	};
+
+	goToRoute('/users'); // allowed args are only '/','/admin', '/users'
+
+	// instead of enums
+	const Role = {
+		USER: 'USER',
+		ADMIN: 'ADMIN',
+		VISITOR: 'VISITOR',
+		MODERATOR: 'MODERATOR',
+	} as const;
+	type TRole = keyof typeof Role;
+	function warn(message: string, role: TRole) {
+		console.log(message, 'for', role);
+	}
+	warn('Turn engine off', Role.ADMIN);
 </script>
 
 <div class="main"></div>

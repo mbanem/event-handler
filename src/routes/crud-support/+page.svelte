@@ -89,11 +89,6 @@
 	// debugger;
 
 	const eh = createEventHandler();
-
-	function setButtonAvailability() {
-		return !isEmpty(selectedModels);
-	}
-
 	onMount(() => {
 		return () => {
 			eh.destroy();

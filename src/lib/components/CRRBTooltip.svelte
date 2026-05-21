@@ -27,14 +27,14 @@
 	type RouteName = string;
 	export type SelectedModels = Record<RouteName, Model>;
 	// Receive initial models from parent
-	let { models: initialModels = {}, selectedModels = $bindable() }: TProps = $props();
+	let { models: initialModels = {}, selectedModels = $bindable({}) }: TProps = $props();
 
 	// Make it deeply reactive + owned by this component
+	// Works only between client components not from server to client component (not server->browser)
 	let models = $state<Models>(structuredClone(initialModels)); // or just { ...initialModels } if shallow is enough
 
 	let isLoading = $state(true);
 	let tooltipBlockEl: HTMLDivElement;
-	let candidateModels = $state<string[]>([]);
 	let emptyModel: Model = { fields: [], attrs: [] };
 	let includeAll = 'All'; // last word for models in CRRBTooltip -- here is 'Both'
 	let newModelName = $state('');
@@ -42,7 +42,6 @@
 	let extraModels = new SvelteSet<string>();
 	let notDataEntryEl: HTMLDivElement;
 	let modelWrapperEl: HTMLDivElement;
-	let addExtraModelEl: HTMLDivElement;
 	let hoveredEl: HTMLElement | null = null;
 
 	let det: HTMLDetailsElement;
@@ -54,27 +53,34 @@
 	let message = $state(defaultMessage);
 	let msgClass = $state('navy');
 	let busy = false;
-	let timer: ReturnType<typeof setTimeout>;
+	let timer: ReturnType<typeof setTimeout> | null = null;
 	const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g');
 	let x = $state(100);
 	let y = $state(100);
 	export const exportModules = () => {
+		console.log('export modules');
 		selectedModels = {};
 		// get only selected models based on the checkbox checked state
 		for (const chkbox of modelWrapperEl.querySelectorAll('input[type="checkbox"]:checked')) {
 			try {
-				const routeName = ((chkbox as HTMLInputElement).previousElementSibling as HTMLInputElement).value;
+				const routeName = ((chkbox as HTMLInputElement).previousElementSibling as HTMLInputElement).value as string;
 				const modelName = ((chkbox as HTMLInputElement).nextElementSibling as HTMLDetailsElement).id.slice(4);
 				selectedModels[routeName] = emptyModel;
-				selectedModels[routeName] = models[modelName];
+				selectedModels[routeName] = models[modelName]!;
 			} catch (err: unknown) {
 				const msg = err instanceof Error ? err.message : String(err);
 				console.log(msg);
 			}
 		}
-		console.clear();
-		console.log($state.snapshot(selectedModels));
+		// console.clear();
+		// console.log($state.snapshot(selectedModels));
 	};
+	function killTimeout() {
+		if (timer) {
+			clearTimeout(timer);
+			timer = null;
+		}
+	}
 	function fieldAttrsClass(field: Field) {
 		return nuiRegex.test(field.attrs as string) ? 'attr-id' : '';
 	}
@@ -87,8 +93,8 @@
 		el.innerText = newState ? '(clear all)' : '(select all)';
 
 		(document.querySelectorAll('.model-checkboxes') as unknown as Array<HTMLInputElement>).forEach(async (chkbox) => {
-			chkbox.click();
-			await sleep(100);
+			chkbox.checked = newState;
+			await tick();
 		});
 	}
 
@@ -103,37 +109,44 @@
 			} as Field;
 		}
 
-		return models[modelName].fields.find((field) => field.name === fieldName) as Field;
+		return models[modelName]?.fields.find((field) => field.name === fieldName) as Field;
 	}
 
 	// called from tooltipBlockEl tooltip when radio button fires change event
 	function addFieldToModel(e: Event) {
-		e.preventDefault();
-		clearTimeout(timer);
-		if (!hoveredEl) {
-			return;
-		}
-		const fieldName = hoveredEl?.innerText as string;
-		const mName = (tooltipBlockEl.querySelector(`input[type=radio]:checked`) as HTMLInputElement).value as string;
-		if (!(mName === includeAll || extraModels.has(mName))) {
-			return;
-		}
-		const field = getUIField(fieldName);
-		if (mName === includeAll) {
-			for (const m of extraModels) {
-				if (models[m] && !models[m].fields.includes(field)) {
-					models[m].fields.push(field);
+		try {
+			e.preventDefault();
+			killTimeout();
+			if (!hoveredEl) {
+				return;
+			}
+			const fieldName = hoveredEl?.innerText as string;
+			const mName = (tooltipBlockEl.querySelector(`input[type=radio]:checked`) as HTMLInputElement).value as string;
+			if (!(mName === includeAll || extraModels.has(mName))) {
+				return;
+			}
+			const field = getUIField(fieldName);
+			if (field) {
+				if (mName === includeAll) {
+					for (const m of extraModels) {
+						if (models[m] && !models[m].fields.includes(field)) {
+							models[m].fields.push(field);
+						}
+					}
+				} else {
+					if (!models[mName]?.fields.includes(field)) {
+						models[mName]?.fields.push(field);
+					}
 				}
 			}
-		} else {
-			if (!models[mName].fields.includes(field)) {
-				models[mName].fields.push(field);
-			}
+			// after adding the field to a model clear selected
+			// radio button and hide the radio button tooltip
+			(e.target as HTMLInputElement).checked = false;
+			tooltipBlockEl.style.opacity = '0';
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : String(err);
+			console.log('addFieldToModel', msg);
 		}
-		// after adding the field to a model clear selected
-		// radio button and hide the radio button tooltip
-		(e.target as HTMLInputElement).checked = false;
-		tooltipBlockEl.style.opacity = '0';
 	}
 
 	function outOfBound(e: MouseEvent, el: HTMLElement) {
@@ -141,7 +154,7 @@
 		return e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
 	}
 	function showNoDataEntry(x: number, y: number) {
-		clearTimeout(timer);
+		killTimeout();
 		hoveredEl = null;
 		tooltipBlockEl.style.opacity = '0';
 		Object.assign(notDataEntryEl.style, {
@@ -155,26 +168,30 @@
 	}
 	async function showTooltip(e: MouseEvent) {
 		e.preventDefault();
-		clearTimeout(timer);
+		// console.log('showTooltip entry');
+		killTimeout();
+		timer = null;
 		if (outOfBound(e, modelWrapperEl)) {
 			if (!extraModels.size) {
 				return;
 			}
-			console.log('out of bound');
+			// console.log('out of bound');
 			tooltipBlockEl.style.opacity = '0';
 		}
 
 		if ((e.target as HTMLElement).tagName !== 'SECTION' && outOfBound(e, tooltipBlockEl)) {
 			tooltipBlockEl.style.opacity = '0';
+			// console.log('not section out of RB');
 			return;
 		}
 		if (e.type === 'mouseover') {
 			if (extraModels.size === 0) {
+				// console.log('no extra models');
 				return;
 			}
 			const de = (e.target as HTMLElement).dataset.entry;
 			const { x, y } = (e.target as HTMLElement).getBoundingClientRect();
-			await tick();
+			// await tick();
 			if (de === 'false') {
 				showNoDataEntry(x, y);
 				return;
@@ -185,7 +202,7 @@
 				busy = false;
 			}, 500);
 			busy = true;
-			await tick();
+			// await tick();
 			Object.assign(tooltipBlockEl.style, {
 				position: 'fixed',
 				top: `${y - 8}px`,
@@ -197,22 +214,28 @@
 			});
 		} else {
 			if (busy) {
+				// console.log('busy');
 				return;
 			}
+			// console.log('both tooltip opacity -> 0');
 			tooltipBlockEl.style.opacity = '0';
 			notDataEntryEl.style.opacity = '0';
 		}
 	}
-
+	let detOpen = $state(false);
 	async function toggleSummary(e: MouseEvent) {
-		// console.log('toggleSummary', (e.target as HTMLElement).tagName, (e.target as HTMLElement).type === 'checkbox');
+		console.log('toggleSummary', (e.target as HTMLElement).tagName);
 		const el = e.target as HTMLElement;
 		switch (el.tagName) {
 			case 'SUMMARY':
 				det = el.parentElement as HTMLDetailsElement;
+				detOpen = det.open;
 				modelName = det.innerText?.match(/^\S+/)?.[0] as string;
 				for (const item of modelWrapperEl.getElementsByTagName('DETAILS')) {
+					// await tick();
+					// console.log(item.firstChild !== el);
 					if (item.firstChild !== el) {
+						// console.log('found to expand');
 						Object.assign((item.parentElement as HTMLElement).style, {
 							opacity: `${isSummaryOpen ? '1' : '0'}`,
 							position: `${isSummaryOpen ? 'relative' : 'absolute'}`,
@@ -221,35 +244,32 @@
 						});
 					}
 				}
-				if (isSummaryOpen) {
-					// addExtraModelEl.classList.remove('hidden');
-					addExtraModelEl.style.opacity = '1';
-				} else {
-					// addExtraModelEl.classList.add('hidden');
-					addExtraModelEl.style.opacity = '0';
-				}
 				isSummaryOpen = !isSummaryOpen;
 				// hovering is necessary only when newModels is not empty
 				if (!extraModels.size) {
 					return;
 				}
 				if (det.open) {
-					console.log('remove mouseover/mouseout');
-					modelWrapperEl.removeEventListener('mouseover', showTooltip);
-					modelWrapperEl.removeEventListener('mouseout', showTooltip);
+					if (modelWrapperEl.onmouseover) {
+						modelWrapperEl.removeEventListener('mouseover', showTooltip);
+						modelWrapperEl.removeEventListener('mouseout', showTooltip);
+					}
 				} else {
-					console.log('add mouseover/mouseout');
-					modelWrapperEl.addEventListener('mouseover', showTooltip);
-					modelWrapperEl.addEventListener('mouseout', showTooltip);
+					if (!modelWrapperEl.onmouseover) {
+						modelWrapperEl.addEventListener('mouseover', showTooltip);
+						modelWrapperEl.addEventListener('mouseout', showTooltip);
+					}
 				}
+				// await tick();
 				return;
 			case 'INPUT':
+				console.log('input', (el as HTMLInputElement).type);
 				if ((el as HTMLInputElement).type && (el as HTMLInputElement).type === 'checkbox') {
+					console.log('checkbox changed');
 					exportModules();
 				}
+				// await tick();
 				break;
-			case 'BUTTON':
-			case 'SECTION':
 			default:
 				break;
 		}
@@ -257,7 +277,7 @@
 	}
 
 	function hideTooltipBlock(e: MouseEvent) {
-		clearTimeout(timer);
+		killTimeout();
 		// tooltipBlockEl.style.opacity = '0';
 	}
 
@@ -335,7 +355,10 @@
 	{#each extraModels as model (model)}
 		<label><input type="radio" name={model} value={model} />{model}</label>
 	{/each}
-	{#if extraModels.size > 1}
+	{#if extraModels.size > 2}
+		<label><input type="radio" name="All" value="All" />Both</label>
+	{/if}
+	{#if extraModels.size === 2}
 		<label><input type="radio" name="All" value="All" />All</label>
 	{/if}
 {/snippet}
@@ -345,13 +368,12 @@
 			type="text"
 			id="route{modelName}"
 			value={modelName.toLowerCase()}
-			style="position:absolute;top:0;left:4px;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
+			style="position:absolute;top:0;left:4px;margin-right:0;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
 		/>
 		<input
 			type="checkbox"
 			style="position:absolute;top:0;left:6rem;"
 			value={modelName.toLowerCase()}
-			bind:group={candidateModels}
 			class="model-checkboxes"
 		/>
 		<details data-det class="model-details" id="det-{modelName}">
@@ -384,19 +406,20 @@
 	<div class="schema-container" onclick={toggleSummary} aria-hidden={true}>
 		<p class="orm-models-caption">Route folder name for ORM Model</p>
 		<p class="select-all" onclick={toggleCheckboxes} aria-hidden={true}>(select all)</p>
-		<div bind:this={modelWrapperEl} style="padding:0;margin:0;overflow-y:auto;">
+		<div bind:this={modelWrapperEl} class="model-wrapper">
 			{#if isLoading}
 				<div class="spinner-wrapper"><span class="spinner"></span><span>Loading models...</span></div>
 			{:else}
 				{@render summaryDetailsModels()}
-				<div bind:this={addExtraModelEl} class="add-extra-model">
-					<span class={msgClass}>{message}</span>
-					<input type="text" bind:value={newModelName} onkeyup={addNewModel} placeholder="Add extra model" />
-					<button onclick={addNewModel}>add</button><button onclick={removeModel}>remove</button>
-				</div>
 			{/if}
 		</div>
 	</div>
+	<div class="add-extra-model">
+		<span class={msgClass}>{message}</span>
+		<input type="text" bind:value={newModelName} onkeyup={addNewModel} placeholder="Add extra model" />
+		<button onclick={addNewModel}>add</button><button onclick={removeModel}>remove</button>
+	</div>
+	<p>det state {detOpen}</p>
 </div>
 
 <style lang="scss">
@@ -429,10 +452,10 @@
 	.schema-container {
 		position: relative;
 		width: 22rem;
-		height: 88vh;
-		border: 1px solid red;
+		height: 77vh;
+		border: 1px solid gray;
 		border-radius: 6px;
-		padding-top: 1rem;
+		padding: 1rem 0 0 3px;
 	}
 	.spinner-wrapper {
 		display: grid;
@@ -454,14 +477,22 @@
 			}
 		}
 	}
+	.model-wrapper {
+		padding: 0;
+		margin: 0;
+		height: 30.5rem;
+		// border: 1px solid red;
+		z-index: 15;
+		overflow-y: auto;
+	}
 	.add-extra-model {
-		width: 97%;
+		width: 100%;
 		color: var(--candidate-color);
 		background-color: var(--candidate-bg-color);
-		margin: 6px 0 0 4px;
+		margin: 6px 0 0 0;
 		opacity: 1;
 		input {
-			width: 64% !important;
+			width: 65.5% !important;
 			font-size: 14px;
 			color: var(--candidate-color);
 			background-color: var(--candidate-bg-color);
@@ -499,7 +530,7 @@
 		position: absolute;
 		top: -1.6rem;
 		left: 1rem;
-		z-index: 15;
+		z-index: 10;
 		padding: 0 5px;
 		color: var(--candidate-color);
 		background-color: var(--panel-bg-color);
@@ -550,7 +581,7 @@
 		font-weight: 500;
 		color: var(--candidate-color);
 		background-color: var(--candidate-bg-color);
-		overflow-y: auto;
+		// overflow-y: auto;
 	}
 
 	.cr-fields-column p {
@@ -591,6 +622,9 @@
 	}
 	.model-checkboxes {
 		color: navy;
+		padding: 0 1rem 0 0;
+		margin-left: 0;
+		cursor: default !important;
 	}
 	details {
 		width: 22rem;
@@ -609,7 +643,7 @@
 		position: fixed;
 		top: 30rem;
 		left: 30rem;
-		z-index: 9999;
+		z-index: 10;
 		display: flex;
 		column-gap: 2px;
 		pointer-events: auto;
@@ -632,7 +666,7 @@
 		padding: 2px 0.5rem;
 		border: 1px solid gray;
 		border-radius: 5px;
-		z-index: 100;
+		z-index: 10;
 		opacity: 0;
 	}
 	.hidden {
