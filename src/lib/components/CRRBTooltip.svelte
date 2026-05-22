@@ -5,7 +5,7 @@
 <script lang="ts">
 	import { tick, onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { sleep, capitalize } from '$lib/utils';
+	import { capitalize } from '$lib/utils';
 	type Model = {
 		fields: Field[];
 		attrs?: string[];
@@ -52,13 +52,12 @@
 	let modelName = '';
 	let message = $state(defaultMessage);
 	let msgClass = $state('navy');
-	let busy = false;
+	let busy = $state(false);
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g');
 	let x = $state(100);
 	let y = $state(100);
 	export const exportModules = () => {
-		console.log('export modules');
 		selectedModels = {};
 		// get only selected models based on the checkbox checked state
 		for (const chkbox of modelWrapperEl.querySelectorAll('input[type="checkbox"]:checked')) {
@@ -72,8 +71,6 @@
 				console.log(msg);
 			}
 		}
-		// console.clear();
-		// console.log($state.snapshot(selectedModels));
 	};
 	function killTimeout() {
 		if (timer) {
@@ -168,30 +165,25 @@
 	}
 	async function showTooltip(e: MouseEvent) {
 		e.preventDefault();
-		// console.log('showTooltip entry');
 		killTimeout();
 		timer = null;
 		if (outOfBound(e, modelWrapperEl)) {
 			if (!extraModels.size) {
 				return;
 			}
-			// console.log('out of bound');
 			tooltipBlockEl.style.opacity = '0';
 		}
 
 		if ((e.target as HTMLElement).tagName !== 'SECTION' && outOfBound(e, tooltipBlockEl)) {
 			tooltipBlockEl.style.opacity = '0';
-			// console.log('not section out of RB');
 			return;
 		}
 		if (e.type === 'mouseover') {
 			if (extraModels.size === 0) {
-				// console.log('no extra models');
 				return;
 			}
 			const de = (e.target as HTMLElement).dataset.entry;
 			const { x, y } = (e.target as HTMLElement).getBoundingClientRect();
-			// await tick();
 			if (de === 'false') {
 				showNoDataEntry(x, y);
 				return;
@@ -200,9 +192,8 @@
 			hoveredEl = e.target as HTMLElement;
 			timer = setTimeout(() => {
 				busy = false;
-			}, 500);
+			}, 100);
 			busy = true;
-			// await tick();
 			Object.assign(tooltipBlockEl.style, {
 				position: 'fixed',
 				top: `${y - 8}px`,
@@ -214,28 +205,28 @@
 			});
 		} else {
 			if (busy) {
-				// console.log('busy');
 				return;
 			}
-			// console.log('both tooltip opacity -> 0');
 			tooltipBlockEl.style.opacity = '0';
 			notDataEntryEl.style.opacity = '0';
 		}
 	}
 	let detOpen = $state(false);
 	async function toggleSummary(e: MouseEvent) {
-		console.log('toggleSummary', (e.target as HTMLElement).tagName);
+		// console.log('toggleSummary', (e.target as HTMLElement).tagName);
 		const el = e.target as HTMLElement;
 		switch (el.tagName) {
 			case 'SUMMARY':
-				det = el.parentElement as HTMLDetailsElement;
+				// det = el.parentElement as HTMLDetailsElement;
+				det = el.closest('details') as HTMLDetailsElement;
+				if (!det || det.tagName !== 'DETAILS') {
+					return;
+				}
+				tooltipBlockEl.style.opacity = '0';
 				detOpen = det.open;
 				modelName = det.innerText?.match(/^\S+/)?.[0] as string;
 				for (const item of modelWrapperEl.getElementsByTagName('DETAILS')) {
-					// await tick();
-					// console.log(item.firstChild !== el);
 					if (item.firstChild !== el) {
-						// console.log('found to expand');
 						Object.assign((item.parentElement as HTMLElement).style, {
 							opacity: `${isSummaryOpen ? '1' : '0'}`,
 							position: `${isSummaryOpen ? 'relative' : 'absolute'}`,
@@ -260,15 +251,11 @@
 						modelWrapperEl.addEventListener('mouseout', showTooltip);
 					}
 				}
-				// await tick();
 				return;
 			case 'INPUT':
-				console.log('input', (el as HTMLInputElement).type);
 				if ((el as HTMLInputElement).type && (el as HTMLInputElement).type === 'checkbox') {
-					console.log('checkbox changed');
 					exportModules();
 				}
-				// await tick();
 				break;
 			default:
 				break;
@@ -563,9 +550,6 @@
 		padding-left: 8rem;
 		height: 1.6rem;
 		cursor: pointer;
-		.checkbox-model {
-			display: none;
-		}
 	}
 
 	.cr-fields-column {
@@ -639,7 +623,7 @@
 		background-color: var(--summary-bg-color);
 	}
 	.radio-tooltip {
-		opacity: 1;
+		opacity: 0;
 		position: fixed;
 		top: 30rem;
 		left: 30rem;
