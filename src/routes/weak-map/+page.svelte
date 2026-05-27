@@ -71,7 +71,7 @@
 
 	let options: Record<string, typeof eventTypes> = $state({
 		'First Container': eventTypes,
-		'Second Container': eventTypes
+		'Second Container': eventTypes,
 	});
 
 	function optGroup(ix?: number) {
@@ -147,7 +147,6 @@
 	// }
 	// attach event handlers
 	onMount(() => {
-		
 		eventListEl = document.getElementById('eventListId') as HTMLDivElement;
 		eventListEl.style.color = 'navy';
 		// selectAndSetup('.first-container', {
@@ -164,7 +163,7 @@
 		eh.setup('.second-container', {
 			click: onClickA,
 			mouseover: onMouseOverA,
-			mouseout: onMouseOutA
+			mouseout: onMouseOutA,
 		});
 
 		selectEl = document.getElementById('selectEvent') as HTMLSelectElement;
@@ -176,6 +175,7 @@
 		};
 	});
 </script>
+
 <div class="dark"></div>
 <div class="light"></div>
 
@@ -213,9 +213,7 @@
 <div class="second-container">
 	<div data-event-list="click">Paragraph One -- click</div>
 	<div data-event-list="mouseover">Paragraph Two -- mouseover</div>
-	<div data-event-list="click mouseover mouseout">
-		Paragraph Three -- click, mouseover, mouseout
-	</div>
+	<div data-event-list="click mouseover mouseout">Paragraph Three -- click, mouseover, mouseout</div>
 	<div data-event-list="mouseout">Paragraph Four -- mouseout</div>
 </div>
 
@@ -320,13 +318,14 @@
 			cursor: pointer;
 		}
 	}
-	.light, .dark{
-		background-color:#ADD8E6;
-		width:6rem;
-		height:2rem;
-		margin-left:40vw;
+	.light,
+	.dark {
+		background-color: #add8e6;
+		width: 6rem;
+		height: 2rem;
+		margin-left: 40vw;
 	}
-	.light{
-		background-color: shade(#ADD8E6, 60%);
+	.light {
+		background-color: shade(#add8e6, 60%);
 	}
 </style>

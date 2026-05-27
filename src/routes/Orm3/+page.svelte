@@ -4,12 +4,11 @@
 	import { sleep, handleTryCatch, createEventHandler } from '$lib/utils';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { Field, Models, FieldStrips } from './parse-prisma-schema';
-	import { isDark_} from '../+layout.svelte'
+	import { isDark_ } from '../+layout.svelte';
 
-    
-  let uiModels:Models = $state({})
-  let nuiModels:Models = $state({})
-  let fieldStrips:FieldStrips = $state({})
+	let uiModels: Models = $state({});
+	let nuiModels: Models = $state({});
+	let fieldStrips: FieldStrips = $state({});
 
 	let modelName = '';
 
@@ -70,14 +69,14 @@
 				`;
 		for (const field of model.fields) {
 			const { name, type, attrs } = field;
-			
+
 			if (
 				attrs?.includes('@id') ||
 				attrs?.includes('@default') ||
 				attrs?.includes('@updatedAt') ||
 				attrs?.includes('@unique')
 			) {
-				if(attrs.includes('@id')){
+				if (attrs.includes('@id')) {
 					prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span class='attr-id'>${attrs ?? 'na'}</span></p>`;
 				}
 			} else {
@@ -145,7 +144,7 @@
 		const [, name, type] = value.match(/([^:]+):\s*(.+)?/) as string[];
 		const formatValid = isFieldFormatValid(value);
 		const inFieldStrips = isInFieldStrips(value);
-		const inListEls = isInListEls({ name, type, isArray:value.includes('[]'), isOptional:value.includes('?') });
+		const inListEls = isInListEls({ name, type, isArray: value.includes('[]'), isOptional: value.includes('?') });
 
 		if (inListEls) {
 			msg = 'Already selected';
@@ -158,14 +157,12 @@
 		}
 
 		const tf =
-			Object.values(uiModels[modelName].fields).find(
-				(el) => el.name === value.replace(/:.+$/, '')
-			) !== undefined;
+			Object.values(uiModels[modelName].fields).find((el) => el.name === value.replace(/:.+$/, '')) !== undefined;
 
 		if (tf) {
 			return true;
 		}
-		setLabelCaption( msg, 2000, 'field');
+		setLabelCaption(msg, 2000, 'field');
 	}
 	/**
 	 * must have fieldName: valid type
@@ -428,7 +425,7 @@
 					eh.setup(fieldsListEl, {
 						click: onClick,
 						mouseover: onMouseOver,
-						mouseout: onMouseOut
+						mouseout: onMouseOut,
 					});
 					// drag-drop to move fieldNames up and down the fields list
 					eh.setup(fieldsListEl);
@@ -488,33 +485,31 @@
 		}, 400);
 	}
 	let buttonNotAllowed = $state<boolean>(true);
-  function postMsg(){
-      window.postMessage('SOME DATA HERE')
-    }
+	function postMsg() {
+		window.postMessage('SOME DATA HERE');
+	}
 </script>
 
 <svelte:head>
 	<title>CRUD Support</title>
-  <script>
-    window.addEventListener('message', (event) => {
-      const msg = event.data
-      if (msg.command === 'sentModelsAndFieldStrips'){
-        const {uiModels,nuiModels, fieldStrips } = JSON.parse(msg.payload)
-      }
-    })
-  </script>
+	<script>
+		window.addEventListener('message', (event) => {
+			const msg = event.data;
+			if (msg.command === 'sentModelsAndFieldStrips') {
+				const { uiModels, nuiModels, fieldStrips } = JSON.parse(msg.payload);
+			}
+		});
+	</script>
 </svelte:head>
 <div id="crudUIBlockId" class="cr-main-grid">
 	<div class="cr-grid-wrapper">
 		<cr-pre class="cr-span-two">
-			To create a UI Form for CRUD operations against the underlying ORM fill out the <i
-				>Candidate Fields</i
-			>
-			by entering field names in the <i>Field Name and Type</i> input box with its datatype, e.g.
-			firstName: string, and cr-pressing the Enter key or expand a table from the
-			<i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating fields
-			usually colored in pink. The UI Form +page.svelte with accompanying +page.server.ts will be created
-			in the route specified in the Route Name input box.
+			To create a UI Form for CRUD operations against the underlying ORM fill out the <i>Candidate Fields</i>
+			by entering field names in the <i>Field Name and Type</i> input box with its datatype, e.g. firstName: string, and
+			cr-pressing the Enter key or expand a table from the
+			<i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating fields usually colored in
+			pink. The UI Form +page.svelte with accompanying +page.server.ts will be created in the route specified in the Route
+			Name input box.
 		</cr-pre>
 
 		<div class="cr-left-column">
@@ -522,11 +517,7 @@
 			<input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
 			<label for="fieldNameId"> Field Name and Type </label>
 			<input id="fieldNameId" type="text" placeholder="fieldName: type" />
-			<div
-				id="createBtnId"
-				style="font-size: 14px !important;cursor:pointer;"
-				class:notallowed={buttonNotAllowed}
-			>
+			<div id="createBtnId" style="font-size: 14px !important;cursor:pointer;" class:notallowed={buttonNotAllowed}>
 				Create CRUD Support
 			</div>
 			<div class="cr-crud-support-done cr-hidden"></div>
@@ -566,6 +557,7 @@
 		<div id="schemaContainerId"></div>
 	</div>
 </div>
+
 <style lang="scss">
 	.cr-main-grid {
 		display: grid;
@@ -676,7 +668,6 @@
 		color: var(--pre-color);
 	}
 
-
 	#schemaContainerId {
 		height: 40rem;
 		overflow-y: auto;
@@ -768,8 +759,8 @@
 		font-family: Georgia, 'Times New Roman', Times, serif;
 		font-size: 15px !important;
 		font-weight: 500 !important;
-		:global(span){
-			color:var(--tomato-violet);/*OK*/
+		:global(span) {
+			color: var(--tomato-violet); /*OK*/
 		}
 	}
 
@@ -790,7 +781,7 @@
 	:global(.cr-fields-column p:nth-child(even)) {
 		font-weight: 400 !important;
 		font-size: 12px !important; /* prisma attrs column */
-		color:var(--candidate-color);
+		color: var(--candidate-color);
 	}
 	#createBtnId {
 		outline: none;
@@ -808,10 +799,10 @@
 		opacity: 0.3;
 		cursor: not-allowed;
 	}
-	:global(.pink-tomato){
-		color: var(--pink=-tomato)
+	:global(.pink-tomato) {
+		color: var(--pink=-tomato);
 	}
-	:global(.attr-id){
-		color:var(--attr-id)
+	:global(.attr-id) {
+		color: var(--attr-id);
 	}
 </style>

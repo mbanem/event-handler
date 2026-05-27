@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {globalEH} from '../+layout.svelte'
+	import { globalEH } from '../+layout.svelte';
 	// import { enableDragReorder } from './dragdrop';
 	// import { createEventHandler } from '$lib/utils';
 	// import * as utils from '$lib/utils';
@@ -15,14 +15,14 @@
 		BB: 'mouseover',
 		CC: 'click',
 		DD: 'click mouseout',
-		EE: 'mouseover mouseout click'
+		EE: 'mouseover mouseout click',
 	};
 	let rightEventList: Record<string, TEventsList> = {
 		One: 'click',
 		Two: 'mouseover',
 		Three: 'click',
 		Four: 'click mouseout',
-		Five: 'mouseover mouseout click'
+		Five: 'mouseover mouseout click',
 	};
 	const scroll = (el: HTMLDivElement) => {
 		const els = el.children;
@@ -56,8 +56,7 @@
 
 		const column = Number(el.parentElement?.dataset.column);
 		const color = colors[column];
-		let header = ([...Object.entries((grid as HTMLElement).children)][column][1] as HTMLElement)
-			.innerText;
+		let header = ([...Object.entries((grid as HTMLElement).children)][column][1] as HTMLElement).innerText;
 		header = header
 			.replace(/(no)/, `<span style='color:${color};'>$1</span>`)
 			.replace(/(all)/, `<span style='color:${color};'>$1</span>`);
@@ -87,16 +86,13 @@
 	function onDrop(e: MouseEvent) {
 		toggleColor(e);
 	}
-	let handlers=''	// 
-	function makeHandlerList(el:HTMLElement | Node){
-
-	}
+	let handlers = ''; //
+	function makeHandlerList(el: HTMLElement | Node) {}
 
 	onMount(() => {
-		
-		document.querySelectorAll<HTMLElement>('[data-event-handler]').forEach(makeHandlerList)
-    // for (const pair of pairs) {
-    //   const [eventName, handlerName] = pair.split(':').map(s => s.trim())
+		document.querySelectorAll<HTMLElement>('[data-event-handler]').forEach(makeHandlerList);
+		// for (const pair of pairs) {
+		//   const [eventName, handlerName] = pair.split(':').map(s => s.trim())
 		// const draggables = document.querySelectorAll<HTMLElement>('[class~="draggable"]') as NodeListOf<HTMLElement>
 		// Object.entries(draggables).forEach(([s, el]) =>{console.log(s,el.classList)})
 		// const container = utils.resolveElement('.draggable-one') as HTMLElement;
@@ -125,7 +121,7 @@
 		lastName: 'string',
 		email: 'string',
 		role: 'Role',
-		updatedAt: 'Date'
+		updatedAt: 'Date',
 	};
 	const forthColumn: Record<string, string> = {
 		ONE: 'string',
@@ -133,14 +129,15 @@
 		THREE: 'string',
 		FOUR: 'string',
 		FIVE: 'Role',
-		SIX: 'Date'
+		SIX: 'Date',
 	};
 </script>
+
 <!-- 🔥Ctrl+Shipt+U1F525 -->
 <div class="grid-wrapper">
 	<div>Drag Drop First 🔥</div>
 	<div>Wrapper no mouseout 🔥</div>
-	<div>Wrapper all mouse events </div>
+	<div>Wrapper all mouse events</div>
 	<div>Drag Drop Last 🔥</div>
 
 	<div class="draggable-one" data-column="0">
@@ -162,7 +159,11 @@
 			<div data-event-list={list}>{title} &nbsp; on: {list}</div>
 		{/each}
 	</div>
-	<div class="dd-column" data-column="3" data-event-handler="dragstart:handleDragStart, dragover:handleDragOver, drop:handleDrop, dragend:handleDragEnd">
+	<div
+		class="dd-column"
+		data-column="3"
+		data-event-handler="dragstart:handleDragStart, dragover:handleDragOver, drop:handleDrop, dragend:handleDragEnd"
+	>
 		{#each Object.entries(forthColumn) as [title, list] (title)}
 			<div draggable="true">{title} {list}</div>
 		{/each}
@@ -172,6 +173,7 @@
 		<div class="report-clicks"></div>
 	</div>
 </div>
+
 <style lang="scss">
 	.grid-wrapper {
 		display: grid;

@@ -1,0 +1,1 @@
+{"version":3,"file":"partsGenerator.js","sourceRoot":"","sources":["../src/partsGenerator.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,sBAAsB,EAAE,MAAM,qBAAqB,CAAA;AAC5D,MAAM,UAAU,aAAa,CAC3B,OAAgC,EAChC,KAA0B,EAC1B,KAAa,EACb,OAAgB;IAEhB,sBAAsB,CAAC,OAAO,EAAE,KAAK,CAAC,IAAI,EAAE,OAAO,CAAC,UAAwB,CAAC,CAAA;AAC/E,CAAC"}

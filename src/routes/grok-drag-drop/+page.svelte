@@ -1,21 +1,20 @@
-
 <script lang="ts">
-  import { onMount } from 'svelte';
-	import {globalEH, toggleColorHandler} from '../+layout.svelte'
-	type EType = MouseEvent | DragEvent | Event | DragEvent
+	import { onMount } from 'svelte';
+	import { globalEH, toggleColorHandler } from '../+layout.svelte';
+	type EType = MouseEvent | DragEvent | Event | DragEvent;
 	// const globalEH = createGlobalEventHandler();
-  // import { createGlobalEventHandler } from '$lib/eventHandlers';
+	// import { createGlobalEventHandler } from '$lib/eventHandlers';
 	// import { createGlobalEventHandler } from '../grok-event-handler';
 
-  // const globalEH = createGlobalEventHandler();   // or import the same instance if you make it singleton
-  // ... your other handlers
-const forthColumn: Record<string, string> = {
+	// const globalEH = createGlobalEventHandler();   // or import the same instance if you make it singleton
+	// ... your other handlers
+	const forthColumn: Record<string, string> = {
 		ONE: 'string',
 		TWO: 'string',
 		THREE: 'string',
 		FOUR: 'string',
 		FIVE: 'Role',
-		SIX: 'Date'
+		SIX: 'Date',
 	};
 	function clickHandler(e: EType) {
 		toggleColorHandler(e);
@@ -29,38 +28,48 @@ const forthColumn: Record<string, string> = {
 	function mouseleaveHandler(e: EType) {
 		toggleColorHandler(e);
 	}
-function mouseoutHandler(e: EType) {
+	function mouseoutHandler(e: EType) {
 		toggleColorHandler(e);
 	}
 	function dropHandler(e: EType) {
 		toggleColorHandler(e);
 	}
 	// let draggedEl: HTMLElement | null
-	function dragStartHandler(e:EType){
-		console.log('handleDragStart')
+	function dragStartHandler(e: EType) {
+		console.log('handleDragStart');
 	}
-	function dragOverHandler(e:EType){
-		console.log('handleDragOver')
+	function dragOverHandler(e: EType) {
+		console.log('handleDragOver');
 	}
 
-	const handlersArr:Array<(e: EType) => void> = [ clickHandler,dropHandler,dragOverHandler,dragStartHandler,dropHandler,mouseoutHandler,toggleColorHandler, clickHandler, mouseoverHandler, mouseenterHandler, mouseleaveHandler];
+	const handlersArr: Array<(e: EType) => void> = [
+		clickHandler,
+		dropHandler,
+		dragOverHandler,
+		dragStartHandler,
+		dropHandler,
+		mouseoutHandler,
+		toggleColorHandler,
+		clickHandler,
+		mouseoverHandler,
+		mouseenterHandler,
+		mouseleaveHandler,
+	];
 
-  onMount(() => {
-		globalEH.registerHandlers(handlersArr)
+	onMount(() => {
+		globalEH.registerHandlers(handlersArr);
 		globalEH.setup(); // optional, only if you want to use the built-in data-event-handler parsing
-  });
-
+	});
 </script>
 
 <!-- Example markup -->
-<div data-event-handler="click:clickHandler, mouseover:mouseoverHandler">
-  Click or hover me
-</div>
-<br/>
-<div data-event-handler="mouseenter:mouseenterHandler, mouseleave:mouseleaveHandler">
-  mouse enter mouse leave
-</div>
-<div  data-event-handler="dragstart:dragStartHandler, dragover:dragOverHandler, drop:dropHandler, dragend:dragEndHandler" data-column="3">
+<div data-event-handler="click:clickHandler, mouseover:mouseoverHandler">Click or hover me</div>
+<br />
+<div data-event-handler="mouseenter:mouseenterHandler, mouseleave:mouseleaveHandler">mouse enter mouse leave</div>
+<div
+	data-event-handler="dragstart:dragStartHandler, dragover:dragOverHandler, drop:dropHandler, dragend:dragEndHandler"
+	data-column="3"
+>
 	{#each Object.entries(forthColumn) as [title, list] (title)}
 		<div draggable="true">{title} {list}</div>
 	{/each}

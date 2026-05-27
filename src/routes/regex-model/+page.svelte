@@ -9,256 +9,256 @@
 				{
 					name: 'id',
 					type: 'string',
-					attrs: '@id @default(uuid())'
+					attrs: '@id @default(uuid())',
 				},
 				{
 					name: 'firstName',
 					type: 'string',
-					attrs: '@map("first_name")'
+					attrs: '@map("first_name")',
 				},
 				{
 					name: 'lastName',
 					type: 'string',
-					attrs: '@map("last_name")'
+					attrs: '@map("last_name")',
 				},
 				{
 					name: 'email',
 					type: 'string',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'passwordHash',
 					type: 'string',
-					attrs: '@map("password_hash")'
+					attrs: '@map("password_hash")',
 				},
 				{
 					name: 'userAuthToken',
 					type: 'string',
-					attrs: '@unique @map("user_auth_token")'
+					attrs: '@unique @map("user_auth_token")',
 				},
 				{
 					name: 'role',
 					type: 'Role',
-					attrs: '@default(USER)'
+					attrs: '@default(USER)',
 				},
 				{
 					name: 'posts',
 					type: 'Post[]',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'profile',
 					type: 'Profile',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'articles',
 					type: 'Article[]',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'todos',
 					type: 'Todo[]',
-					attrs: '// arrays are optional and could be empty'
+					attrs: '// arrays are optional and could be empty',
 				},
 				{
 					name: 'createdAt',
 					type: 'Date',
-					attrs: '@default(now()) @map("created_at")'
+					attrs: '@default(now()) @map("created_at")',
 				},
 				{
 					name: 'updatedAt',
 					type: 'Date',
-					attrs: '@updatedAt @map("updated_at")'
-				}
+					attrs: '@updatedAt @map("updated_at")',
+				},
 			],
-			attrs: ['@@unique(name): "fullNameEmail", [firstName, lastName, email])', '@@map("users")']
+			attrs: ['@@unique(name): "fullNameEmail", [firstName, lastName, email])', '@@map("users")'],
 		},
 		Profile: {
 			fields: [
 				{
 					name: 'id',
 					type: 'string',
-					attrs: '@id @default(uuid())'
+					attrs: '@id @default(uuid())',
 				},
 				{
 					name: 'bio',
 					type: 'string',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'user',
 					type: 'User',
-					attrs: '@relation(fields: [userId], references: [id])'
+					attrs: '@relation(fields: [userId], references: [id])',
 				},
 				{
 					name: 'userId',
 					type: 'string',
-					attrs: '@unique @map("user_id")'
+					attrs: '@unique @map("user_id")',
 				},
 				{
 					name: 'createdAt',
 					type: 'Date',
-					attrs: '@default(now()) @map("created_at")'
+					attrs: '@default(now()) @map("created_at")',
 				},
 				{
 					name: 'updatedAt',
 					type: 'Date',
-					attrs: '@updatedAt @map("updated_at")'
-				}
+					attrs: '@updatedAt @map("updated_at")',
+				},
 			],
-			attrs: ['@@map("profile")']
+			attrs: ['@@map("profile")'],
 		},
 		Article: {
 			fields: [
 				{
 					name: 'id',
 					type: 'string',
-					attrs: '@id @default(uuid())'
+					attrs: '@id @default(uuid())',
 				},
 				{
 					name: 'title',
 					type: 'string',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'content',
 					type: 'string',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'author',
 					type: 'User',
-					attrs: '@relation(fields: [authorId], references: [id])'
+					attrs: '@relation(fields: [authorId], references: [id])',
 				},
 				{
 					name: 'authorId',
 					type: 'string',
-					attrs: '@map("author_id")'
-				}
+					attrs: '@map("author_id")',
+				},
 			],
-			attrs: ['@@map("article")']
+			attrs: ['@@map("article")'],
 		},
 		Post: {
 			fields: [
 				{
 					name: 'id',
 					type: 'string',
-					attrs: '@id @default(uuid())'
+					attrs: '@id @default(uuid())',
 				},
 				{
 					name: 'title',
 					type: 'string',
-					attrs: '@db.VarChar(255)'
+					attrs: '@db.VarChar(255)',
 				},
 				{
 					name: 'content',
 					type: 'string',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'published',
 					type: 'boolean',
-					attrs: '@default(false)'
+					attrs: '@default(false)',
 				},
 				{
 					name: 'author',
 					type: 'User',
-					attrs: '@relation(fields: [authorId], references: [id])'
+					attrs: '@relation(fields: [authorId], references: [id])',
 				},
 				{
 					name: 'authorId',
 					type: 'string',
-					attrs: '@map("author_id")'
+					attrs: '@map("author_id")',
 				},
 				{
 					name: 'categories',
 					type: 'Category[]',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'createdAt',
 					type: 'Date',
-					attrs: '@default(now()) @map("created_at")'
+					attrs: '@default(now()) @map("created_at")',
 				},
 				{
 					name: 'updatedAt',
 					type: 'Date',
-					attrs: '@updatedAt @map("updated_at")'
-				}
+					attrs: '@updatedAt @map("updated_at")',
+				},
 			],
-			attrs: ['@@map("post")']
+			attrs: ['@@map("post")'],
 		},
 		Category: {
 			fields: [
 				{
 					name: 'id',
 					type: 'number',
-					attrs: '@id @default(autoincrement())'
+					attrs: '@id @default(autoincrement())',
 				},
 				{
 					name: 'name',
 					type: 'string',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'posts',
 					type: 'Post[]',
-					attrs: ''
-				}
+					attrs: '',
+				},
 			],
-			attrs: ['@@map("category")']
+			attrs: ['@@map("category")'],
 		},
 		Todo: {
 			fields: [
 				{
 					name: 'id',
 					type: 'string',
-					attrs: '@id @default(uuid())'
+					attrs: '@id @default(uuid())',
 				},
 				{
 					name: 'title',
 					type: 'string',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'content',
 					type: 'string',
-					attrs: ''
+					attrs: '',
 				},
 				{
 					name: 'priority',
 					type: 'number',
-					attrs: '@default(0)'
+					attrs: '@default(0)',
 				},
 				{
 					name: 'completed',
 					type: 'boolean',
-					attrs: '@default(false)'
+					attrs: '@default(false)',
 				},
 				{
 					name: 'user',
 					type: 'User',
-					attrs: '@relation(fields: [userId], references: [id])'
+					attrs: '@relation(fields: [userId], references: [id])',
 				},
 				{
 					name: 'userId',
 					type: 'string',
-					attrs: '@map("user_id")'
+					attrs: '@map("user_id")',
 				},
 				{
 					name: 'createdAt',
 					type: 'Date',
-					attrs: '@default(now()) @map("created_at")'
+					attrs: '@default(now()) @map("created_at")',
 				},
 				{
 					name: 'updatedAt',
 					type: 'Date',
-					attrs: '@updatedAt @map("updated_at")'
-				}
+					attrs: '@updatedAt @map("updated_at")',
+				},
 			],
-			attrs: ['@@map("todo")']
-		}
+			attrs: ['@@map("todo")'],
+		},
 	};
 	const ordered = [
 		'id',
@@ -288,7 +288,7 @@
 		'role',
 		'priority',
 		'price',
-		'updatedAt'
+		'updatedAt',
 	];
 	const name = 'id';
 

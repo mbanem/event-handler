@@ -8,7 +8,7 @@
 		ui = 'UI',
 		namesOnly = 'namesOnly',
 		nonUI = 'nonUI',
-		all = 'All'
+		all = 'All',
 	}
 
 	class Model {
@@ -115,7 +115,7 @@
 			'ownerId',
 			'firstName',
 			'lastName',
-			'middleName'
+			'middleName',
 		];
 		static sortArrByOrdered(arg: string[] | TField[], kind: UI = UI.all) {
 			const arrType = Array.isArray(arg[0]);
@@ -123,9 +123,7 @@
 			let leftoverPart: string[] | TField[] = [];
 			if (arrType) {
 				if (kind === UI.ui || kind === UI.all) {
-					orderedPart = Model.ordered.map((key) =>
-						(arg as TField[]).find((item) => item[0] === key)
-					) as TField[];
+					orderedPart = Model.ordered.map((key) => (arg as TField[]).find((item) => item[0] === key)) as TField[];
 				}
 				if (kind === UI.nonUI || kind === UI.all) {
 					leftoverPart = (arg as TField[]).filter((item) => {
@@ -138,9 +136,7 @@
 				}
 			} else {
 				if (kind === UI.ui || kind === UI.all || kind === UI.namesOnly) {
-					orderedPart = Model.ordered.map((key) =>
-						(arg as string[]).find((item) => item === key)
-					) as string[];
+					orderedPart = Model.ordered.map((key) => (arg as string[]).find((item) => item === key)) as string[];
 				}
 				if (kind === UI.nonUI || kind === UI.all) {
 					leftoverPart = (arg as string[]).filter((item) => {
@@ -365,7 +361,6 @@ export const actions: Actions = {
 	}
 
 	Model.initialize(lowercaseTypes);
-
 
 	if (browser && Model.initialized) {
 		setTimeout(() => {

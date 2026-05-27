@@ -4,18 +4,18 @@
 // import { handleTryCatch } from '$lib/utils'
 
 // export type Field = { name: string; type: string; attrs?: string }
-export type Field = {
-  name: string
-  type: string
-  isArray: boolean
-  isOptional: boolean
-  attrs?: string
-}
-export type Model = {
-  fields: Field[]
-  attrs?: string[]
-}
-export type Models = Record<string, Model>;
+// export type Field = {
+//   name: string
+//   type: string
+//   isArray: boolean
+//   isOptional: boolean
+//   attrs?: string
+// }
+// export type Model = {
+//   fields: Field[]
+//   attrs?: string[]
+// }
+// export type Models = Record<string, Model>;
 export type FieldNames = Record<string, string>;
 export type FieldStrips = Record<string, string>;
 // const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms

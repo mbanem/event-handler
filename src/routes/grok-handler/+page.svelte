@@ -19,7 +19,7 @@
 		eventHandler.setup('.middle-column', {
 			click: handleClick,
 			mouseover: handleMouseOver,
-			mouseout: handleMouseOut
+			mouseout: handleMouseOut,
 		});
 
 		const middleColumn = document.querySelector('.middle-column') as HTMLElement | null;

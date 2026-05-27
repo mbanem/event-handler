@@ -1,12 +1,12 @@
-<script module lang='ts'>
-  import { createGlobalEventHandler, type EType } from './grok-event-handler';
+<script module lang="ts">
+	import { createGlobalEventHandler, type EType } from './grok-event-handler';
 	// Theme type & state
 	let isDark: boolean = $state(false); // Svelte 5 runes syntax
-	export function isDark_(){
-		return isDark
+	export function isDark_() {
+		return isDark;
 	}
-	export function getIcon(){
-		return isDark_()  ? '☀️' : '🌙';
+	export function getIcon() {
+		return isDark_() ? '☀️' : '🌙';
 	}
 	let reportClicksEl: HTMLDivElement | null = null;
 	let grid: HTMLDivElement | null = null;
@@ -16,27 +16,26 @@
 		const el = e.target as HTMLElement;
 		const style = el.style;
 		style.color = style.color === 'red' ? 'green' : 'red';
-		console.log('style.color',style.color)
+		console.log('style.color', style.color);
 
 		const column = Number(el.parentElement?.dataset.column);
 		const color = colors[column];
 		const scroll = (el: HTMLDivElement) => {
-		const els = el.children;
-		const max = 50;
-		if (els.length > max) {
-			for (let i = 0; i < max / 2; i++) {
-				els[0].remove(); // always delete the top one
+			const els = el.children;
+			const max = 50;
+			if (els.length > max) {
+				for (let i = 0; i < max / 2; i++) {
+					els[0].remove(); // always delete the top one
+				}
 			}
-		}
-		// count = els.length;
-		if (el.offsetHeight + el.scrollTop > el.getBoundingClientRect().height - 20) {
-			setTimeout(() => {
-				el.scrollTo(0, el.scrollHeight);
-			}, 0);
-		}
-	};
-		let header = ([...Object.entries((grid as HTMLElement).children)][column][1] as HTMLElement)
-			.innerText;
+			// count = els.length;
+			if (el.offsetHeight + el.scrollTop > el.getBoundingClientRect().height - 20) {
+				setTimeout(() => {
+					el.scrollTo(0, el.scrollHeight);
+				}, 0);
+			}
+		};
+		let header = ([...Object.entries((grid as HTMLElement).children)][column][1] as HTMLElement).innerText;
 		header = header
 			.replace(/(no)/, `<span style='color:${color};'>$1</span>`)
 			.replace(/(all)/, `<span style='color:${color};'>$1</span>`);
@@ -44,7 +43,7 @@
 		// array of all function names on this page
 		// const fNames = new Error().stack?.match(/^([^@]+)/gm);
 		// console.log(fNames);
-		if (reportClicksEl){
+		if (reportClicksEl) {
 			reportClicksEl.innerHTML += `<p>[${header}]: <span style='color:${color}'>${e.type}</span>Handler</p>`;
 			scroll(reportClicksEl);
 		}
@@ -55,21 +54,21 @@
 	import { resolve } from '$app/paths';
 
 	import { onMount } from 'svelte';
-  import { afterNavigate } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
 
-  onMount(() => {
+	onMount(() => {
 		// console.log('globalEH',globalEH)
 		reportClicksEl = document.querySelector('.report-clicks') as HTMLDivElement;
-			afterNavigate(() => {
-				// Small delay because DOM may still be updating
-				setTimeout(() => globalEH.setup(document.body), 20);
-			});
-			
-    return () => {
-      // unsubscribe();
-      globalEH.destroy();
-    };
-  });
+		afterNavigate(() => {
+			// Small delay because DOM may still be updating
+			setTimeout(() => globalEH.setup(document.body), 20);
+		});
+
+		return () => {
+			// unsubscribe();
+			globalEH.destroy();
+		};
+	});
 
 	// -------- toggle theme begin ---------
 	import { browser } from '$app/environment';
@@ -79,7 +78,7 @@
 	// Get saved preference or system preference
 	function getInitialTheme(): boolean {
 		if (!browser) {
-			return document.documentElement.classList.contains('dark')
+			return document.documentElement.classList.contains('dark');
 		}
 
 		const saved = localStorage.getItem('theme') as 'light' | 'dark' | null;
@@ -89,15 +88,15 @@
 	}
 
 	// Apply theme to document
-	function applyTheme(ld:boolean) {
-		document.documentElement.classList.remove(ld?'light':'dark')
-		document.documentElement.classList.add(ld?'dark':'light')
+	function applyTheme(ld: boolean) {
+		document.documentElement.classList.remove(ld ? 'light' : 'dark');
+		document.documentElement.classList.add(ld ? 'dark' : 'light');
 	}
 
 	// Toggle theme
 	function toggleTheme() {
-		isDark = !isDark
-		localStorage.setItem('theme', isDark? 'dark':'light');
+		isDark = !isDark;
+		localStorage.setItem('theme', isDark ? 'dark' : 'light');
 		applyTheme(isDark);
 	}
 
@@ -116,7 +115,7 @@
 		const handleChange = (e: MediaQueryListEvent) => {
 			// Only auto-change if user hasn't manually selected a theme
 			if (!localStorage.getItem('theme')) {
-				isDark = localStorage.getItem('theme')  === 'true'
+				isDark = localStorage.getItem('theme') === 'true';
 				applyTheme(isDark);
 			}
 		};
@@ -137,11 +136,11 @@
 		<a href={resolve('/sort-record')}>Sort Record</a>
 		<a href={resolve('/regex-model')}>RegExp Model</a>
 		<a href={resolve('/handle-model')}>Handle Model</a>
-		<a href={resolve('/types')}>Types</a>
+		<!-- <a href={resolve('/types')}>Types</a>
 		<a href={resolve('/parse-prisma')}>Parse Prisma</a>
 		<a href={resolve('/dots-on-click')}>Dots on Click</a>
 		<a href={resolve('/boundary')}>Boundary</a>
-		<a href={resolve('/drag-drop')}>Drag-Drop</a>
+		<a href={resolve('/drag-drop')}>Drag-Drop</a> -->
 		<a href={resolve('/OrmOne')}>OrmOne</a>
 		<a href={resolve('/OrmTwo')}>OrmTwo</a>
 		<a href={resolve('/OrmThree')}>OrmThree</a>

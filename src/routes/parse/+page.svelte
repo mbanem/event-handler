@@ -21,9 +21,7 @@
 
 	function sortObjectKeys<T>(obj: Record<string, T>): Record<string, T> {
 		return Object.fromEntries(
-			Object.entries(obj).sort(([a], [b]) =>
-				a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })
-			)
+			Object.entries(obj).sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))
 		);
 	}
 	function dateTimeToDate(type: string) {
@@ -187,13 +185,13 @@
 
 				fields[fieldName] = {
 					type: fieldType,
-					prismaAttrs: rest.join(' ')
+					prismaAttrs: rest.join(' '),
 				};
 			}
 
 			models[modelName] = {
 				fields: sortObjectKeys(fields),
-				modelAttributes
+				modelAttributes,
 			};
 		}
 

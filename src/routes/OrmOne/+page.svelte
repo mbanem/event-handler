@@ -6,7 +6,7 @@
 	const vscode = {
 		postMessage: (msg: { command: string; payload?: string | object }) => {
 			console.log(msg.command, msg.payload);
-		}
+		},
 	};
 	function cancelAnyPart() {
 		startPartOne();
@@ -37,7 +37,7 @@
 					owner: (document.getElementById('dbOwnerId') as HTMLInputElement).value,
 					password: (document.getElementById('dbOwnerPasswordId') as HTMLInputElement).value,
 					host: (document.getElementById('dbHostId') as HTMLInputElement).value,
-					port: (document.getElementById('dbPortId') as HTMLInputElement).value
+					port: (document.getElementById('dbPortId') as HTMLInputElement).value,
 				};
 				vscode.postMessage({ command: 'setDbAndOwner', payload: db });
 			} catch (err) {
@@ -121,8 +121,8 @@ If you prefer to close the Extension while preparing schema and connection strin
 could restart the Extension and it will display the commands that you should have entered
 yourself or select the continue button and the Extension will finish Part Two installation.
 
-  <button id="installPartOneBtnId" style="margin-left:4rem;">Install Prisma ORM</button><button
-			id="cancelPartOneBtnId">Close</button
+  <button id="installPartOneBtnId" style="margin-left:4rem;">Install Prisma ORM</button><button id="cancelPartOneBtnId"
+			>Close</button
 		>
 </pre>
 </div>

@@ -15,7 +15,7 @@
 	// but we use name equal prop nema for type and attrs
 	models['Category'] = {
 		fields: [{ name: fn, type, attrs }],
-		attrs: ['@@map("category")']
+		attrs: ['@@map("category")'],
 	};
 	models.Category.fields.push({ name: 'firstName', type: 'string' });
 	models.Category.fields.push({ name: 'createdAt', type: 'Date', attrs: '@default(uuid())' });
@@ -25,18 +25,18 @@
 			{ name: 'id', type: 'string', attrs: '@id @default(uuid()' },
 			{ name: 'firstName', type: 'string' },
 			{ name: 'lastName', type: 'string' },
-			{ name: 'createdAt', type: 'Date', attrs: '@default(now()) @map("created_at")' }
+			{ name: 'createdAt', type: 'Date', attrs: '@default(now()) @map("created_at")' },
 		],
-		attrs: ['@@map("users")', '@@unique(name: "fullNameEmail", [firstName, lastName, email])']
+		attrs: ['@@map("users")', '@@unique(name: "fullNameEmail", [firstName, lastName, email])'],
 	};
 	models['Todo'] = {
 		fields: [
 			{ name: 'id', type: 'string', attrs: '@id @default(uuid()' },
 			{ name: 'title', type: 'string' },
 			{ name: 'content', type: 'string' },
-			{ name: 'createdAt', type: 'Date', attrs: '@default(now()) @map("created_at")' }
+			{ name: 'createdAt', type: 'Date', attrs: '@default(now()) @map("created_at")' },
 		],
-		attrs: ['@@map("todo")']
+		attrs: ['@@map("todo")'],
 	};
 	// console.log(models);
 	// type Models = Record<string, Model>;

@@ -20,20 +20,20 @@ browsers return value as string and server must convert new Date(value)
 import { stringToFieldObject, handleTryCatch, isEmpty } from '$lib/utils';
 
 // export type Field = { name: string; type: string; attrs?: string }
-export type Field = {
-	name: string;
-	type: string;
-	isArray: boolean;
-	isOptional: boolean;
-	isDataEntry: boolean;
-	attrs?: string;
-};
-// no name; it should be part of Models with their name as a key
-export type Model = {
-	fields: Field[];
-	attrs?: string[];
-};
-export type Models = Record<string, Model>;
+// export type Field = {
+// 	name: string;
+// 	type: string;
+// 	isArray: boolean;
+// 	isOptional: boolean;
+// 	isDataEntry: boolean;
+// 	attrs?: string;
+// };
+// // no name; it should be part of Models with their name as a key
+// export type Model = {
+// 	fields: Field[];
+// 	attrs?: string[];
+// };
+// export type Models = Record<string, Model>;
 // all models; modelName as a key
 const models: Models = {};
 

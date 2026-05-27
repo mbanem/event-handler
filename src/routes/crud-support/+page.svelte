@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { createEventHandler } from '$lib/utils';
-	import type { Model, Models } from './parse-prisma-schema';
-	import CRRBTooltip, { type SelectedModels } from '$lib/components/CRRBTooltip.svelte';
+	import CRRBTooltip from '$lib/components/CRRBTooltip.svelte';
 	import type { PageProps } from './$types';
-
-	type Payload = Record<string, SelectedModels | Model | string[] | string>; // { route: string | null } = { route: null };
-	const log = console.log;
+	import FakeExtension from '$lib/components/FakeExtension.svelte';
+	import ShowMessage from '$lib/components/CRShowMessage.svelte';
+	let sm: ShowMessage;
+	// type Payload = Record<string, SelectedModels | Model | string[] | string>; // { route: string | null } = { route: null };
 	let { data }: PageProps = $props();
 
 	let models = data.models as Models; // avoid $derived as we use this one-time only
-
 	let isLoading = $state(true);
 	setTimeout(() => {
 		isLoading = false;
 	}, 1000);
-
+	let inAction = $state(false);
+	// console.log(models);
+	let fakeExtension: FakeExtension; //{ generate: (payload: Payload) => void };
+	// fakeExtension = {generate: (payload: Payload) => void }
 	// when any checkbox on a component model list is selected
 	// the component keeps this selectedModels in sync
 	let selectedModels = $state<SelectedModels>({});
@@ -30,16 +30,12 @@
 	// create individual pages or part of the application
 	function getPayload() {
 		if (Object.keys(selectedModels).length === 0) {
-			// return JSON.stringify($state.snapshot(candidates));
 			return selectedModels;
 		}
 
 		let payload: Payload = {};
-		// candidateModels.forEach((modelName) => {
-		// 	payload[modelName] = $state.snapshot(models[modelName]) as Model;
-		// });
 		if (crComponents.length) {
-			payload['crComponents'] = crComponents;
+			payload['crComponents'] = $state.snapshot(crComponents);
 		}
 		for (const key of ['authorization', 'authentication']) {
 			const el = document.querySelector(`input[name=${key}]:checked`) as HTMLInputElement;
@@ -47,13 +43,13 @@
 				payload[key] = el.value;
 			}
 		}
-
 		if (appFeatures.length) {
-			payload['features'] = appFeatures;
+			payload['features'] = $state.snapshot(appFeatures);
 		}
+
+		// payload['selectedModels'] = $state.snapshot(selectedModels);
 		payload['selectedModels'] = selectedModels;
-		// return JSON.stringify($state.snapshot(payload));
-		return $state.snapshot(payload);
+		return payload;
 	}
 	// imitate getting model from Webview extension
 	// fake part for Extension
@@ -64,27 +60,32 @@
 				acquireVsCodeApi()
 			: {
 					postMessage: (msg: { command: string; payload: Payload }) => {
-						log(`[DEV] ${msg.command} in progress...`);
+						console.log(`[DEV] to generate ${msg.command} in progress...`);
+						const payload = msg.payload;
+						console.log('msg.payload', payload);
+						console.log('authentication', payload.authentication);
+						console.log('authorization', payload.authorization);
+						console.log('selectedModules', payload.selectedModules);
 						setTimeout(() => {
-							log(`${msg.command} is done`, msg.payload ?? 'with no payload');
+							// console.log(`${msg.command} is done`, msg.payload ?? 'with no payload');
+							fakeExtension?.generate(msg.payload);
 						}, 2000);
 					},
 				};
-
 	// Webview sends message to the extension
-	function createCRUDSupport() {
+	function createCRUDSupport(e: MouseEvent) {
+		inAction = true;
+		const el = e.target as HTMLDivElement;
+		el.style.cursor = 'none';
 		vscode.postMessage({
 			command: 'CreateCrudSupport',
 			payload: getPayload(),
 		});
+		setTimeout(() => {
+			inAction = false;
+			el.style.cursor = 'pointer';
+		}, 2000);
 	}
-
-	const eh = createEventHandler();
-	onMount(() => {
-		return () => {
-			eh.destroy();
-		};
-	});
 
 	let buttonNotAllowed = $derived(Object.keys(selectedModels).length === 0);
 </script>
@@ -92,6 +93,8 @@
 <svelte:head>
 	<title>CRUD Support</title>
 </svelte:head>
+<!-- used as an external function  -->
+<FakeExtension bind:this={fakeExtension} />;
 
 {#snippet appIncludes()}
 	<label for="Navbar" class="app-labels">
@@ -135,14 +138,15 @@
 				</div>
 			{/each}
 		</div>
+
 		<div
+			class="spinner-wrapper"
+			class:not-allowed={inAction}
 			id="createBtnId"
 			onclick={createCRUDSupport}
-			style="font-size: 14px !important;cursor:pointer;"
-			class:notallowed={buttonNotAllowed}
 			aria-hidden={true}
 		>
-			Create CRUD Support
+			<span class="spinner" class:hidden={!inAction}></span>Create CRUD Support
 		</div>
 	</div>
 {/snippet}
@@ -158,10 +162,45 @@
 	<div class="application-settings">
 		{@render pageByPageNote()}
 	</div>
-	<CRRBTooltip {models} bind:selectedModels></CRRBTooltip>
+	<CRRBTooltip {models} bind:selectedModels bind:isLoading></CRRBTooltip>
 </div>
 
+<!-- no display just a showMessage utils with markup -->
+<ShowMessage bind:this={sm} />
+
 <style lang="scss">
+	.spinner-wrapper {
+		position: relative;
+		display: flex;
+		// grid-template-columns: 1em 10rem;
+		justify-content: center;
+		align-items: center;
+		font-size: 14px;
+		column-gap: 0.5rem;
+		line-height: 20px;
+	}
+	.spinner {
+		position: absolute;
+		top: 5.5px;
+		left: -8px;
+		display: inline-block;
+		width: 0.8em;
+		height: 0.8em;
+		border: 3px solid #a1c1eb;
+		border-top-color: #1b4891;
+		border-radius: 50%;
+		margin: 0 4px -3px 0.5rem;
+
+		animation: spin 900ms linear infinite;
+		span {
+			display: inline-block;
+		}
+	}
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 	.cr-main-grid {
 		position: relative;
 		display: grid;
@@ -279,5 +318,12 @@
 		display: grid !important;
 		grid-template-columns: 11rem 14rem;
 		column-gap: 0.5rem;
+	}
+	.hidden {
+		display: none;
+	}
+	.not-allowed {
+		cursor: not-allowed;
+		background-color: lightgray;
 	}
 </style>

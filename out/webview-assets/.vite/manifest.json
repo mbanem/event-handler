@@ -1,0 +1,57 @@
+{
+  "OrmOne.html": {
+    "file": "assets/OrmOne-BXpioc4V.js",
+    "name": "OrmOne",
+    "src": "OrmOne.html",
+    "isEntry": true,
+    "imports": [
+      "_event-handler.browser-DWFwA0wH.js",
+      "_toggle-theme-RvHmAZZa.js"
+    ],
+    "css": [
+      "assets/OrmOne-WiCJYKwb.css"
+    ]
+  },
+  "OrmThree.html": {
+    "file": "assets/OrmThree-DaUkV-hz.js",
+    "name": "OrmThree",
+    "src": "OrmThree.html",
+    "isEntry": true,
+    "imports": [
+      "_event-handler.browser-DWFwA0wH.js",
+      "_utils-DWvyLWMI.js"
+    ],
+    "css": [
+      "assets/OrmThree-Bhl6w_9u.css"
+    ]
+  },
+  "OrmTwo.html": {
+    "file": "assets/OrmTwo-DtvWvOC0.js",
+    "name": "OrmTwo",
+    "src": "OrmTwo.html",
+    "isEntry": true,
+    "imports": [
+      "_event-handler.browser-DWFwA0wH.js",
+      "_utils-DWvyLWMI.js",
+      "_toggle-theme-RvHmAZZa.js"
+    ],
+    "css": [
+      "assets/OrmTwo-BQ856Bq0.css"
+    ]
+  },
+  "_event-handler.browser-DWFwA0wH.js": {
+    "file": "assets/chunks/event-handler.browser-DWFwA0wH.js",
+    "name": "event-handler.browser"
+  },
+  "_toggle-theme-RvHmAZZa.js": {
+    "file": "assets/chunks/toggle-theme-RvHmAZZa.js",
+    "name": "toggle-theme"
+  },
+  "_utils-DWvyLWMI.js": {
+    "file": "assets/chunks/utils-DWvyLWMI.js",
+    "name": "utils",
+    "imports": [
+      "_event-handler.browser-DWFwA0wH.js"
+    ]
+  }
+}

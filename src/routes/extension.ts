@@ -37,12 +37,7 @@ let installPartTwoPending = false;
 let pm = 'unknown';
 let ex = 'unknown';
 
-// ------------------------------------------------------
-// beginning of modelFields.Model where Model is from schema.prisma model/table name
-type TmodelFields = {
-	[key: string]: Array<[name: string, type: string]>;
-};
-
+/
 // Remove 'export type', newlines, and curly braces.
 // Deliberately keep the semicolons to help split fields later.
 const cleanedString = lowerCaseTypes
@@ -53,9 +48,6 @@ const cleanedString = lowerCaseTypes
 // Use a regex to capture "Name=Body" pairs.
 // The pattern matches: (Word)=(Anything until the next Name= or end of string)
 const rawBlocks = cleanedString.split(';').filter(Boolean);
-
-// Make an empty object to fill it up
-const modelFields: TmodelFields = {};
 
 // Revised Strategy:
 // 1. Split by '=' to get segments.
@@ -105,14 +97,8 @@ for (let i = 0; i < segments.length - 1; i++) {
 			const [fieldName, fieldType] = fieldStr.split(':');
 			return [fieldName, fieldType];
 		});
-
-	modelFields[objectName] = fields;
 }
 
-// Usage for(const [name, type] of modelFields.User){...}
-// using only field names [name, ] of ...
-// using only type [ , type] of ...
-// end of building modelFields
 // ---------------------------------------------------------
 type Models = {
 	[modelName: string]: string[];

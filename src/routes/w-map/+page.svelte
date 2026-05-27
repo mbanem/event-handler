@@ -69,7 +69,7 @@
 	let options: Record<string, typeof eventTypes> = {
 		'First Container': eventTypes,
 		'Second Container': eventTypes,
-		'Third Container': eventTypes
+		'Third Container': eventTypes,
 	};
 	function oLength(group?: string) {
 		try {
@@ -128,18 +128,18 @@
 		selectAndSetup('.first-container', {
 			click: onClick,
 			mouseover: onMouseOver,
-			mouseout: onMouseOut
+			mouseout: onMouseOut,
 		});
 		selectAndSetup('.second-container', {
 			click: onClickA,
 			mouseover: onMouseOverA,
-			mouseout: onMouseOutA
+			mouseout: onMouseOutA,
 		});
 		eh.setup('.first-container', { click: onClick, mouseover: onMouseOver, mouseout: onMouseOut });
 		eh.setup('.second-container', {
 			click: onClickA,
 			mouseover: onMouseOverA,
-			mouseout: onMouseOutA
+			mouseout: onMouseOutA,
 		});
 		// selectEl = document.getElementById('selbox') as HTMLSelectElement;
 		setTimeout(() => {
@@ -182,9 +182,7 @@
 	<div class="second-container">
 		<div data-event-list="click">Paragraph One -- click</div>
 		<div data-event-list="mouseover">Paragraph Two -- mouseover</div>
-		<div data-event-list="click mouseover mouseout">
-			Paragraph Three -- click, mouseover, mouseout
-		</div>
+		<div data-event-list="click mouseover mouseout">Paragraph Three -- click, mouseover, mouseout</div>
 		<div data-event-list="mouseout">Paragraph Four -- mouseout</div>
 	</div>
 	<div class="third-container">

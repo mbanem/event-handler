@@ -6,34 +6,22 @@
 	import { tick, onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { capitalize } from '$lib/utils';
-	type Model = {
-		fields: Field[];
-		attrs?: string[];
-	};
-	type Models = Record<string, Model>;
-	type Field = {
-		name: string;
-		type: string;
-		isArray: boolean;
-		isOptional: boolean;
-		isDataEntry: boolean;
-		attrs?: string;
-	};
+	import ShowMessage from '$lib/components/CRShowMessage.svelte';
+	let sm: ShowMessage;
 
-	type TProps = {
+	export type TProps = {
 		models: Models;
 		selectedModels: SelectedModels;
+		isLoading: boolean;
 	};
-	type RouteName = string;
-	export type SelectedModels = Record<RouteName, Model>;
+
 	// Receive initial models from parent
-	let { models: initialModels = {}, selectedModels = $bindable({}) }: TProps = $props();
+	let { models: initialModels = {}, selectedModels = $bindable({}), isLoading = $bindable(true) }: TProps = $props();
 
 	// Make it deeply reactive + owned by this component
 	// Works only between client components not from server to client component (not server->browser)
 	let models = $state<Models>(structuredClone(initialModels)); // or just { ...initialModels } if shallow is enough
 
-	let isLoading = $state(true);
 	let tooltipBlockEl: HTMLDivElement;
 	let emptyModel: Model = { fields: [], attrs: [] };
 	let includeAll = 'All'; // last word for models in CRRBTooltip -- here is 'Both'
@@ -211,19 +199,15 @@
 			notDataEntryEl.style.opacity = '0';
 		}
 	}
-	let detOpen = $state(false);
 	async function toggleSummary(e: MouseEvent) {
-		// console.log('toggleSummary', (e.target as HTMLElement).tagName);
 		const el = e.target as HTMLElement;
 		switch (el.tagName) {
 			case 'SUMMARY':
-				// det = el.parentElement as HTMLDetailsElement;
 				det = el.closest('details') as HTMLDetailsElement;
 				if (!det || det.tagName !== 'DETAILS') {
 					return;
 				}
 				tooltipBlockEl.style.opacity = '0';
-				detOpen = det.open;
 				modelName = det.innerText?.match(/^\S+/)?.[0] as string;
 				for (const item of modelWrapperEl.getElementsByTagName('DETAILS')) {
 					if (item.firstChild !== el) {
@@ -263,9 +247,8 @@
 		return;
 	}
 
-	function hideTooltipBlock(e: MouseEvent) {
+	function hideTooltipBlock() {
 		killTimeout();
-		// tooltipBlockEl.style.opacity = '0';
 	}
 
 	function showMessage(msg: string, className: string = 'tomato', milisec: number = 2000) {
@@ -282,45 +265,52 @@
 			return;
 		}
 		tooltipBlockEl.style.opacity = '0';
-		if (!newModelName) {
-			showMessage(noModelName);
-			return;
-		}
 		const model = capitalize(newModelName);
 
 		if (models[model]) {
 			showMessage(alreadyDefined);
-			newModelName = '';
+			// newModelName = '';
 			return;
 		}
 		await tick();
 
 		extraModels.add(model);
+		// add another model initially with no fields and attrs
+		// so the models list can expand
 		models[model] = emptyModel;
 		newModelName = '';
 	}
-	function removeModel() {
+	async function removeModel(e: MouseEvent) {
 		if (!newModelName) {
-			showMessage(noModelName);
+			showMessage(e, noModelName);
 			return;
 		}
 		const model = capitalize(newModelName);
 
 		if (!models[model]) {
-			showMessage(notRegistered);
+			showMessage(e, notRegistered);
 			return;
 		}
 		if (models[model]) {
-			if (confirm('To delete {model}?')) {
-				delete models[model];
-				extraModels.delete(model);
-			}
+			// if (confirm('To delete {model}?')) {
+			// 	delete models[model];
+			// 	extraModels.delete(model);
+			// }
+			// const confirmed = await showConfirmation({
+			// 	message: `Delete model "${model}"?`,
+			// 	detail: 'This action cannot be undone.',
+			// 	confirmText: 'Yes, Delete',
+			// 	cancelText: 'Cancel',
+			// });
+
+			// if (confirmed) {
+			delete models[model];
+			// Optional: notify user inside webview
+			sm.showMessage(e, `Model "${modelName}" has been deleted.`);
+			// }
 		}
 	}
 	onMount(() => {
-		setTimeout(() => {
-			isLoading = false;
-		}, 100);
 		tooltipBlockEl.classList.remove('hidden');
 		notDataEntryEl.classList.remove('hidden');
 		tooltipBlockEl.addEventListener('change', addFieldToModel);
@@ -342,10 +332,10 @@
 	{#each extraModels as model (model)}
 		<label><input type="radio" name={model} value={model} />{model}</label>
 	{/each}
-	{#if extraModels.size > 2}
+	{#if extraModels.size === 2}
 		<label><input type="radio" name="All" value="All" />Both</label>
 	{/if}
-	{#if extraModels.size === 2}
+	{#if extraModels.size > 2}
 		<label><input type="radio" name="All" value="All" />All</label>
 	{/if}
 {/snippet}
@@ -355,7 +345,7 @@
 			type="text"
 			id="route{modelName}"
 			value={modelName.toLowerCase()}
-			style="position:absolute;top:0;left:4px;margin-right:0;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
+			style="position:absolute;top:0;left:4px;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
 		/>
 		<input
 			type="checkbox"
@@ -396,7 +386,8 @@
 		<div bind:this={modelWrapperEl} class="model-wrapper">
 			{#if isLoading}
 				<div class="spinner-wrapper"><span class="spinner"></span><span>Loading models...</span></div>
-			{:else}
+			{/if}
+			{#if !isLoading && Object.keys(models).length > 0}
 				{@render summaryDetailsModels()}
 			{/if}
 		</div>
@@ -404,10 +395,14 @@
 	<div class="add-extra-model">
 		<span class={msgClass}>{message}</span>
 		<input type="text" bind:value={newModelName} onkeyup={addNewModel} placeholder="Add extra model" />
-		<button onclick={addNewModel}>add</button><button onclick={removeModel}>remove</button>
+		<button onclick={addNewModel} disabled={!newModelName}>add</button><button
+			onclick={removeModel}
+			disabled={!newModelName}>remove</button
+		>
 	</div>
-	<p>det state {detOpen}</p>
 </div>
+<!-- no display just a showMessage utils with markup -->
+<ShowMessage bind:this={sm} />
 
 <style lang="scss">
 	*,
@@ -448,20 +443,25 @@
 		display: grid;
 		grid-template-columns: 1em 10rem;
 		column-gap: 0.5rem;
-		.spinner {
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			width: 0.8em;
-			height: 0.8em;
-			border: 3px solid #a1c1eb;
-			border-top-color: #1b4891;
-			border-radius: 50%;
-			margin: 4px 0 0 0.5rem;
-			animation: spin 900ms linear infinite;
-			span {
-				display: inline-block;
-			}
+	}
+	.spinner {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 0.8em;
+		height: 0.8em;
+		border: 3px solid #a1c1eb;
+		border-top-color: #1b4891;
+		border-radius: 50%;
+		margin: 4px 0 0 0.5rem;
+		animation: spin 900ms linear infinite;
+		span {
+			display: inline-block;
+		}
+	}
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
 		}
 	}
 	.model-wrapper {
@@ -499,11 +499,7 @@
 	.navy {
 		color: navy;
 	}
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
+
 	.container {
 		width: 22rem;
 		margin-top: 1rem;
@@ -553,25 +549,21 @@
 	}
 
 	.cr-fields-column {
-		// position: relative;
 		display: grid;
 		grid-template-columns: 7rem 9.5rem;
 		column-gap: 5px;
 		width: 21.5rem;
 		padding: 6px 0 6px 1rem;
 		max-height: 75vh;
-		/*font-family: Georgia, 'Times New Roman', Times, serif;*/
 		font-size: 15px;
 		font-weight: 500;
 		color: var(--candidate-color);
 		background-color: var(--candidate-bg-color);
-		// overflow-y: auto;
 	}
 
 	.cr-fields-column p {
 		margin: 4px 0 0 0;
 		padding: 1px 0 1px 6px;
-		// border-bottom: 1px solid lightgray;
 		text-wrap: wrap;
 	}
 
@@ -599,11 +591,6 @@
 		color: var(--attr-id);
 	}
 
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
 	.model-checkboxes {
 		color: navy;
 		padding: 0 1rem 0 0;
