@@ -7,7 +7,7 @@ import { parsePrismaSchema } from '$lib/utils';
 export const load: PageServerLoad = async () => {
 	const prismaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
 	const schema = fs.readFileSync(prismaPath, 'utf-8');
-	const models = parsePrismaSchema(schema);
+	const { models, enums } = parsePrismaSchema(schema);
 
 	// const strModels = JSON.stringify({ uiModels, nuiModels, fieldStrips })
 	// Return the data as an object

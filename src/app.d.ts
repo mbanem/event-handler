@@ -24,7 +24,8 @@ declare global {
 		routeName: string;
 		model: Model;
 	};
-	type Position = { x: number; y: number; color: string } | undefined;
+	export type TEnums = Record<string, Record<string, string>>;
+	export type Position = { x: number; y: number; color: string } | undefined;
 	namespace App {
 		// interface Error {}
 		// interface Locals {

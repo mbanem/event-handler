@@ -328,6 +328,9 @@
 </div>
 <div bind:this={notDataEntryEl} class="no-data-entry hidden">not data entry field</div>
 
+{#snippet permissions()}
+	
+{/snippet}
 {#snippet tooltipBlock()}
 	{#each extraModels as model (model)}
 		<label><input type="radio" name={model} value={model} />{model}</label>
@@ -356,6 +359,7 @@
 		<details data-det class="model-details" id="det-{modelName}">
 			<summary class="cr-model-name">
 				{capitalize(modelName)}
+				{@render permissions}
 			</summary>
 
 			<div class="cr-fields-column">

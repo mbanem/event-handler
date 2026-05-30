@@ -4,7 +4,7 @@
 	let message = $state('');
 	let disabled = $state(false);
 
-	export function showMessage(e: MouseEvent, msg: string, position: Position = undefined) {
+	export function showMessage(e: MouseEvent | HTMLElement, msg: string, position: Position = undefined) {
 		console.log('showing message', msg);
 		if (!msgEl) {
 			console.warn('msgEl not found');
@@ -18,7 +18,7 @@
 		message = msg;
 
 		try {
-			triggeringEl = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement;
+			triggeringEl = e instanceof HTMLElement ? e : (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement);
 			if (!triggeringEl) {
 				return;
 			}

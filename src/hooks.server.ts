@@ -25,8 +25,9 @@ export const handle: Handle = (async ({ event, resolve }) => {
 			event.url.pathname = '/';
 			return await resolve(event);
 		}
-	} catch (unk) {
-		console.log('event.cookies.getSession', error);
+	} catch (err: unknown) {
+		const msg = err instanceof Error ? err.message : String(err);
+		console.log('hook getUser', msg);
 	}
 
 	try {
@@ -63,7 +64,7 @@ export const handle: Handle = (async ({ event, resolve }) => {
 				role: 'VISITOR',
 			};
 		}
-	} catch (err) {
+	} catch (err: unknown) {
 		const msg = err instanceof Error ? err.message : String(err);
 		console.log('hook getUser', msg);
 	}

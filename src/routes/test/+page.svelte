@@ -6,6 +6,42 @@
 	}
 	let x = 0;
 	let y = 0;
+
+	// =========== schema enums to object ===============
+	const schema = `
+	model Profile {
+		bio: string
+	}
+	enum Role {
+		USER
+		ADMIN
+		VISITOR
+		MODERATOR
+	}
+	model User {
+		firstName: string
+	}
+	`;
+	// const enumRegex = /\s*enum\s+(\w+)\s*{([\s\S]*?)^\}/gm
+	const enumRegex = /enum\s+([a-zA-z_0-9]+)\s+([^}]+)/gm;
+	const match = enumRegex.exec(schema);
+	console.log(match?.[1]);
+	// console.log(match[2])
+	const m = match[2].match(/\w+/gm);
+	console.log(m);
+	// const m as const
+	// type en = 'ADMIN'|'USER'|'VISITOR'
+	// type e ={
+	// 	USER:'USER',
+	// 	ADMIN:'ADMIN'
+	// } as const;
+
+	// let UI = {[key:string]:string} as const;
+	// (m as RegExpMatchArray).forEach((role) => {
+	// 	UI[role] = role;
+	// });
+
+	// type UIType = (typeof UI)[keyof typeof UI];
 </script>
 
 <ShowMessage bind:this={sm} />

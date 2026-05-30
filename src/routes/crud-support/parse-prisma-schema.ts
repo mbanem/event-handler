@@ -44,6 +44,7 @@ export type ModelFields = Record<string, FieldAttrs>;
 // extact model name and field description as a body from schema.prisma
 // const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms
 const modelRegex = /\s*model\s+(\w+)\s*{([\s\S]*?)^\}/gm;
+const enumRegex = /\s*enum\s+(\w+)\s*{([\s\S]*?)^\}/gm
 
 // arg enum for selecting ui/non UI fields or names from models object
 const UI = {
@@ -170,7 +171,7 @@ function sortModelsByOrdered(kind: UIType = UI.all) {
 			}
 		}
 		orderedFields = orderedFields.filter(Boolean);
-		models[modelName].fields = [...orderedFields, ...leftoverFields];
+		(models?[modelName]).fields = [...orderedFields, ...leftoverFields];
 		// loop level arrays starts loop as empty arrays
 		orderedFields = [];
 		leftoverFields = [];
@@ -197,11 +198,11 @@ const prismaTypeRegex = new RegExp(`\\b(${Object.keys(typeConversionMap).join('|
 
 // return line with conversion into TypeScript type
 function convertPrismaTypesToTS(line: string): string {
-	return line.replace(prismaTypeRegex, (prismaType) => typeConversionMap[prismaType]);
+	return line.replace(prismaTypeRegex, (prismaType) => typeConversionMap[prismaType] as string);
 }
 
 // the main function to generate models sort fields to sync with ordered names and restur models
-export function parsePrismaSchema(schemaContent: string): { models: Models } {
+export function parsePrismaSchema(schemaContent: string): { models: Models, enums:TEnums } {
 	// holds an array of field objects extracted from the model body
 	// to be stuff in owning model
 	let fields: Field[] = [];
@@ -214,12 +215,12 @@ export function parsePrismaSchema(schemaContent: string): { models: Models } {
 
 			const modelAttrs: string[] = [];
 			// Remove block comments /* ... */ first
-			const bodyWithoutBlocks = body.replace(/\/\*[\s\S]*?\*\//g, '');
+			const bodyWithoutBlocks = body?.replace(/\/\*[\s\S]*?\*\//g, '');
 
 			// trim lines and reduce white spaces to a single one
-			const lines = bodyWithoutBlocks
+			const lines = (bodyWithoutBlocks as string)
 				.split('\n')
-				.map((line) => line.trim().replace(/\s{2,}|\t/gm, ' '))
+				.map((line:string) => line.trim().replace(/\s{2,}|\t/gm, ' '))
 				.filter(Boolean);
 
 			// lines are trimmed already
@@ -243,7 +244,7 @@ export function parsePrismaSchema(schemaContent: string): { models: Models } {
 					fields.push(fld);
 				}
 			}
-			models[modelName] = {
+			models[modelName as string] = {
 				fields,
 				attrs: modelAttrs,
 			};
@@ -255,6 +256,18 @@ export function parsePrismaSchema(schemaContent: string): { models: Models } {
 	// console.log('models', models);
 	sortModelsByOrdered(UI.all);
 
+	let enumMatch
+	const enums: TEnums = {};
+	while ((enumMatch = enumRegex.exec(schemaContent)) !== null) {
+		const [, enumName, roles] = enumMatch // skip zero match item as it holds the whole search string
+		enums[enumName as string] = {}
+		if(roles && enumName && enums[enumName]){
+			for (const role of roles.split(/\s+/)) {
+			const rol = role.toUpperCase()
+			enums[enumName][rol] = rol
+		}
+		}
+	}
 	// console.log(models.User);
-	return { models };
+	return { models, enums };
 }

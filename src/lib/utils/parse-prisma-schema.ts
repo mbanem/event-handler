@@ -18,7 +18,6 @@ browsers return value as string and server must convert new Date(value)
   prisma/schema.prisma is actually loaded by extension
 */
 import { stringToFieldObject, handleTryCatch, isEmpty } from '$lib/utils';
-import { SvelteSet } from 'svelte/reactivity';
 
 // export type Field = { name: string; type: string; attrs?: string }
 export type Field = {
@@ -45,6 +44,7 @@ export type ModelFields = Record<string, FieldAttrs>;
 // extact model name and field description as a body from schema.prisma
 // const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms
 const modelRegex = /\s*model\s+(\w+)\s*{([\s\S]*?)^\}/gm;
+const enumRegex = /\s*enum\s+(\w+)\s*{([\s\S]*?)^\}/gm;
 
 // arg enum for selecting ui/non UI fields or names from models object
 const UI = {
@@ -199,7 +199,7 @@ function convertPrismaTypesToTS(line: string): string {
 }
 
 // the main function to generate models sort fields to sync with ordered names and restur models
-export function parsePrismaSchema(schemaContent: string): { models: Models } {
+export function parsePrismaSchema(schemaContent: string): { models: Models; enums: TEnums } {
 	// holds an array of field objects extracted from the model body
 	// to be stuff in owning model
 	let fields: Field[] = [];
@@ -253,5 +253,17 @@ export function parsePrismaSchema(schemaContent: string): { models: Models } {
 	// console.log('models', models);
 	sortModelsByOrdered(UI.all);
 
-	return { models };
+	let enumMatch;
+	const enums: TEnums = {};
+	while ((enumMatch = enumRegex.exec(schemaContent)) !== null) {
+		const [, enumName, roles] = enumMatch; // skip zero match item as it holds the whole search string
+		enums[enumName as string] = {};
+		if (roles && enumName && enums[enumName]) {
+			for (const role of roles.split(/\s+/)) {
+				const rol = role.toUpperCase();
+				enums[enumName][rol] = rol;
+			}
+		}
+	}
+	return { models, enums };
 }
