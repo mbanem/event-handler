@@ -7,8 +7,9 @@
 	// type Payload = Record<string, SelectedModels | Model | string[] | string>; // { route: string | null } = { route: null };
 	let { data }: PageProps = $props();
 
-	let models = data.models as Models; // avoid $derived as we use this one-time only
+	let models = data; // avoid $derived as we use this one-time only
 	let isLoading = $state(true);
+	let userRoles = ['USER', 'ADMIN', 'VISITOR', 'MODERTOR'];
 	setTimeout(() => {
 		isLoading = false;
 	}, 1000);
@@ -56,16 +57,16 @@
 	const vscode =
 		// @ts-expect-error  not an extension content
 		typeof acquireVsCodeApi !== 'undefined'
-			? // @ts-expect-error not an extension coontent
+			? // @ts-expect-error not an extension content
 				acquireVsCodeApi()
 			: {
 					postMessage: (msg: { command: string; payload: Payload }) => {
-						console.log(`[DEV] to generate ${msg.command} in progress...`);
-						const payload = msg.payload;
-						console.log('msg.payload', payload);
-						console.log('authentication', payload.authentication);
-						console.log('authorization', payload.authorization);
-						console.log('selectedModules', payload.selectedModules);
+						//console.log(`[DEV] to generate ${msg.command} in progress...`);
+						// const payload = msg.payload;
+						//console.log('msg.payload', payload);
+						//console.log('authentication', payload.authentication);
+						//console.log('authorization', payload.authorization);
+						//console.log('selectedModules', payload.selectedModules);
 						setTimeout(() => {
 							// console.log(`${msg.command} is done`, msg.payload ?? 'with no payload');
 							fakeExtension?.generate(msg.payload);
@@ -162,7 +163,7 @@
 	<div class="application-settings">
 		{@render pageByPageNote()}
 	</div>
-	<CRRBTooltip {models} bind:selectedModels bind:isLoading></CRRBTooltip>
+	<CRRBTooltip {models} bind:selectedModels bind:isLoading {userRoles}></CRRBTooltip>
 </div>
 
 <!-- no display just a showMessage utils with markup -->

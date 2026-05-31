@@ -5,8 +5,11 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 
 <script lang="ts">
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-
-	const allRoles = ['USER', 'ADMIN', 'VISITOR', 'MODERATOR'];
+	export type TProps = {
+		userRoles: string[];
+	};
+	// const userRoles = ['USER', 'ADMIN', 'VISITOR', 'MODERATOR'];
+	let { userRoles }: TProps = $props();
 	const roles = new SvelteMap<string, SvelteSet<string>>();
 
 	// when dropdown is opened set the current selectedModel
@@ -14,8 +17,9 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 	let dropdownEl: HTMLDivElement;
 
 	function roleSelected(e: MouseEvent, model: string) {
+		e.preventDefault();
 		const el = e.target as HTMLElement;
-		// console.log('roleSelected', el.classList[0]);
+		//console.log('roleSelected parent', el.parentElement);
 		if (!el.classList[0]) {
 			return;
 		}
@@ -24,10 +28,10 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 				selectedModel = (el.parentElement as HTMLElement)?.dataset.model as string;
 				// console.log('switch selectedRoles', selectedModel);
 				// in order to position drop down find rect of currently selected role-list
-				const { x, bottom } = el.getBoundingClientRect();
+				// const { x, y } = el.getBoundingClientRect();
 				Object.assign(dropdownEl.style, {
-					top: `${bottom}px`,
-					left: `${x}px`,
+					top: `${el.offsetHeight + 7}px`,
+					left: '13rem',
 				});
 				dropdownEl.classList.toggle('hidden');
 				break;
@@ -39,14 +43,14 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 				// Svelte cryptic class name
 				const role = el.innerText.match(/(\w+)\s*$/)?.[0];
 				if (role && !el.classList.contains('role-list')) {
-					toggleRole(model as string, role);
+					toggleRole(e, model as string, role);
 				}
 			}
 		}
 	}
-	function toggleRole(model: string, role: string) {
-		// console.log('toggleRole', model, role);
-
+	function toggleRole(e: MouseEvent, model: string, role: string) {
+		e.preventDefault();
+		//console.log('toggleRole', model, role);
 		let set = roles.get(model);
 
 		if (!set) {
@@ -68,7 +72,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 {#snippet multiSelect(model: string)}
 	{@const selected = roles.get(model) ?? new SvelteSet<string>()}
 
-	<div
+	<section
 		class="select-wrapper"
 		aria-hidden={true}
 		onclick={(e: MouseEvent) => roleSelected(e, model)}
@@ -83,23 +87,23 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 					</span>
 				{/each}
 			{:else}
-				<span class="selectedRoles">none selected</span>
+				<span class="selectedRoles">permissions</span>
 			{/if}
 		</div>
-	</div>
+	</section>
 {/snippet}
 <!-- dropdown -->
 <div
 	bind:this={dropdownEl}
 	class="dropdown hidden"
-	onclick={(e: MouseEvent) => toggleRole(selectedModel, (e.target as HTMLElement)?.innerText.slice(2))}
+	onclick={(e: MouseEvent) => toggleRole(e, selectedModel, (e.target as HTMLElement)?.innerText.slice(2))}
 	onkeyup={() => {}}
 	onmouseleave={(e: MouseEvent) => {
 		(e.currentTarget as HTMLElement).classList.add('hidden');
 	}}
 	aria-hidden={true}
 >
-	{#each allRoles as role (role)}
+	{#each userRoles as role (role)}
 		<p class:selected={roles.get(selectedModel)?.has(role)}>
 			<span class="letter">
 				{role[0]}
@@ -117,18 +121,24 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 		box-sizing: border-box;
 	}
 	.select-wrapper {
-		width: 8rem;
+		position: absolute;
+		top: 3px;
+		left: 13rem;
+		width: 6rem;
 		margin-left: 2rem;
 		user-select: none;
 		.role-list {
 			display: flex;
-			gap: 0.4rem;
+			gap: 1px;
 
-			border: 1px solid lightgray;
+			// border: 1px solid lightgray;
 			width: 100%;
+			line-height: 10px;
+			height: 1rem;
 			border-radius: 4px;
 			color: var(--candidate-color);
-			background-color: var(--candidate-bg-color);
+			// background-color: var(--candidate-bg-color);
+			z-index: 20;
 			.badge {
 				display: inline-block;
 				// color: var(--candidate-color);
@@ -136,7 +146,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 				font-size: 11px;
 				border: 1px solid gray;
 				border-radius: 4px;
-				padding: 0 2px !important;
+				padding: 0 2px;
 			}
 			.selectedRoles {
 				display: inline-block;
@@ -160,6 +170,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 		background-color: var(--candidate-bg-color);
 		cursor: pointer;
 		user-select: none;
+		z-index: 20;
 		p {
 			font-size: 10px;
 			margin: 0;

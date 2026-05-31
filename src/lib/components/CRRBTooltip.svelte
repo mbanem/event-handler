@@ -7,16 +7,23 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import { capitalize } from '$lib/utils';
 	import ShowMessage from '$lib/components/CRShowMessage.svelte';
+	import CRUserRoles from '$lib/components/CRUserRolesSelect.svelte';
 	let sm: ShowMessage;
 
 	export type TProps = {
 		models: Models;
 		selectedModels: SelectedModels;
 		isLoading: boolean;
+		userRoles: string[];
 	};
 
 	// Receive initial models from parent
-	let { models: initialModels = {}, selectedModels = $bindable({}), isLoading = $bindable(true) }: TProps = $props();
+	let {
+		models: initialModels = {},
+		selectedModels = $bindable({}),
+		isLoading = $bindable(true),
+		userRoles = [],
+	}: TProps = $props();
 
 	// Make it deeply reactive + owned by this component
 	// Works only between client components not from server to client component (not server->browser)
@@ -32,12 +39,15 @@
 	let modelWrapperEl: HTMLDivElement;
 	let hoveredEl: HTMLElement | null = null;
 
+	let tooltipMessage = $state('not data entry field');
+	const notDataEntry = 'not data entry field';
+	const clickToRemove = 'click to remove';
 	let det: HTMLDetailsElement;
 	const defaultMessage = 'Add/Remove extra model like Login, Admin,...';
 	const alreadyDefined = 'Module is already registered';
 	const notRegistered = 'Module is not registered yet';
 	const noModelName = 'Please enter model name';
-	let modelName = '';
+	let modelName = $state('');
 	let message = $state(defaultMessage);
 	let msgClass = $state('navy');
 	let busy = $state(false);
@@ -167,16 +177,26 @@
 			return;
 		}
 		if (e.type === 'mouseover') {
+			// offer no copy field to extra model(s) as no extra models are defined
 			if (extraModels.size === 0) {
 				return;
 			}
-			const de = (e.target as HTMLElement).dataset.entry;
+			// there are extra data models for radio-button block to offer copy field
+			const dataset = (e.target as HTMLElement).dataset;
 			const { x, y } = (e.target as HTMLElement).getBoundingClientRect();
-			if (de === 'false') {
+
+			// not a data entry field so no radio-block but info no-dataa-entry
+			// or remove field if extraModel field is hovered
+			if (dataset.entry === 'false' || dataset.extra === 'true') {
+				console.log('data entry or extra');
+				if (dataset.entry === 'false') {
+					tooltipMessage = notDataEntry;
+				} else {
+					tooltipMessage = clickToRemove;
+				}
 				showNoDataEntry(x, y);
 				return;
 			}
-			notDataEntryEl.style.opacity = '0';
 			hoveredEl = e.target as HTMLElement;
 			timer = setTimeout(() => {
 				busy = false;
@@ -200,9 +220,11 @@
 		}
 	}
 	async function toggleSummary(e: MouseEvent) {
+		// e.preventDefault();
 		const el = e.target as HTMLElement;
 		switch (el.tagName) {
 			case 'SUMMARY':
+				//console.log('summary clicked');
 				det = el.closest('details') as HTMLDetailsElement;
 				if (!det || det.tagName !== 'DETAILS') {
 					return;
@@ -237,14 +259,21 @@
 				}
 				return;
 			case 'INPUT':
+				//console.log('input clicked');
 				if ((el as HTMLInputElement).type && (el as HTMLInputElement).type === 'checkbox') {
 					exportModules();
 				}
 				break;
+			case 'SPAN':
+			case 'P':
+				// e.preventDefault();
+				//console.log('role list clicked', el.tagName);
+				break;
 			default:
+				//console.log('default clicked', el.tagName);
 				break;
 		}
-		return;
+		// return;
 	}
 
 	function hideTooltipBlock() {
@@ -310,6 +339,18 @@
 			// }
 		}
 	}
+	function hideClickToRemove() {
+		notDataEntryEl.style.opacity = '0';
+	}
+	function removeExtraModelField(e: MouseEvent) {
+		const el = e.target as HTMLElement;
+		const fieldName = el.innerText;
+		const model = models[modelName];
+		if (!model || !model.fields) {
+			return;
+		}
+		model.fields = model.fields.filter((field) => field.name !== fieldName);
+	}
 	onMount(() => {
 		tooltipBlockEl.classList.remove('hidden');
 		notDataEntryEl.classList.remove('hidden');
@@ -326,10 +367,10 @@
 <div bind:this={tooltipBlockEl} class="radio-tooltip hidden">
 	{@render tooltipBlock()}
 </div>
-<div bind:this={notDataEntryEl} class="no-data-entry hidden">not data entry field</div>
+<div bind:this={notDataEntryEl} class="no-data-entry hidden">{tooltipMessage}</div>
 
 {#snippet permissions()}
-	
+	<CRUserRoles {userRoles} />
 {/snippet}
 {#snippet tooltipBlock()}
 	{#each extraModels as model (model)}
@@ -342,6 +383,7 @@
 		<label><input type="radio" name="All" value="All" />All</label>
 	{/if}
 {/snippet}
+
 {#snippet summaryDetailsModel(modelName: string, model: Model)}
 	<div style="position:relative;">
 		<input
@@ -356,16 +398,21 @@
 			value={modelName.toLowerCase()}
 			class="model-checkboxes"
 		/>
-		<details data-det class="model-details" id="det-{modelName}">
+		<details class="model-details" id={modelName}>
 			<summary class="cr-model-name">
 				{capitalize(modelName)}
-				{@render permissions}
+				{@render permissions()}
 			</summary>
 
-			<div class="cr-fields-column">
+			<div
+				class="cr-fields-column"
+				onmouseleave={extraModels.has(modelName) ? hideClickToRemove : undefined}
+				onclick={removeExtraModelField}
+				aria-hidden={true}
+			>
 				{#each model.fields as field (field.name)}
 					{@const attrClass = fieldAttrsClass(field) as string}
-					<section data-entry={field.isDataEntry}>{field.name}</section>
+					<section data-entry={field.isDataEntry} data-extra={extraModels.has(modelName)}>{field.name}</section>
 					<p>type:{field.type} <span class={attrClass}>{fieldAttrs(field)}</span></p>
 				{/each}
 			</div>
